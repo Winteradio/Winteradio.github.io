@@ -6,6 +6,9 @@
 <meta name="description" content="ECS with Scene and Node — a Node-filtered, dependency-graph-ordered entity component system.">
 <title>ECS — Wonmock Lee</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,10 +39,8 @@
     <span class="eyebrow"><span class="dot"></span>Project 02 · Own repository</span>
     <h1 class="title display">ECS <span class="accent">with Scene and Node</span></h1>
     <p class="subhead">
-      Entities are names; <code class="mono">Component</code>s hold data with no logic;
-      <code class="mono">Node</code>s filter entities down to the exact component combination a
-      <code class="mono">System</code> needs. A dependency graph — not a hand-written order — decides which
-      System runs before which.
+      Entities are names, Components hold data, Nodes filter entities down to the exact component combination
+      a System needs. Execution order comes from a dependency graph, not a hand-written list.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
@@ -49,71 +50,36 @@
   <section id="relationships">
     <div class="section-head">
       <span class="section-num mono">01</span>
-      <div><h2 class="section-title display">Class Relationships</h2></div>
-    </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          Systems never scan raw entities. Execution order between Systems isn't a hand-written list either —
-          each System declares <code class="mono">DependOn(other)</code>, and a graph topologically sorts the
-          whole set before every update, catching cycles as a cheap safety net instead of a manual ordering
-          that silently rots.
-        </p>
-      </div>
+      <div><h2 class="section-title display">Class Map</h2></div>
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Entity / Component / Node / System / Graph</div>
-      <pre class="mermaid">
-classDiagram
-    class Entity {
-        + GetID() EntityID
-    }
-    class Component
-    class Node
-    class EntityRegistry {
-        + Emplace(name) ObjectPtr~Entity~
-    }
-    class ComponentRegistry {
-        + Create~T~(entityID) ObjectPtr~T~
-    }
-    class NodeRegistry {
-        + Create~T~(entityID) ObjectPtr~T~
-        + GetContainer(nodeType) NodeContainer
-    }
-    class SystemRegistry {
-        + Create~T~() RefPtr~T~
-        + BuildGraph() Graph
-    }
-    class System {
-        + DependOn(other) void
-        + Update(timeStep, nodeContainer) void
-    }
-    class Graph {
-        + GetPartialSorted(systemID) SystemIDs
-    }
-    class Scene {
-        + RegisterNode(node) void
-        + RegisterSystem(system) void
-    }
-    class World
+      <div class="cap mono">type map — Entity / Component / Node / System / Graph</div>
+      <pre class="diagram">Entity
+  GetID()  -&gt; EntityID
 
-    <<abstract>> Component
-    <<abstract>> Node
-    <<abstract>> System
-    <<GC root, user-defined>> World
+Component  <span class="hi">«abstract»</span>
+Node       <span class="hi">«abstract»</span>
 
-    Component <|-- TransformComponent
-    Node <|-- PhysicsNode
-    World *-- EntityRegistry
-    World *-- ComponentRegistry
-    World *-- NodeRegistry
-    World *-- SystemRegistry
-    World *-- Scene
-    SystemRegistry ..> Graph : builds via topological sort
-    Scene ..> System : registers
-    Scene ..> Node : registers
-      </pre>
+EntityRegistry     Emplace(name)          -&gt; ObjectPtr&lt;Entity&gt;
+ComponentRegistry  Create&lt;T&gt;(entityID)    -&gt; ObjectPtr&lt;T&gt;
+NodeRegistry       Create&lt;T&gt;(entityID)    -&gt; ObjectPtr&lt;T&gt;
+                   GetContainer(nodeType) -&gt; NodeContainer
+SystemRegistry     Create&lt;T&gt;()            -&gt; RefPtr&lt;T&gt;
+                   BuildGraph()           -&gt; Graph
+
+System  <span class="hi">«abstract»</span>
+  DependOn(other)
+  Update(timeStep, nodeContainer)
+
+Graph
+  GetPartialSorted(systemID)  -&gt; SystemIDs
+
+World  <span class="hi">«GC root»</span>
+<span class="hi2">── wiring ──────────────────────────────</span>
+World  owns  every *Registry above, plus Scene
+SystemRegistry  builds Graph  (topological sort of DependOn edges)
+Scene  registers  System, Node</pre>
     </div>
 
     <div class="mermaid-wrap">
@@ -123,15 +89,12 @@ sequenceDiagram
     participant W as World::Update
     participant SR as SystemRegistry
     participant G as Graph
-    participant NR as NodeRegistry
     participant S as System
 
     W->>SR: BuildGraph()
     SR->>G: sort DependOn() edges
     G-->>W: topologically sorted System IDs
     loop each System ID in order
-        W->>SR: Get(systemID)
-        W->>NR: GetContainer(system.GetNodeType())
         W->>S: Update(timeStep, nodeContainer)
     end
       </pre>
@@ -142,69 +105,39 @@ sequenceDiagram
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Node: a deliberate middle point between Sparse Set and Archetype</h2>
-        <span class="section-tag">from the original research notes, before this repo existed</span>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          Both mainstream ECS storage strategies were studied first — starting from Unity DOTS's data-oriented
-          pitch (same-type data contiguous in memory, systems operating on data instead of objects) — and both
-          had one specific failure mode that mattered for this engine.
-        </p>
+        <h2 class="section-title display">Node vs. Sparse Set vs. Archetype</h2>
       </div>
     </div>
 
     <div class="tbl-wrap">
       <table class="spec">
-        <thead><tr><th>Strategy</th><th>How it works</th><th>The specific problem</th></tr></thead>
+        <thead><tr><th>Strategy</th><th>The problem</th></tr></thead>
         <tbody>
-          <tr><td class="k">Sparse Set<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(EnTT-style)</span></td>
-            <td>A dense set holds Entity IDs, a sparse set holds components — fast contiguous-memory component
-              access by ID.</td>
-            <td>Access is scoped to <b>one</b> component type via the Entity ID. Not every System can be
-              expressed against a single component.</td></tr>
-          <tr><td class="k">Archetype<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(Unity ECS)</span></td>
-            <td>Entities with the same component set share an archetype; archetypes (not components) are what's
-              laid out contiguously.</td>
-            <td>Adding even one component to an entity means a <b>new archetype</b> — duplicate the shared
-              components into it, remove them from the old one. Wanting an object that both emits light and
-              renders means standing up a dedicated "Light Render Archetype."</td></tr>
+          <tr><td class="k">Sparse Set</td><td>Fast, but access is scoped to <b>one</b> component type by
+            Entity ID — not every System reduces to a single component.</td></tr>
+          <tr><td class="k">Archetype</td><td>Adding one component means a <b>new archetype</b> — duplicate the
+            shared data in, remove it from the old one.</td></tr>
+          <tr><td class="k">Node <span class="mono" style="color:var(--accent-2);">(this project)</span></td>
+            <td>A Node declares the component combo a System needs, without moving or duplicating the entity's
+              data. Light + render on one entity = register both Nodes, share the Transform.</td></tr>
         </tbody>
       </table>
     </div>
-
-    <div class="callout">
-      <b>Node borrows from both, to dodge both problems.</b> A Node declares the exact component combination a
-      System needs — closer to Archetype's "group by composition" idea — but a Node is attached to an entity
-      without moving or duplicating that entity's component data anywhere, closer to Sparse Set's "just look it
-      up by ID." Wanting an object that emits light and renders no longer means a new archetype: register both
-      a <code class="mono">RenderNode</code> and a <code class="mono">LightNode</code> on the same entity, and
-      both can read the same <code class="mono">TransformComponent</code> without either one owning or copying it.
-    </div>
-
     <p class="why mono">
-      source: <a href="https://winteradio.notion.site/Entity-Component-System-18d52805442e4a1a97fd41c0e0897bb6" target="_blank" rel="noopener">personal research notes, Entity Component System</a> —
-      written before this repository existed; the shipped design (reflection-driven <code class="mono">Cast</code>
-      instead of <code class="mono">dynamic_cast</code>, <code class="mono">PROPERTY</code>-tracked GC roots) is
-      more advanced than the notes describe, but the Sparse-Set/Archetype reasoning above is unchanged from them.
+      source: <a href="https://winteradio.notion.site/Entity-Component-System-18d52805442e4a1a97fd41c0e0897bb6" target="_blank" rel="noopener">research notes, Entity Component System</a>
     </p>
   </section>
 
   <section id="gc-trap">
     <div class="section-head">
       <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">A Trap Worth Documenting</h2></div>
+      <div><h2 class="section-title display">GC Trap</h2></div>
     </div>
     <div class="callout warn">
-      <b>The GC only sees a member variable if it's declared with <code class="mono">PROPERTY()</code>.</b>
-      Forget it on an <code class="mono">EntityContainer</code> or <code class="mono">SystemRegistry</code>
-      member and the collector treats it as unreachable — it gets freed out from under you on the next
-      <code class="mono">Memory::Collect()</code>, and the failure shows up nowhere near the missing macro.
-      This is in the README, not just fixed once and forgotten.
+      The GC only tracks a member declared with <code class="mono">PROPERTY()</code>. Miss it on a
+      <code class="mono">Registry</code> member and the collector treats it as unreachable — freed out from
+      under you on the next <code class="mono">Memory::Collect()</code>.
     </div>
-
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
@@ -212,7 +145,6 @@ sequenceDiagram
           <span class="issue-title"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/8" target="_blank" rel="noopener">The demo project isn't built and worked</a></span>
           <span class="issue-state open mono">open</span>
         </div>
-        <div class="issue-body">Demo project build currently broken after an API change — tracked, not yet closed.</div>
       </div>
     </div>
   </section>

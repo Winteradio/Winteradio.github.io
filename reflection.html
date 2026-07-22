@@ -6,6 +6,9 @@
 <meta name="description" content="C++17 Reflection — Unreal Engine-style GENERATE/PROPERTY/METHOD macros for compile-time type registration.">
 <title>Reflection — Wonmock Lee</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,12 +39,10 @@
     <span class="eyebrow"><span class="dot"></span>Project 04 · Own repository</span>
     <h1 class="title display">C++17 <span class="accent">Reflection</span></h1>
     <p class="subhead">
-      Three macros — <code class="mono">GENERATE</code>, <code class="mono">PROPERTY</code>,
-      <code class="mono">METHOD</code> — modeled after Unreal Engine's <code class="mono">UCLASS</code> /
-      <code class="mono">UPROPERTY</code> / <code class="mono">UFUNCTION</code>. They register a class's
-      type, member variables, and member functions at compile time via C++17
-      <code class="mono">inline static</code> members, so the definitions live entirely in the header with no
-      linker errors.
+      <code class="mono">GENERATE</code> / <code class="mono">PROPERTY</code> / <code class="mono">METHOD</code>
+      — modeled after Unreal's <code class="mono">UCLASS</code>/<code class="mono">UPROPERTY</code>/<code class="mono">UFUNCTION</code>.
+      Register type, members, and methods at compile time via C++17 <code class="mono">inline static</code>,
+      header-only, no linker errors.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Reflection" target="_blank" rel="noopener">github.com/Winteradio/Reflection</a>
@@ -52,57 +53,41 @@
     <div class="section-head">
       <span class="section-num mono">01</span>
       <div>
-        <h2 class="section-title display">Type / Property / Method Registration</h2>
-        <span class="section-tag">single-inheritance only, and that's what makes Cast&lt;T&gt; safe</span>
+        <h2 class="section-title display">Type / Property / Method</h2>
+        <span class="section-tag">single inheritance only — that's what makes Cast&lt;T&gt; safe</span>
       </div>
     </div>
     <div class="section-body">
       <div class="col prose">
         <p>
-          <code class="mono">TypeInfo</code> currently models a single-inheritance chain — one
-          <code class="mono">SuperType</code> per class, not a set of bases. <code class="mono">Cast&lt;T&gt;</code>
-          walks that chain to do up/downcasting without <code class="mono">dynamic_cast</code>, which is exactly
-          what single inheritance makes tractable: there's one unambiguous path from any type up to any of its
-          ancestors, so a cast is just a walk, not a search across a DAG.
+          <code class="mono">TypeInfo</code> models one <code class="mono">SuperType</code> per class, not a
+          set of bases. <code class="mono">Cast&lt;T&gt;</code> walks that single chain — one unambiguous path
+          up, so a cast is a walk, not a search across a DAG, and <code class="mono">dynamic_cast</code> is
+          never needed.
         </p>
       </div>
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — type / property / method registration</div>
-      <pre class="mermaid">
-classDiagram
-    class TypeInfo {
-        + GetProperty(name) PropertyInfo*
-        + GetMethod(name) MethodInfo*
-        + IsChildOf(other) bool
-    }
-    class PropertyInfo {
-        + Get(instance) const_void_ptr
-        + Set(instance, value) void
-    }
-    class ContainerPropertyInfo {
-        + begin(instance) Iterator
-        + end(instance) Iterator
-    }
-    class Iterator {
-        + get() const_void_ptr
-    }
-    class MethodInfo {
-        + Invoke(instance, args) auto
-    }
-    class MethodCreator~Func_func~
-    class MethodCall
+      <div class="cap mono">type map — registration</div>
+      <pre class="diagram">TypeInfo  <span class="hi">«single SuperType chain»</span>
+  GetProperty(name)  -&gt; PropertyInfo*
+  GetMethod(name)    -&gt; MethodInfo*
 
-    <<SuperType chain, single inheritance>> TypeInfo
-    <<non-type template param>> MethodCreator~Func_func~
+PropertyInfo
+  Get(instance)          -&gt; const void*
+  Set(instance, value)
+  └─ ContainerPropertyInfo
+       begin(instance) / end(instance)  -&gt; Iterator  <span class="hi">(64-byte SBO, zero heap alloc)</span>
 
-    PropertyInfo <|-- ContainerPropertyInfo
-    ContainerPropertyInfo ..> Iterator : creates, zero heap alloc
-    TypeInfo o-- PropertyInfo
-    TypeInfo o-- MethodInfo
-    MethodCreator~Func_func~ ..> MethodCall : one static instance per function value
-      </pre>
+MethodInfo
+  Invoke(instance, args)  -&gt; auto
+
+MethodCreator&lt;Func, func&gt;  <span class="hi">«non-type template param»</span>
+  owns 1 static MethodCall per function VALUE
+
+<span class="hi2">── wiring ──────────────────────────────</span>
+TypeInfo  owns  PropertyInfo[], MethodInfo[]</pre>
     </div>
 
     <div class="mermaid-wrap">
@@ -116,12 +101,10 @@ sequenceDiagram
     CT->>TM: GENERATE(Class) - inline static TypeInfo, records SuperType
     CT->>TM: PROPERTY(member) - inline static PropertyInfo self-registers
     RT->>TM: Cast~Derived~(basePtr)
-    TM->>TM: walk SuperType chain, compare TypeInfo
     TM-->>RT: Derived* or nullptr
-    RT->>TM: obj->GetTypeInfo()->GetProperty("m_array")
+    RT->>TM: GetProperty("m_array")
     TM-->>RT: ContainerPropertyInfo*
-    RT->>RT: begin(obj) .. end(obj)
-    Note over RT: Iterator lives in a 64-byte stack buffer - zero heap allocation
+    Note over RT: Iterator lives in a 64-byte stack buffer
       </pre>
     </div>
   </section>
@@ -129,21 +112,17 @@ sequenceDiagram
   <section id="depth">
     <div class="section-head">
       <span class="section-num mono">02</span>
-      <div><h2 class="section-title display">Two Details Worth Knowing About</h2></div>
+      <div><h2 class="section-title display">Two Details Worth Knowing</h2></div>
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Zero-allocation type erasure for container iteration.</div>
-        <div class="sub">A virtual-function iterator (<code class="mono">IIterator*</code>) would
-          <code class="mono">new</code> on every traversal. Instead the iterator carries a fixed 64-byte buffer
-          (<code class="mono">alignas(void*) uint8_t[64]</code>), placement-news the real STL iterator into it,
-          and dispatches through captured lambdas instead of a vtable — with explicit deep-copy/destroy functions
-          so Debug mode never sees a double-free from a shallow buffer copy.</div></div></div>
+      <div class="achv"><div><div class="head">Zero-allocation iteration.</div>
+        <div class="sub">A virtual-function iterator would <code class="mono">new</code> per traversal. Instead:
+          a fixed 64-byte buffer, placement-new, lambda dispatch instead of a vtable, explicit deep-copy so
+          Debug never double-frees a shallow buffer copy.</div></div></div>
       <div class="achv"><div><div class="head">Static method objects without <code class="mono">new</code>.</div>
-        <div class="sub">Two member functions with identical signatures would collide on the same
-          <code class="mono">static</code> storage if keyed only by type. <code class="mono">MethodCreator&lt;Func,
-          func&gt;</code> keys on the function pointer <em>value</em> as a non-type template parameter, so each
-          function gets its own template instantiation — and its own unique <code class="mono">static
-          MethodCall</code> — for free.</div></div></div>
+        <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code> keys on the function pointer
+          <em>value</em> — each function gets its own template instantiation, and its own unique
+          <code class="mono">static MethodCall</code>, for free.</div></div></div>
     </div>
   </section>
 

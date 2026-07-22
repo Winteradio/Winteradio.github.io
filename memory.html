@@ -6,6 +6,9 @@
 <meta name="description" content="MemoryPool — a Mark-and-Sweep garbage collector referencing Unreal Engine's GC design.">
 <title>Memory — Wonmock Lee</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,8 +39,8 @@
     <span class="eyebrow"><span class="dot"></span>Project 03 · Own repository</span>
     <h1 class="title display">Memory <span class="accent">Pool &amp; GC</span></h1>
     <p class="subhead">
-      A Mark-and-Sweep collector referencing Unreal Engine's garbage collector, with an incremental time
-      budget so a collection cycle can suspend mid-pass instead of stalling a frame.
+      Mark-and-Sweep, referencing Unreal Engine's collector, with an incremental time budget so a cycle can
+      suspend mid-pass instead of stalling a frame.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/MemoryPool" target="_blank" rel="noopener">github.com/Winteradio/MemoryPool</a>
@@ -47,60 +50,31 @@
   <section id="structure">
     <div class="section-head">
       <span class="section-num mono">01</span>
-      <div>
-        <h2 class="section-title display">Collector, Storage, Smart Pointers</h2>
-        <span class="section-tag">UE-referenced Mark-and-Sweep, incremental</span>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          Mark and Sweep each carry a <code class="mono">TimeLimit</code>. Objects are handed out through
-          <code class="mono">ObjectPtr&lt;T&gt;</code>; <code class="mono">RootPtr&lt;T&gt;</code>
-          additionally registers itself with the collector as a GC root on construction. Underneath, a
-          <code class="mono">StorageManager</code> routes each type to a <code class="mono">PoolBudget</code>
-          (single objects) or <code class="mono">ArrayBudget</code> (array objects).
-        </p>
-      </div>
+      <div><h2 class="section-title display">Collector, Storage, Smart Pointers</h2></div>
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — collector, storage, smart pointers</div>
-      <pre class="mermaid">
-classDiagram
-    class GarbageCollector {
-        + Prepare() void
-        + Mark() void
-        + Scan() void
-        + Sweep() void
-    }
-    class StorageManager {
-        + Create~T~() ObjectPtr~T~
-        + CreateArray~T~(count) ObjectPtr~T[]~
-    }
-    class PoolBudget {
-        + Classify() eDensity
-    }
-    class ArrayBudget
-    class Accessor {
-        + Construct() void
-        + Destruct() void
-    }
-    class ObjectPtr~T~ {
-        + operator->() T*
-    }
-    class RootPtr~T~
+      <div class="cap mono">type map — collector, storage, smart pointers</div>
+      <pre class="diagram">GarbageCollector
+  Prepare() / Mark() / Scan() / Sweep()
 
-    <<IAccessor>> Accessor
+StorageManager
+  Create&lt;T&gt;()             -&gt; ObjectPtr&lt;T&gt;
+  CreateArray&lt;T&gt;(count)   -&gt; ObjectPtr&lt;T[]&gt;
+  ├─ PoolBudget    single objects, Classify() -&gt; eDensity
+  └─ ArrayBudget   array objects
 
-    ObjectPtr <|-- RootPtr
-    StorageManager --> PoolBudget : single objects
-    StorageManager --> ArrayBudget : array objects
-    PoolBudget --> Accessor
-    ArrayBudget --> Accessor
-    GarbageCollector ..> Accessor : Mark / Sweep
-    ObjectPtr ..> Accessor : refers to
-      </pre>
+Accessor  <span class="hi">«IAccessor, lives in each instance header»</span>
+  Construct() / Destruct()
+
+ObjectPtr&lt;T&gt;
+  └─ RootPtr&lt;T&gt;  <span class="hi">registers as GC root on construct</span>
+
+<span class="hi2">── wiring ──────────────────────────────</span>
+StorageManager  routes to  PoolBudget or ArrayBudget
+PoolBudget, ArrayBudget    both own  Accessor
+GarbageCollector  Mark/Sweeps  Accessor
+ObjectPtr  refers to  Accessor</pre>
     </div>
 
     <div class="mermaid-wrap">
@@ -131,36 +105,22 @@ sequenceDiagram
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">No Compaction — Occupancy-Ranked Buckets Instead</h2>
-        <span class="section-tag">a deliberate trade-off, not a missing feature</span>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          A classic compacting GC moves live objects together to eliminate fragmentation — but that only
-          stays cheap if there's a stable indirection layer (a handle table) between a pointer and the
-          object, so moving the object doesn't invalidate anything already holding a reference to it.
-        </p>
+        <h2 class="section-title display">No Compaction, By Design</h2>
       </div>
     </div>
 
     <div class="callout warn">
-      <b>Why compaction was ruled out here:</b> <code class="mono">Accessor</code> lives inline in each
-      instance's own header, not in a separate stable handle table. Moving an object during compaction moves
-      its <code class="mono">Accessor</code> with it — so every live <code class="mono">ObjectPtr</code> /
-      <code class="mono">RootPtr</code> already pointing at that instance would need to be found and rewritten
-      (back-propagated) to the new address. Without a tracked list of referrers, that's effectively a second
-      full GC pass on its own. Compaction was left out on purpose.
+      <b>Why compaction is out:</b> <code class="mono">Accessor</code> lives inline in each instance's header,
+      not a separate handle table. Moving an object during compaction moves its <code class="mono">Accessor</code>
+      too — every live <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code> already pointing at
+      it would need finding and rewriting. Without a tracked referrer list, that's a second full GC pass on
+      its own.
     </div>
-
     <div class="callout">
-      <b>Fragmentation is managed on the allocation side instead:</b> each <code class="mono">PoolBudget</code>
-      classifies its buckets by occupancy ratio — <code class="mono">eSparse / eModerate / eDense / eFull</code>
-      — and new allocations are routed to the bucket with the <em>lowest</em> occupancy first, rather than
-      packing whichever bucket is already fullest. Spreading allocations this way keeps any single bucket from
-      running away to <code class="mono">eFull</code> and forcing a fresh backing allocation, which is the
-      practical source of internal fragmentation this design is actually trying to avoid.
+      <b>Fragmentation handled on allocation instead:</b> each <code class="mono">PoolBudget</code> classifies
+      buckets by occupancy (<code class="mono">eSparse / eModerate / eDense / eFull</code>) and routes new
+      allocations to the <em>lowest</em>-occupancy bucket first — keeps any one bucket from hitting
+      <code class="mono">eFull</code> and forcing a fresh backing allocation.
     </div>
   </section>
 
@@ -176,11 +136,7 @@ sequenceDiagram
           <span class="issue-title"><a href="https://github.com/Winteradio/MemoryPool/issues/16" target="_blank" rel="noopener">The multi-threading GC will be crashed</a></span>
           <span class="issue-state open mono">open</span>
         </div>
-        <div class="issue-body">
-          "When the garbage collector is working, the object ptr will be race condition for accessing the
-          instance." Concurrent GC access to object pointers isn't synchronized yet — logged as a known gap
-          rather than shipped silently broken.
-        </div>
+        <div class="issue-body">Concurrent GC access to object pointers isn't synchronized yet — race condition, tracked not hidden.</div>
       </div>
     </div>
   </section>

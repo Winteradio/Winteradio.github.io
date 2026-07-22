@@ -6,6 +6,9 @@
 <meta name="description" content="Custom C++ Game Engine — layered architecture, threading model, and rendering pipeline.">
 <title>Game Engine — Wonmock Lee</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,10 +39,9 @@
     <span class="eyebrow"><span class="dot"></span>Project 01 · Active development</span>
     <h1 class="title display">Custom C++ Game Engine</h1>
     <p class="subhead">
-      A 4-thread engine — <code class="mono">World</code> · <code class="mono">Render</code> ·
-      <code class="mono">RHI</code> · <code class="mono">Asset</code> — that mirrors Unreal's separation of
-      game logic from rendering. Everything outside the day job's OpenGL ES map renderer lives here, built on
-      four systems written from scratch (see the project pages in the nav above).
+      4 threads — <code class="mono">World</code> · <code class="mono">Render</code> · <code class="mono">RHI</code> ·
+      <code class="mono">Asset</code> — mirroring Unreal's split between game logic and rendering. Built on the
+      four systems in the nav above.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Game-Engine" target="_blank" rel="noopener">github.com/Winteradio/Game-Engine</a>
@@ -50,17 +52,8 @@
     <div class="section-head">
       <span class="section-num mono">01</span>
       <div>
-        <h2 class="section-title display">Threading &amp; Frame Synchronization</h2>
-        <span class="section-tag">how the 4 workers hand a frame to each other</span>
-      </div>
-    </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          <code class="mono">FrameGate</code> is a producer-consumer condition variable pair: World signals
-          it once ECS update is done, Renderer waits on it, then signals its own gate for RHI. Nobody polls;
-          nobody spins.
-        </p>
+        <h2 class="section-title display">Threading &amp; Frame Sync</h2>
+        <span class="section-tag">FrameGate — a producer/consumer condition-variable pair</span>
       </div>
     </div>
 
@@ -95,35 +88,26 @@ sequenceDiagram
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">sequence — Asset pipeline, the other cross-module path into RHI</div>
+      <div class="cap mono">sequence — Asset pipeline, the other path into RHI</div>
       <pre class="mermaid">
 sequenceDiagram
-    participant GC as Game Code
     participant AS as AssetSystem
     participant AW as AssetWorker
     participant TW as TaskWorker Pool
     participant RTE as RHITaskExecutor
     participant RHIW as RHIWorker
-    participant GPU as GPU
 
-    GC->>AS: Load("mesh.obj")
-    AS->>AS: AssetFactory.Create - state = eLoaded
-    AW->>AS: GetTask - dequeue MeshAsset
-    AW->>TW: Set(ParseTask)
-    TW->>TW: OBJParser.Parse - state = eParsed
-    AW->>RTE: Executor.Acquire()
-    AW->>RTE: OBJParser.Load - enqueue RHICommandInitializeBuffer
-    AW->>RTE: Executor.Submit(cmdList)
-    RHIW->>RTE: TaskExecutor.Execute()
-    RTE->>GPU: glBufferData / glTexImage2D
+    AS->>AS: Load(path) - state = eLoaded
+    AW->>TW: Parse - state = eParsed
+    AW->>RTE: Load - enqueue RHICommandInitializeBuffer
+    RHIW->>RTE: Execute - glBufferData / glTexImage2D
     Note right of RHIW: state = eReady
       </pre>
     </div>
 
     <div class="callout">
-      <b>RenderCommandList</b> is zero-allocation: two <code class="mono">LinearArena</code>s ping-pong — World
-      writes RenderTask lambdas into one while Render drains the other, so a frame boundary never costs a
-      heap allocation.
+      <b>RenderCommandList</b> is zero-allocation — two <code class="mono">LinearArena</code>s ping-pong,
+      World writes lambdas into one while Render drains the other.
     </div>
   </section>
 
@@ -131,286 +115,177 @@ sequenceDiagram
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Four Layers, Four Class Diagrams</h2>
+        <h2 class="section-title display">Four Layers</h2>
         <span class="section-tag">World never imports a render type · RHI is the only layer that calls a graphics API</span>
       </div>
     </div>
 
-    <h3 class="display" style="font-size:19px;margin:0 0 6px;">WorldContext</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      Entities, components, and the one-way bridge out. A <code class="mono">ProxyComponent</code> never
-      talks to the renderer directly — it flips <code class="mono">IsDirty()</code>, <code class="mono">Scene</code>
-      notices, and a snapshot goes out through <code class="mono">Commander</code>.
-    </p>
+    <h3 class="display" style="font-size:19px;margin:0 0 8px;">WorldContext</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — WorldContext</div>
-      <pre class="mermaid">
-classDiagram
-    class WorldContext {
-        + RootPtr~World~ world
-        + RefPtr~Commander~ commander
-        + Update(timeStep) void
-    }
-    class World {
-        + Scene scene
-        + CreateEntity() ObjectPtr~Entity~
-        + CreateComponent~T~() ObjectPtr~T~
-        + CreateNode~T~() ObjectPtr~T~
-    }
-    class Entity {
-        + AddComponent~T~() bool
-    }
-    class Scene {
-        + Flush() void
-    }
-    class Commander {
-        + Enqueue(renderTask) void
-        + SetView(renderView) void
-    }
-    class ProxyComponent
-    class TransformComponent
-    class StaticMeshComponent
-    class LightComponent
-    class StaticMeshNode {
-        + ObjectPtr~TransformComponent~ transform
-        + ObjectPtr~StaticMeshComponent~ mesh
-    }
+      <div class="cap mono">type map — WorldContext</div>
+      <pre class="diagram">WorldContext
+  RootPtr&lt;World&gt;      world
+  RefPtr&lt;Commander&gt;   commander
+  Update(timeStep)
 
-    <<abstract>> ProxyComponent
+World
+  Scene  scene
+  CreateEntity()          -&gt; ObjectPtr&lt;Entity&gt;
+  CreateComponent&lt;T&gt;()    -&gt; ObjectPtr&lt;T&gt;
+  CreateNode&lt;T&gt;()         -&gt; ObjectPtr&lt;T&gt;
 
-    WorldContext *-- World
-    WorldContext *-- Commander
-    World *-- Scene
-    World o-- Entity
-    ProxyComponent <|-- TransformComponent
-    ProxyComponent <|-- StaticMeshComponent
-    ProxyComponent <|-- LightComponent
-    StaticMeshNode o-- TransformComponent
-    StaticMeshNode o-- StaticMeshComponent
-    Scene ..> Commander : uses
-      </pre>
+Commander
+  Enqueue(renderTask)
+  SetView(renderView)
+
+ProxyComponent  <span class="hi">«abstract»</span>
+  ├─ TransformComponent
+  ├─ StaticMeshComponent
+  └─ LightComponent
+
+<span class="hi2">── wiring ──────────────────────────────</span>
+WorldContext  owns   World, Commander
+StaticMeshNode  uses   TransformComponent, StaticMeshComponent
+Scene  notified-by  ProxyComponent.IsDirty(), pushes via Commander</pre>
     </div>
-
-    <h3 class="display" style="font-size:19px;margin:36px 0 6px;">Renderer</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      Owns <code class="mono">RenderScene</code> and <code class="mono">RenderGraph</code> — every other
-      render-side object routes through one of these two.
+    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:10px 0 0;">
+      A <code class="mono">ProxyComponent</code> never talks to the renderer — it flips
+      <code class="mono">IsDirty()</code>, <code class="mono">Scene</code> notices, a snapshot goes out through
+      <code class="mono">Commander</code>.
     </p>
+
+    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Renderer</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Renderer</div>
-      <pre class="mermaid">
-classDiagram
-    class Renderer {
-        + Execute(cmdList) void
-    }
-    class RenderScene {
-        + Flush(cmdList) void
-    }
-    class RenderGraph {
-        - DynamicArray~RenderPass~ m_passes
-        + Execute(cmdList, scene, view) void
-    }
-    class RenderPass {
-        + Draw(drawCommands, lights, cmdList) bool
-    }
-    class ComputePass
-    class GraphicPass
-    class TransformPass
-    class CullingPass
-    class GeometryPass
-    class LightingPass
-    class MeshBatch {
-        + Sync(cmdList) void
-    }
-    class MeshDrawCommand {
-        + RefPtr~RHIBuffer~ rawTransform
-        + RefPtr~RHIBuffer~ transform
-        + RefPtr~RHIVertexLayout~ vertexLayout
-        + RefPtr~MaterialProxy~ material
-    }
+      <div class="cap mono">type map — Renderer</div>
+      <pre class="diagram">Renderer
+  Execute(cmdList)
 
-    <<abstract>> RenderPass
-    <<abstract>> ComputePass
-    <<abstract>> GraphicPass
+RenderGraph
+  DynamicArray&lt;RenderPass&gt;  m_passes
+  Execute(cmdList, scene, view)
 
-    Renderer *-- RenderScene
-    Renderer *-- RenderGraph
-    RenderGraph *-- RenderPass
-    RenderPass <|-- ComputePass
-    RenderPass <|-- GraphicPass
-    ComputePass <|-- TransformPass
-    ComputePass <|-- CullingPass
-    GraphicPass <|-- GeometryPass
-    GraphicPass <|-- LightingPass
-    RenderScene o-- MeshBatch
-    MeshBatch *-- MeshDrawCommand
-      </pre>
+RenderPass  <span class="hi">«abstract»</span>
+  Draw(drawCommands, lights, cmdList) -&gt; bool
+  ├─ ComputePass  <span class="hi">«abstract»</span>
+  │    ├─ TransformPass    (GPU TRS compute)
+  │    └─ CullingPass      (stub, pass-through)
+  └─ GraphicPass  <span class="hi">«abstract»</span>
+       ├─ GeometryPass     (fills GBuffer)
+       └─ LightingPass     (per-light screen quad)
+
+MeshDrawCommand
+  RefPtr&lt;RHIBuffer&gt;        rawTransform
+  RefPtr&lt;RHIBuffer&gt;        transform
+  RefPtr&lt;RHIVertexLayout&gt;  vertexLayout
+  RefPtr&lt;MaterialProxy&gt;    material
+
+<span class="hi2">── wiring ──────────────────────────────</span>
+Renderer  owns  RenderScene, RenderGraph
+RenderScene  owns  MeshBatch[] , each MeshBatch owns 1 MeshDrawCommand</pre>
     </div>
 
-    <div class="achv-list" style="margin-top:18px;">
-      <div class="achv"><div><div class="head">MeshBatch owns exactly one MeshDrawCommand per (mesh, material) pair.</div>
-        <div class="sub">Two SSBOs live on it — <code class="mono">rawTransform</code> (raw position / quaternion /
-          scale per instance) and <code class="mono">transform</code> (the computed <code class="mono">mat4</code>s
-          TransformPass writes) — plus the vertex layout and a material reference.</div></div></div>
-      <div class="achv"><div><div class="head">GeometryPass reads one MeshDrawCommand, issues one draw call.</div>
-        <div class="sub">Bind vertex layout, bind the transform SSBO, bind material — a single indexed draw covers
-          every instance in the batch. This is the mechanism behind "1 draw call per batch."</div></div></div>
-      <div class="achv"><div><div class="head">RenderPass splits into two abstract bases, not one.</div>
-        <div class="sub"><code class="mono">ComputePass</code> just dispatches a compute shader — used by
-          <code class="mono">TransformPass</code> (GPU TRS) and <code class="mono">CullingPass</code> (currently a
-          pass-through stub). <code class="mono">GraphicPass</code> owns full pipeline state — clear, depth, blend,
-          rasterizer — used by <code class="mono">GeometryPass</code> and <code class="mono">LightingPass</code>.</div></div></div>
-      <div class="achv"><div><div class="head">RenderGraph is just an ordered list of RenderPass.</div>
-        <div class="sub">Execute() walks it once a frame: TransformPass → GeometryPass → LightingPass ×N lights.
-          Adding a pass means appending to the list.</div></div></div>
+    <div class="achv-list" style="margin-top:16px;">
+      <div class="achv"><div><div class="head">One MeshDrawCommand per (mesh, material) → one draw call.</div>
+        <div class="sub">GeometryPass binds vertex layout + <code class="mono">transform</code> SSBO + material,
+          then issues a single indexed draw covering every instance in the batch.</div></div></div>
+      <div class="achv"><div><div class="head">RenderPass splits into ComputePass and GraphicPass, not one base.</div>
+        <div class="sub">ComputePass just dispatches a shader; GraphicPass owns full pipeline state (clear, depth,
+          blend, rasterizer). RenderGraph is just an ordered list of these, walked once a frame.</div></div></div>
     </div>
 
-    <figure class="gbuffer-row" style="margin-top:22px;">
-      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo channel"><figcaption class="mono">GBuffer · Albedo</figcaption></figure>
-      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal channel"><figcaption class="mono">GBuffer · Normal</figcaption></figure>
-      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position channel"><figcaption class="mono">GBuffer · Position</figcaption></figure>
+    <figure class="gbuffer-row" style="margin-top:20px;">
+      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo channel"><figcaption class="mono">Albedo</figcaption></figure>
+      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal channel"><figcaption class="mono">Normal</figcaption></figure>
+      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position channel"><figcaption class="mono">Position</figcaption></figure>
     </figure>
-    <p class="why mono" style="margin-top:6px;">what GeometryPass writes, before LightingPass composites them</p>
 
-    <h3 class="display" style="font-size:19px;margin:36px 0 6px;">RHI</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      The only layer allowed to call a graphics API. An OpenGL context has thread affinity, so every GPU call
-      is wrapped as an <code class="mono">RHICommandBase</code> (45+ of them) and only
-      <code class="mono">RHIWorker</code> ever executes one.
-    </p>
+    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">RHI</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — RHI</div>
-      <pre class="mermaid">
-classDiagram
-    class RHISystem {
-        + CreateBuffer(desc) RefPtr
-        + InitializeBuffer(info, buffer) void
-        + DrawIndexPrimitive(info) void
-        + DispatchCompute(info) void
-    }
-    class GLSystem
-    class RHICommandList {
-        + Enqueue~T~(...) void
-        + ExecuteAll() void
-    }
-    class RHICommandBase {
-        + Execute(system) void
-    }
-    class RHIFrameExecutor {
-        - DynamicArray~RHICommandList~ m_listPool
-        - size_t m_recordIndex
-        - size_t m_beginIndex
-        - atomic~size_t~ m_endIndex
-        + Acquire() RefPtr~RHICommandList~
-        + Execute() void
-    }
-    class RHITaskExecutor {
-        + Execute() void
-    }
+      <div class="cap mono">type map — RHI</div>
+      <pre class="diagram">RHISystem  <span class="hi">«abstract»</span>
+  CreateBuffer(desc)  -&gt; RefPtr
+  InitializeBuffer(info, buffer)
+  DrawIndexPrimitive(info)
+  DispatchCompute(info)
+  └─ GLSystem
 
-    <<abstract>> RHISystem
-    <<abstract>> RHICommandBase
+RHICommandList
+  Enqueue&lt;T&gt;(...)
+  ExecuteAll()
 
-    RHISystem <|-- GLSystem
-    RHICommandList o-- RHICommandBase
-    RHIFrameExecutor ..> RHICommandList : triple-buffers
-    RHICommandList ..> RHISystem : delegates to
-      </pre>
+RHIFrameExecutor
+  DynamicArray&lt;RHICommandList&gt;  m_listPool
+  atomic&lt;size_t&gt;                m_endIndex
+  Acquire()  -&gt; RefPtr&lt;RHICommandList&gt;
+  Execute()
+
+<span class="hi2">── wiring ──────────────────────────────</span>
+RHICommandList     holds RHICommandBase[] (45+ command types)
+RHIFrameExecutor   triple-buffers RHICommandList
+RHICommandList     delegates every call to RHISystem</pre>
+    </div>
+    <div class="callout warn">
+      An OpenGL context has thread affinity — calling it off-thread is undefined behavior. Every GPU call is a
+      command object; only <code class="mono">RHIWorker</code> ever executes one.
     </div>
 
-    <h3 class="display" style="font-size:19px;margin:36px 0 6px;">Asset</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      3 stages, 3 different threads — Parse never blocks the main loop, Upload never runs outside RHIWorker.
-    </p>
+    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Asset</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Asset</div>
-      <pre class="mermaid">
-classDiagram
-    class Asset {
-        + UUID id
-    }
-    class MeshAsset {
-        + DynamicArray~MeshSection~ sections
-    }
-    class MaterialAsset {
-        + eShadingModel shadingModel
-    }
-    class TextureAsset {
-        + RefPtr~RHITexture~ texture
-    }
-    class AssetSystem {
-        + Load(path) RefPtr~Asset~
-    }
-    class AssetParser {
-        + Parse(asset) void
-        + Load(asset, cmdList) void
-    }
-    class OBJParser
-    class StbImageParser
+      <div class="cap mono">type map — Asset</div>
+      <pre class="diagram">Asset
+  UUID  id
+  ├─ MeshAsset      DynamicArray&lt;MeshSection&gt; sections
+  ├─ MaterialAsset  eShadingModel shadingModel
+  └─ TextureAsset   RefPtr&lt;RHITexture&gt; texture
 
-    <<static singleton>> AssetSystem
-    <<abstract>> AssetParser
+AssetParser  <span class="hi">«abstract»</span>
+  Parse(asset)
+  Load(asset, cmdList)
+  ├─ OBJParser
+  └─ StbImageParser
 
-    Asset <|-- MeshAsset
-    Asset <|-- MaterialAsset
-    Asset <|-- TextureAsset
-    MeshAsset o-- MaterialAsset
-    AssetParser <|-- OBJParser
-    AssetParser <|-- StbImageParser
-    AssetSystem ..> AssetParser : uses
-      </pre>
+<span class="hi2">── state machine ────────────────────────</span>
+eLoaded --AssetSystem.Create()--> eParsed --TaskWorker.Parse()--> eReady --RHIWorker upload--&gt;
+  Parse  = CPU-bound, TaskWorker pool (parallel)
+  Load   = GPU format conversion, AssetWorker
+  Upload = glBufferData / glTexImage2D, RHIWorker only</pre>
     </div>
-    <pre class="diagram"><span class="hi">eLoaded</span> --AssetSystem.Create()--> <span class="hi2">eParsed</span> --TaskWorker.Parse()--> <span class="hi">eReady</span> --RHIWorker upload-->
-Parse  = CPU-bound, TaskWorker pool (parallel)
-Load   = GPU format conversion, AssetWorker
-Upload = glBufferData / glTexImage2D, RHIWorker only</pre>
   </section>
 
   <section id="results">
     <div class="section-head">
       <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">What Changed When It Was Measured</h2>
+        <h2 class="section-title display">Measured Results</h2>
         <span class="section-tag">shadow mapping · deferred rendering · 1M-instance optimization</span>
       </div>
     </div>
 
     <div class="achv-list">
-      <div class="achv"><div><div class="head">TransformPass moved TRS→matrix onto the GPU.</div>
-        <div class="sub">A compute shader (<code class="mono">local_size_x=64</code>) replaced per-instance CPU
-          GLM math. <b>500K instances @ 20 FPS</b> Release — roughly <b>10×</b> over the CPU path, which couldn't
-          hold 10 FPS Debug past 30K instances.</div></div></div>
-      <div class="achv"><div><div class="head">Hash Storm: an unconditional insert was the real bottleneck.</div>
-        <div class="sub">Every instance mutation queued a <code class="mono">HashSet::Insert</code> — 2,000,000
-          calls/frame at 1M instances, 15–20% of frame time. An <code class="mono">if (!IsDirty())</code> guard cut
-          that to once per frame regardless of mutation count: <b>5.4 → 22 FPS</b> Debug, 185ms → 45ms/frame.</div></div></div>
-      <div class="achv"><div><div class="head">Shadow shimmering — fixed by snapping, not by more samples.</div>
-        <div class="sub">Camera-frustum center quantized to the shadow map's texel grid before recomputing the light
-          view matrix, using a bounding-sphere frustum. Removes shadow jitter under camera motion without extra
-          PCF taps.</div></div></div>
+      <div class="achv"><div><div class="head">TransformPass: TRS→matrix moved onto the GPU.</div>
+        <div class="sub">Compute shader replaced per-instance CPU GLM math. <b>500K instances @ 20 FPS</b> Release
+          — ~10× over the CPU path (couldn't hold 10 FPS Debug past 30K).</div></div></div>
+      <div class="achv"><div><div class="head">Hash Storm: an unconditional insert was the bottleneck.</div>
+        <div class="sub">2M <code class="mono">HashSet::Insert</code> calls/frame at 1M instances → an
+          <code class="mono">if (!IsDirty())</code> guard cut that to once per frame: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
+      <div class="achv"><div><div class="head">Shadow shimmering: fixed by snapping, not more samples.</div>
+        <div class="sub">Camera-frustum center quantized to the shadow map's texel grid before recomputing the
+          light view matrix — removes jitter under camera motion.</div></div></div>
     </div>
 
     <figure class="gif-embed">
       <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 500,000 cubes, release mode" loading="lazy">
-      <figcaption class="mono"><span><b>TransformPass · GPU Compute TRS</b> — 500,000 cubes, Release mode</span>
-        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">1M-cube capture (112MB, too large to host here) →</a></figcaption>
+      <figcaption class="mono"><span><b>GPU Compute TRS</b> — 500K cubes, Release</span>
+        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">1M-cube capture (112MB) →</a></figcaption>
     </figure>
-
     <figure class="gif-embed">
       <img src="assets/deferred-rendering.gif" alt="Full deferred rendering pipeline demo" loading="lazy">
-      <figcaption class="mono"><span><b>Deferred Rendering</b> — GeometryPass → LightingPass, completed end to end</span></figcaption>
+      <figcaption class="mono"><span><b>Deferred Rendering</b> — Geometry → Lighting, end to end</span></figcaption>
     </figure>
-
     <figure class="gif-embed">
       <img src="assets/fixed_shadow_shimmering.gif" alt="Shadow shimmering fix, texel-snapped, camera moving" loading="lazy">
       <figcaption class="mono"><span><b>Shadow Shimmering Fix</b> — texel-snapped, camera in motion</span></figcaption>
     </figure>
-
-    <p class="why mono">
-      the 1M-cube capture that the Hash Storm numbers above refer to is 112MB — over GitHub's 100MB per-file
-      push limit, so the 500K-cube capture (same technique, same code path) stands in here; the real one is one
-      click away on the right.
-    </p>
   </section>
 
 </main>

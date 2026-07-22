@@ -6,6 +6,9 @@
 <meta name="description" content="Container — STL-free DynamicArray, Robin Hood HashMap, and a TLSF suballocator.">
 <title>Container — Wonmock Lee</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -36,11 +39,8 @@
     <span class="eyebrow"><span class="dot"></span>Project 05 · Own repository</span>
     <h1 class="title display">STL-free <span class="accent">Container</span></h1>
     <p class="subhead">
-      <code class="mono">DynamicArray</code>, <code class="mono">StaticArray</code>,
-      <code class="mono">HashMap</code>/<code class="mono">HashSet</code> (Robin Hood hashing, backward-shift
-      deletion), and the allocators everything else sits on: a tracked <code class="mono">Arena</code>, a
-      bump-allocating <code class="mono">LinearArena</code>, and a <code class="mono">TLSFArena</code> — O(1)
-      allocate/free/split/merge over any byte range.
+      DynamicArray, StaticArray, HashMap/HashSet (Robin Hood hashing), and the allocators under everything
+      else: Arena, LinearArena, and TLSFArena — O(1) allocate/free/split/merge over any byte range.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Container" target="_blank" rel="noopener">github.com/Winteradio/Container</a>
@@ -66,40 +66,23 @@
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — containers and allocators</div>
-      <pre class="mermaid">
-classDiagram
-    class HashTable~K_V~ {
-        + Insert(k, v) void
-        + Find(k) Iterator
-    }
-    class HashMap~K_V~
-    class HashSet~K~
-    HashTable~K_V~ <|-- HashMap~K_V~
-    HashTable~K_V~ <|-- HashSet~K~
+      <div class="cap mono">type map — containers and allocators</div>
+      <pre class="diagram">HashTable&lt;K, V&gt;
+  Insert(k, v) / Find(k)
+  ├─ HashMap&lt;K, V&gt;
+  └─ HashSet&lt;K&gt;
 
-    class DynamicArray~T~ {
-        + PushBack(v) void
-    }
-    class Arena {
-        + Allocate(size) void_ptr
-        + Deallocate(ptr) void
-    }
-    class LinearArena {
-        + Allocate(size) void_ptr
-        + Reset() void
-    }
-    class TLSFArena {
-        + Allocate(size) Allocation
-        + Free(allocation) void
-    }
-    DynamicArray~T~ ..> Arena : default allocator
-      </pre>
+DynamicArray&lt;T&gt;
+  PushBack(v)  <span class="hi">default allocator: Arena</span>
+
+Arena          Allocate(size) / Deallocate(ptr)   <span class="hi">tracked, per-object free</span>
+LinearArena    Allocate(size) / Reset()           <span class="hi">bump allocator, bulk free only</span>
+TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL bitmap size classes</span></pre>
     </div>
 
     <div class="callout">
-      Robin Hood hashing swaps a newly-inserted key with whichever occupant has a lower probe-sequence-length,
-      so no single key ever ends up stranded far from its ideal slot — variance stays low without chaining.
+      Robin Hood hashing swaps a new key with whichever occupant has a lower probe-sequence-length — no key
+      ends up stranded far from its ideal slot, no chaining needed.
     </div>
   </section>
 
@@ -115,12 +98,8 @@ classDiagram
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/25" target="_blank" rel="noopener">Use-After-Free in DynamicArray Move Constructor</a></span>
           <span class="issue-state closed mono">closed</span>
         </div>
-        <div class="issue-body">
-          The move constructor moved <code class="mono">m_data</code> but not <code class="mono">m_allocator</code>
-          — the moved-from object kept a live, default-constructed allocator with no real authority over the
-          transferred memory, so its destructor freed memory it no longer owned. Fix: move the allocator
-          alongside the data in the initializer list, same fix ported to move-assignment.
-        </div>
+        <div class="issue-body">Move ctor moved <code class="mono">m_data</code> but not the allocator — the
+          moved-from object's destructor freed memory it no longer owned. Fixed by moving the allocator too.</div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
@@ -128,13 +107,9 @@ classDiagram
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/24" target="_blank" rel="noopener">HashMap::operator[] Reference Invalidation during Rehash</a></span>
           <span class="issue-state open mono">open</span>
         </div>
-        <div class="issue-body">
-          <code class="mono">m_map[A] = m_map[B]</code> can crash: the RHS reference is taken first, then the
-          LHS access triggers a rehash that relocates and frees the old backing array — the assignment then
-          reads through a dangling reference. Doesn't happen on <code class="mono">std::unordered_map</code>
-          (node-based, stable addresses); does happen here because contiguous open addressing is exactly what
-          makes lookups cache-friendly. Logged as an inherent trade-off of the design, not patched over.
-        </div>
+        <div class="issue-body"><code class="mono">m_map[A] = m_map[B]</code> can crash: taking the RHS
+          reference, then the LHS access triggers a rehash that frees the old array — an inherent trade-off of
+          contiguous open addressing, not patched over.</div>
       </div>
     </div>
   </section>
@@ -249,19 +224,6 @@ classDiagram
   window.addEventListener('resize', resize);
   resize();
 }());
-</script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
 </script>
 </body>
 </html>

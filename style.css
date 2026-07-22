@@ -63,9 +63,8 @@ html, body {
 }
 
 .display {
-  font-family: "Agency FB", "Eurostile", Bahnschrift, "Arial Narrow", "Segoe UI Semibold", sans-serif;
-  font-stretch: condensed;
-  letter-spacing: 0.01em;
+  font-family: "Quicksand", "Baloo 2", "Comfortaa", "Arial Rounded MT Bold", "Segoe UI Semibold", sans-serif;
+  letter-spacing: 0.005em;
 }
 
 .mono {
