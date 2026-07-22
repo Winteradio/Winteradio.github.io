@@ -142,44 +142,53 @@ sequenceDiagram
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Node-filtered, not Sparse Set or Archetype</h2>
-        <span class="section-tag">why the storage model isn't EnTT- or DOTS-shaped</span>
+        <h2 class="section-title display">Node: a deliberate middle point between Sparse Set and Archetype</h2>
+        <span class="section-tag">from the original research notes, before this repo existed</span>
       </div>
     </div>
     <div class="section-body">
       <div class="col prose">
         <p>
-          The two dominant modern ECS storage strategies weren't the fit here — for reasons specific to what
-          this engine actually needed from its ECS.
+          Both mainstream ECS storage strategies were studied first — starting from Unity DOTS's data-oriented
+          pitch (same-type data contiguous in memory, systems operating on data instead of objects) — and both
+          had one specific failure mode that mattered for this engine.
         </p>
       </div>
     </div>
 
     <div class="tbl-wrap">
       <table class="spec">
-        <thead><tr><th>Strategy</th><th>What it optimizes for</th><th>Why it didn't fit here</th></tr></thead>
+        <thead><tr><th>Strategy</th><th>How it works</th><th>The specific problem</th></tr></thead>
         <tbody>
           <tr><td class="k">Sparse Set<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(EnTT-style)</span></td>
-            <td>O(1) add/remove, dense cache-friendly iteration — per single component type</td>
-            <td>The moment a System needs several components together, it has to pick the smallest set and
-              probe the rest at query time. This engine solves that once, at Node-registration time, instead:
-              a Node <em>is</em> the multi-component filter.</td></tr>
-          <tr><td class="k">Archetype<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(Unity DOTS, Flecs)</span></td>
-            <td>Best cache locality while an entity's component signature stays fixed</td>
-            <td>Adding or removing a component migrates the entity's data to a different archetype's storage —
-              a memory copy plus archetype-graph bookkeeping. This ECS is also where reflection-driven GC
-              tracking lives (<code class="mono">PROPERTY</code>-registered members); migrating storage would
-              mean re-establishing that tracking on every add/remove too.</td></tr>
-          <tr><td class="k">Node-filtered<br><span class="mono" style="color:var(--accent-2);font-size:11px;">(this project)</span></td>
-            <td>Simple, correct multi-component queries; no entity migration</td>
-            <td>A Node is declared once per System; <code class="mono">NodeContainer</code> hands the System
-              exactly the filtered view it asked for. No archetype graph, no per-query set intersection.</td></tr>
+            <td>A dense set holds Entity IDs, a sparse set holds components — fast contiguous-memory component
+              access by ID.</td>
+            <td>Access is scoped to <b>one</b> component type via the Entity ID. Not every System can be
+              expressed against a single component.</td></tr>
+          <tr><td class="k">Archetype<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(Unity ECS)</span></td>
+            <td>Entities with the same component set share an archetype; archetypes (not components) are what's
+              laid out contiguously.</td>
+            <td>Adding even one component to an entity means a <b>new archetype</b> — duplicate the shared
+              components into it, remove them from the old one. Wanting an object that both emits light and
+              renders means standing up a dedicated "Light Render Archetype."</td></tr>
         </tbody>
       </table>
     </div>
+
+    <div class="callout">
+      <b>Node borrows from both, to dodge both problems.</b> A Node declares the exact component combination a
+      System needs — closer to Archetype's "group by composition" idea — but a Node is attached to an entity
+      without moving or duplicating that entity's component data anywhere, closer to Sparse Set's "just look it
+      up by ID." Wanting an object that emits light and renders no longer means a new archetype: register both
+      a <code class="mono">RenderNode</code> and a <code class="mono">LightNode</code> on the same entity, and
+      both can read the same <code class="mono">TransformComponent</code> without either one owning or copying it.
+    </div>
+
     <p class="why mono">
-      draft comparison — written from general Sparse-Set/Archetype trade-offs, not yet checked against the
-      original research notes. Flag anything that doesn't match.
+      source: <a href="https://winteradio.notion.site/Entity-Component-System-18d52805442e4a1a97fd41c0e0897bb6" target="_blank" rel="noopener">personal research notes, Entity Component System</a> —
+      written before this repository existed; the shipped design (reflection-driven <code class="mono">Cast</code>
+      instead of <code class="mono">dynamic_cast</code>, <code class="mono">PROPERTY</code>-tracked GC roots) is
+      more advanced than the notes describe, but the Sparse-Set/Archetype reasoning above is unchanged from them.
     </p>
   </section>
 
