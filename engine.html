@@ -118,31 +118,49 @@ sequenceDiagram
 
     <h3 class="display" style="font-size:19px;margin:0 0 8px;">WorldContext</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — WorldContext</div>
-      <pre class="diagram">WorldContext
-  RootPtr&lt;World&gt;      world
-  RefPtr&lt;Commander&gt;   commander
-  Update(timeStep)
-
-World
-  Scene  scene
-  CreateEntity()          -&gt; ObjectPtr&lt;Entity&gt;
-  CreateComponent&lt;T&gt;()    -&gt; ObjectPtr&lt;T&gt;
-  CreateNode&lt;T&gt;()         -&gt; ObjectPtr&lt;T&gt;
-
-Commander
-  Enqueue(renderTask)
-  SetView(renderView)
-
-ProxyComponent  <span class="hi">«abstract»</span>
-  ├─ TransformComponent
-  ├─ StaticMeshComponent
-  └─ LightComponent
-
-<span class="hi2">── wiring ──────────────────────────────</span>
-WorldContext  owns   World, Commander
-StaticMeshNode  uses   TransformComponent, StaticMeshComponent
-Scene  notified-by  ProxyComponent.IsDirty(), pushes via Commander</pre>
+      <div class="cap mono">class diagram — WorldContext</div>
+      <pre class="mermaid">
+classDiagram
+    class WorldContext {
+        + RootPtr~World~ world
+        + RefPtr~Commander~ commander
+        + Update(timeStep) void
+    }
+    class World {
+        + Scene scene
+        + CreateEntity() ObjectPtr
+        + CreateComponent() ObjectPtr
+        + CreateNode() ObjectPtr
+    }
+    class Scene {
+        + Flush() void
+    }
+    class Commander {
+        + Enqueue(renderTask) void
+        + SetView(renderView) void
+    }
+    class ProxyComponent {
+        + OnAttached(scene) void
+        + IsDirty() bool
+    }
+    class TransformComponent
+    class StaticMeshComponent
+    class LightComponent
+    class StaticMeshNode {
+        + ObjectPtr~TransformComponent~ transform
+        + ObjectPtr~StaticMeshComponent~ mesh
+    }
+    <<abstract>> ProxyComponent
+    WorldContext *-- World
+    WorldContext *-- Commander
+    World *-- Scene
+    ProxyComponent <|-- TransformComponent
+    ProxyComponent <|-- StaticMeshComponent
+    ProxyComponent <|-- LightComponent
+    StaticMeshNode o-- TransformComponent
+    StaticMeshNode o-- StaticMeshComponent
+    Scene ..> Commander : notifies via
+      </pre>
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:10px 0 0;">
       A <code class="mono">ProxyComponent</code> never talks to the renderer — it flips
@@ -152,32 +170,52 @@ Scene  notified-by  ProxyComponent.IsDirty(), pushes via Commander</pre>
 
     <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Renderer</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — Renderer</div>
-      <pre class="diagram">Renderer
-  Execute(cmdList)
-
-RenderGraph
-  DynamicArray&lt;RenderPass&gt;  m_passes
-  Execute(cmdList, scene, view)
-
-RenderPass  <span class="hi">«abstract»</span>
-  Draw(drawCommands, lights, cmdList) -&gt; bool
-  ├─ ComputePass  <span class="hi">«abstract»</span>
-  │    ├─ TransformPass    (GPU TRS compute)
-  │    └─ CullingPass      (stub, pass-through)
-  └─ GraphicPass  <span class="hi">«abstract»</span>
-       ├─ GeometryPass     (fills GBuffer)
-       └─ LightingPass     (per-light screen quad)
-
-MeshDrawCommand
-  RefPtr&lt;RHIBuffer&gt;        rawTransform
-  RefPtr&lt;RHIBuffer&gt;        transform
-  RefPtr&lt;RHIVertexLayout&gt;  vertexLayout
-  RefPtr&lt;MaterialProxy&gt;    material
-
-<span class="hi2">── wiring ──────────────────────────────</span>
-Renderer  owns  RenderScene, RenderGraph
-RenderScene  owns  MeshBatch[] , each MeshBatch owns 1 MeshDrawCommand</pre>
+      <div class="cap mono">class diagram — Renderer</div>
+      <pre class="mermaid">
+classDiagram
+    class Renderer {
+        + Execute(cmdList) void
+    }
+    class RenderScene {
+        + Flush(cmdList) void
+    }
+    class RenderGraph {
+        + DynamicArray~RenderPass~ passes
+        + Execute(cmdList, scene, view) void
+    }
+    class RenderPass {
+        + Draw(drawCommands, lights, cmdList) bool
+    }
+    class ComputePass
+    class GraphicPass
+    class TransformPass
+    class CullingPass
+    class GeometryPass
+    class LightingPass
+    class MeshBatch {
+        + Sync(cmdList) void
+    }
+    class MeshDrawCommand {
+        + RefPtr~RHIBuffer~ rawTransform
+        + RefPtr~RHIBuffer~ transform
+        + RefPtr~RHIVertexLayout~ vertexLayout
+        + RefPtr~MaterialProxy~ material
+    }
+    <<abstract>> RenderPass
+    <<abstract>> ComputePass
+    <<abstract>> GraphicPass
+    Renderer *-- RenderScene
+    Renderer *-- RenderGraph
+    RenderGraph *-- RenderPass
+    RenderPass <|-- ComputePass
+    RenderPass <|-- GraphicPass
+    ComputePass <|-- TransformPass
+    ComputePass <|-- CullingPass
+    GraphicPass <|-- GeometryPass
+    GraphicPass <|-- LightingPass
+    RenderScene o-- MeshBatch
+    MeshBatch *-- MeshDrawCommand
+      </pre>
     </div>
 
     <div class="achv-list" style="margin-top:16px;">
@@ -197,28 +235,38 @@ RenderScene  owns  MeshBatch[] , each MeshBatch owns 1 MeshDrawCommand</pre>
 
     <h3 class="display" style="font-size:19px;margin:34px 0 8px;">RHI</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — RHI</div>
-      <pre class="diagram">RHISystem  <span class="hi">«abstract»</span>
-  CreateBuffer(desc)  -&gt; RefPtr
-  InitializeBuffer(info, buffer)
-  DrawIndexPrimitive(info)
-  DispatchCompute(info)
-  └─ GLSystem
-
-RHICommandList
-  Enqueue&lt;T&gt;(...)
-  ExecuteAll()
-
-RHIFrameExecutor
-  DynamicArray&lt;RHICommandList&gt;  m_listPool
-  atomic&lt;size_t&gt;                m_endIndex
-  Acquire()  -&gt; RefPtr&lt;RHICommandList&gt;
-  Execute()
-
-<span class="hi2">── wiring ──────────────────────────────</span>
-RHICommandList     holds RHICommandBase[] (45+ command types)
-RHIFrameExecutor   triple-buffers RHICommandList
-RHICommandList     delegates every call to RHISystem</pre>
+      <div class="cap mono">class diagram — RHI</div>
+      <pre class="mermaid">
+classDiagram
+    class RHISystem {
+        + CreateBuffer(desc) RefPtr
+        + InitializeBuffer(info, buffer) void
+        + DrawIndexPrimitive(info) void
+        + DispatchCompute(info) void
+    }
+    class GLSystem
+    class RHICommandList {
+        + Enqueue(cmd) void
+        + ExecuteAll() void
+    }
+    class RHICommandBase {
+        + Execute(system) void
+    }
+    class RHIFrameExecutor {
+        + DynamicArray~RHICommandList~ listPool
+        + Acquire() RefPtr
+        + Execute() void
+    }
+    class RHITaskExecutor {
+        + Execute() void
+    }
+    <<abstract>> RHISystem
+    <<abstract>> RHICommandBase
+    RHISystem <|-- GLSystem
+    RHICommandList o-- RHICommandBase
+    RHIFrameExecutor ..> RHICommandList : triple-buffers
+    RHICommandList ..> RHISystem : delegates to
+      </pre>
     </div>
     <div class="callout warn">
       An OpenGL context has thread affinity — calling it off-thread is undefined behavior. Every GPU call is a
@@ -227,25 +275,45 @@ RHICommandList     delegates every call to RHISystem</pre>
 
     <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Asset</h3>
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — Asset</div>
-      <pre class="diagram">Asset
-  UUID  id
-  ├─ MeshAsset      DynamicArray&lt;MeshSection&gt; sections
-  ├─ MaterialAsset  eShadingModel shadingModel
-  └─ TextureAsset   RefPtr&lt;RHITexture&gt; texture
-
-AssetParser  <span class="hi">«abstract»</span>
-  Parse(asset)
-  Load(asset, cmdList)
-  ├─ OBJParser
-  └─ StbImageParser
-
-<span class="hi2">── state machine ────────────────────────</span>
-eLoaded --AssetSystem.Create()--> eParsed --TaskWorker.Parse()--> eReady --RHIWorker upload--&gt;
+      <div class="cap mono">class diagram — Asset</div>
+      <pre class="mermaid">
+classDiagram
+    class Asset {
+        + UUID id
+    }
+    class MeshAsset {
+        + DynamicArray~MeshSection~ sections
+    }
+    class MaterialAsset {
+        + eShadingModel shadingModel
+    }
+    class TextureAsset {
+        + RefPtr~RHITexture~ texture
+    }
+    class AssetSystem {
+        + Load(path) RefPtr
+    }
+    class AssetParser {
+        + Parse(asset) void
+        + Load(asset, cmdList) void
+    }
+    class OBJParser
+    class StbImageParser
+    <<singleton>> AssetSystem
+    <<abstract>> AssetParser
+    Asset <|-- MeshAsset
+    Asset <|-- MaterialAsset
+    Asset <|-- TextureAsset
+    MeshAsset o-- MaterialAsset
+    AssetParser <|-- OBJParser
+    AssetParser <|-- StbImageParser
+    AssetSystem ..> AssetParser : uses
+      </pre>
+    </div>
+    <pre class="diagram">eLoaded --AssetSystem.Create()--> eParsed --TaskWorker.Parse()--> eReady --RHIWorker upload--&gt;
   Parse  = CPU-bound, TaskWorker pool (parallel)
   Load   = GPU format conversion, AssetWorker
   Upload = glBufferData / glTexImage2D, RHIWorker only</pre>
-    </div>
   </section>
 
   <section id="status">

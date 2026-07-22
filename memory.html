@@ -50,28 +50,42 @@
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — collector, storage, smart pointers</div>
-      <pre class="diagram">GarbageCollector  <span class="hi">eIdle → eMarking → eSweeping → ePurging → eIdle</span>
-  Prepare() / Mark() / Sweep() / Purge()
-
-StorageManager
-  Create&lt;T&gt;()             -&gt; ObjectPtr&lt;T&gt;
-  CreateArray&lt;T&gt;(count)   -&gt; ObjectPtr&lt;T[]&gt;
-  ├─ PoolBudget    single objects, 4 density buckets
-  └─ ArrayBudget   array objects, no bucketing
-
-Accessor  <span class="hi">«IAccessor, lives in each instance's own chunk, right before it»</span>
-  Construct() / Destruct()
-
-ObjectPtr&lt;T&gt;   plain non-owning handle, no collector interaction
-  └─ RootPtr&lt;T&gt;  <span class="hi">Add/RemoveRoot(this) in every ctor/dtor/assignment</span>
-
-<span class="hi2">── wiring ──────────────────────────────</span>
-StorageManager  routes to  PoolBudget or ArrayBudget
-Both budgets  own  Accessor per object
-GarbageCollector  Mark/Sweeps  Accessor
-RootPtr  registers itself (its own address) into GarbageCollector's root set</pre>
+      <div class="cap mono">class diagram — collector, storage, smart pointers</div>
+      <pre class="mermaid">
+classDiagram
+    class GarbageCollector {
+        + Prepare() void
+        + Mark() void
+        + Sweep() void
+        + Purge() void
+    }
+    class StorageManager {
+        + Create() ObjectPtr
+        + CreateArray(count) ObjectPtr
+    }
+    class PoolBudget {
+        + GetPool() IPool
+    }
+    class ArrayBudget
+    class Accessor {
+        + Construct() void
+        + Destruct() void
+    }
+    class ObjectPtr {
+        + Get() T
+    }
+    class RootPtr
+    <<IAccessor>> Accessor
+    ObjectPtr <|-- RootPtr
+    StorageManager --> PoolBudget : single objects
+    StorageManager --> ArrayBudget : array objects
+    PoolBudget --> Accessor
+    ArrayBudget --> Accessor
+    GarbageCollector ..> Accessor : Mark / Sweep
+    ObjectPtr ..> Accessor : refers to
+      </pre>
     </div>
+    <p class="why mono" style="margin-top:8px;">Status machine: eIdle → eMarking → eSweeping → ePurging → eIdle. Accessor lives inline in each instance's own chunk, right before it — no separate handle table. RootPtr registers its own address (not the managed object's) into the collector's root set on every ctor/dtor/assignment.</p>
 
     <div class="mermaid-wrap">
       <div class="cap mono">sequence — one Collect() cycle</div>

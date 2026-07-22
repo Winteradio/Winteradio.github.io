@@ -62,18 +62,34 @@
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — containers and allocators</div>
-      <pre class="diagram">HashTable&lt;K, V&gt;
-  Insert(k, v) / Find(k)
-  ├─ HashMap&lt;K, V&gt;
-  └─ HashSet&lt;K&gt;
-
-DynamicArray&lt;T&gt;
-  PushBack(v)  <span class="hi">default allocator: Arena</span>
-
-Arena          Allocate(size) / Deallocate(ptr)   <span class="hi">tracked, per-object free</span>
-LinearArena    Allocate(size) / Reset()           <span class="hi">bump allocator, bulk free only</span>
-TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL bitmap size classes</span></pre>
+      <div class="cap mono">class diagram — containers and allocators</div>
+      <pre class="mermaid">
+classDiagram
+    class HashTable {
+        + Insert(k, v) void
+        + Find(k) Iterator
+    }
+    class HashMap
+    class HashSet
+    HashTable <|-- HashMap
+    HashTable <|-- HashSet
+    class DynamicArray {
+        + PushBack(v) void
+    }
+    class Arena {
+        + Allocate(size) VoidPtr
+        + Deallocate(ptr) void
+    }
+    class LinearArena {
+        + Allocate(size) VoidPtr
+        + Reset() void
+    }
+    class TLSFArena {
+        + Allocate(size) Allocation
+        + Free(allocation) void
+    }
+    DynamicArray ..> Arena : default allocator
+      </pre>
     </div>
   </section>
 
@@ -283,6 +299,19 @@ TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL b
   window.addEventListener('resize', resize);
   resize();
 }());
+</script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
+    (document.documentElement.matches('[data-theme="dark"]') ||
+     window.matchMedia('(prefers-color-scheme: dark)').matches ||
+     !window.matchMedia('(prefers-color-scheme: light)').matches);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'default',
+    securityLevel: 'loose',
+    fontFamily: '"Cascadia Code", Consolas, monospace'
+  });
 </script>
 </body>
 </html>

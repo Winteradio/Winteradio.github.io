@@ -50,35 +50,58 @@
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — Entity / Component / Node / System / Graph</div>
-      <pre class="diagram">Entity
-  GetID()  -&gt; EntityID
-  HashSet&lt;TypeInfo*&gt;  m_componentType, m_nodeType
-
-Component  <span class="hi">«abstract»</span>
-Node       <span class="hi">«abstract, plain struct of ObjectPtr&lt;T&gt; fields»</span>
-
-EntityRegistry     Emplace(name)          -&gt; ObjectPtr&lt;Entity&gt;
-ComponentRegistry  Create&lt;T&gt;(entityID)    -&gt; ObjectPtr&lt;T&gt;
-NodeRegistry       Create&lt;T&gt;(entityID, ...fields) -&gt; ObjectPtr&lt;T&gt;
-                   GetContainer(nodeType) -&gt; Container&lt;T&gt;  <span class="hi">(HashMap&lt;UUID, T&gt;)</span>
-SystemRegistry     Create&lt;T&gt;()            -&gt; RefPtr&lt;T&gt;
-                   BuildGraph()           -&gt; Graph
-
-System  <span class="hi">«abstract»</span>
-  DependOn(other)
-  Update(timeStep, nodeContainer)
-
-Graph
-  Build()               <span class="hi">Kahn's algorithm, BFS topological sort</span>
-  GetSorted()            -&gt; SystemIDs  <span class="hi">(dirty-flag cached)</span>
-
-World  <span class="hi">«GC root»</span>
-<span class="hi2">── wiring ──────────────────────────────</span>
-World  owns  every *Registry above, plus Scene
-SystemRegistry  builds Graph  (topological sort of DependOn edges)
-Scene  registers  System, Node</pre>
+      <div class="cap mono">class diagram — Entity / Component / Node / System / Graph</div>
+      <pre class="mermaid">
+classDiagram
+    class Entity {
+        + GetID() EntityID
+    }
+    class Component
+    class Node
+    class EntityRegistry {
+        + Emplace(name) ObjectPtr
+    }
+    class ComponentRegistry {
+        + Create(entityID) ObjectPtr
+    }
+    class NodeRegistry {
+        + Create(entityID) ObjectPtr
+        + GetContainer(nodeType) Container
+    }
+    class SystemRegistry {
+        + Create() RefPtr
+        + BuildGraph() Graph
+    }
+    class System {
+        + DependOn(other) void
+        + Update(timeStep, nodeContainer) void
+    }
+    class Graph {
+        + Build() void
+        + GetSorted() SystemIDs
+    }
+    class Scene {
+        + RegisterNode(node) void
+        + RegisterSystem(system) void
+    }
+    class World
+    <<abstract>> Component
+    <<abstract>> Node
+    <<abstract>> System
+    <<GCRoot>> World
+    Component <|-- TransformComponent
+    Node <|-- PhysicsNode
+    World *-- EntityRegistry
+    World *-- ComponentRegistry
+    World *-- NodeRegistry
+    World *-- SystemRegistry
+    World *-- Scene
+    SystemRegistry ..> Graph : builds
+    Scene ..> System : registers
+    Scene ..> Node : registers
+      </pre>
     </div>
+    <p class="why mono" style="margin-top:8px;">Node = a plain struct of ObjectPtr fields, built by hand at creation — not a scanned/filtered query. See below.</p>
 
     <div class="mermaid-wrap">
       <div class="cap mono">sequence — one World::Update() tick</div>

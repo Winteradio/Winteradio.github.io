@@ -55,26 +55,39 @@
     </div>
 
     <div class="mermaid-wrap">
-      <div class="cap mono">type map — registration</div>
-      <pre class="diagram">TypeInfo  <span class="hi">«single SuperType chain»</span>
-  GetProperty(name)  -&gt; PropertyInfo*
-  GetMethod(name)    -&gt; MethodInfo*
-
-PropertyInfo
-  Get(instance)          -&gt; const void*
-  Set(instance, value)
-  └─ ContainerPropertyInfo
-       begin(instance) / end(instance)  -&gt; Iterator  <span class="hi">(64-byte SBO, zero heap alloc)</span>
-
-MethodInfo
-  Invoke(instance, args)  -&gt; auto
-
-MethodCreator&lt;Func, func&gt;  <span class="hi">«non-type template param»</span>
-  owns 1 static MethodCall per function VALUE
-
-<span class="hi2">── wiring ──────────────────────────────</span>
-TypeInfo  owns  PropertyInfo[], MethodInfo[]</pre>
+      <div class="cap mono">class diagram — registration</div>
+      <pre class="mermaid">
+classDiagram
+    class TypeInfo {
+        + GetProperty(name) PropertyInfo
+        + GetMethod(name) MethodInfo
+    }
+    class PropertyInfo {
+        + Get(instance) VoidPtr
+        + Set(instance, value) void
+    }
+    class ContainerPropertyInfo {
+        + begin(instance) Iterator
+        + end(instance) Iterator
+    }
+    class Iterator {
+        + get() VoidPtr
+    }
+    class MethodInfo {
+        + Invoke(instance, args) auto
+    }
+    class MethodCreator
+    class MethodCall
+    <<SuperTypeChain>> TypeInfo
+    <<NonTypeTemplateParam>> MethodCreator
+    PropertyInfo <|-- ContainerPropertyInfo
+    ContainerPropertyInfo ..> Iterator : creates
+    TypeInfo o-- PropertyInfo
+    TypeInfo o-- MethodInfo
+    MethodCreator ..> MethodCall : owns 1 static instance per function value
+      </pre>
     </div>
+    <p class="why mono" style="margin-top:8px;">Iterator = 64-byte SBO buffer, zero heap allocation. MethodCreator keys on the function pointer VALUE as a non-type template parameter.</p>
 
     <div class="mermaid-wrap">
       <div class="cap mono">sequence — macro registration to runtime Cast/lookup</div>
