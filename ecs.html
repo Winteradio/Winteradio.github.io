@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="ECS with Scene and Node — a Node-filtered, dependency-graph-ordered entity component system.">
+<title>ECS — Wonmock Lee</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="name display">WONMOCK LEE</span>
+      <span class="kr">이원목</span>
+    </a>
+    <nav class="topnav">
+      <a href="index.html">Home</a>
+      <a href="engine.html">Engine</a>
+      <a href="ecs.html" class="active">ECS</a>
+      <a href="memory.html">Memory</a>
+      <a href="reflection.html">Reflection</a>
+      <a href="container.html">Container</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+  </div>
+</div>
+<div class="ruler mono" id="ruler" aria-hidden="true"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="crumb"><a href="index.html">← Home</a></div>
+    <span class="eyebrow"><span class="dot"></span>Project 02 · Own repository</span>
+    <h1 class="title display">ECS <span class="accent">with Scene and Node</span></h1>
+    <p class="subhead">
+      Entities are names; <code class="mono">Component</code>s hold data with no logic;
+      <code class="mono">Node</code>s filter entities down to the exact component combination a
+      <code class="mono">System</code> needs. A dependency graph — not a hand-written order — decides which
+      System runs before which.
+    </p>
+    <div class="contact-strip mono">
+      <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
+    </div>
+  </section>
+
+  <section id="relationships">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">Class Relationships</h2></div>
+    </div>
+    <div class="section-body">
+      <div class="col prose">
+        <p>
+          Systems never scan raw entities. Execution order between Systems isn't a hand-written list either —
+          each System declares <code class="mono">DependOn(other)</code>, and a graph topologically sorts the
+          whole set before every update, catching cycles as a cheap safety net instead of a manual ordering
+          that silently rots.
+        </p>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap mono">class diagram — Entity / Component / Node / System / Graph</div>
+      <pre class="mermaid">
+classDiagram
+    class Entity {
+        + GetID() EntityID
+    }
+    class Component
+    class Node
+    class EntityRegistry {
+        + Emplace(name) ObjectPtr~Entity~
+    }
+    class ComponentRegistry {
+        + Create~T~(entityID) ObjectPtr~T~
+    }
+    class NodeRegistry {
+        + Create~T~(entityID) ObjectPtr~T~
+        + GetContainer(nodeType) NodeContainer
+    }
+    class SystemRegistry {
+        + Create~T~() RefPtr~T~
+        + BuildGraph() Graph
+    }
+    class System {
+        + DependOn(other) void
+        + Update(timeStep, nodeContainer) void
+    }
+    class Graph {
+        + GetPartialSorted(systemID) SystemIDs
+    }
+    class Scene {
+        + RegisterNode(node) void
+        + RegisterSystem(system) void
+    }
+    class World
+
+    <<abstract>> Component
+    <<abstract>> Node
+    <<abstract>> System
+    <<GC root, user-defined>> World
+
+    Component <|-- TransformComponent
+    Node <|-- PhysicsNode
+    World *-- EntityRegistry
+    World *-- ComponentRegistry
+    World *-- NodeRegistry
+    World *-- SystemRegistry
+    World *-- Scene
+    SystemRegistry ..> Graph : builds via topological sort
+    Scene ..> System : registers
+    Scene ..> Node : registers
+      </pre>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap mono">sequence — one World::Update() tick</div>
+      <pre class="mermaid">
+sequenceDiagram
+    participant W as World::Update
+    participant SR as SystemRegistry
+    participant G as Graph
+    participant NR as NodeRegistry
+    participant S as System
+
+    W->>SR: BuildGraph()
+    SR->>G: sort DependOn() edges
+    G-->>W: topologically sorted System IDs
+    loop each System ID in order
+        W->>SR: Get(systemID)
+        W->>NR: GetContainer(system.GetNodeType())
+        W->>S: Update(timeStep, nodeContainer)
+    end
+      </pre>
+    </div>
+  </section>
+
+  <section id="design-choice">
+    <div class="section-head">
+      <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">Node-filtered, not Sparse Set or Archetype</h2>
+        <span class="section-tag">why the storage model isn't EnTT- or DOTS-shaped</span>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="col prose">
+        <p>
+          The two dominant modern ECS storage strategies weren't the fit here — for reasons specific to what
+          this engine actually needed from its ECS.
+        </p>
+      </div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table class="spec">
+        <thead><tr><th>Strategy</th><th>What it optimizes for</th><th>Why it didn't fit here</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Sparse Set<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(EnTT-style)</span></td>
+            <td>O(1) add/remove, dense cache-friendly iteration — per single component type</td>
+            <td>The moment a System needs several components together, it has to pick the smallest set and
+              probe the rest at query time. This engine solves that once, at Node-registration time, instead:
+              a Node <em>is</em> the multi-component filter.</td></tr>
+          <tr><td class="k">Archetype<br><span class="mono" style="color:var(--text-faint);font-size:11px;">(Unity DOTS, Flecs)</span></td>
+            <td>Best cache locality while an entity's component signature stays fixed</td>
+            <td>Adding or removing a component migrates the entity's data to a different archetype's storage —
+              a memory copy plus archetype-graph bookkeeping. This ECS is also where reflection-driven GC
+              tracking lives (<code class="mono">PROPERTY</code>-registered members); migrating storage would
+              mean re-establishing that tracking on every add/remove too.</td></tr>
+          <tr><td class="k">Node-filtered<br><span class="mono" style="color:var(--accent-2);font-size:11px;">(this project)</span></td>
+            <td>Simple, correct multi-component queries; no entity migration</td>
+            <td>A Node is declared once per System; <code class="mono">NodeContainer</code> hands the System
+              exactly the filtered view it asked for. No archetype graph, no per-query set intersection.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="why mono">
+      draft comparison — written from general Sparse-Set/Archetype trade-offs, not yet checked against the
+      original research notes. Flag anything that doesn't match.
+    </p>
+  </section>
+
+  <section id="gc-trap">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
+      <div><h2 class="section-title display">A Trap Worth Documenting</h2></div>
+    </div>
+    <div class="callout warn">
+      <b>The GC only sees a member variable if it's declared with <code class="mono">PROPERTY()</code>.</b>
+      Forget it on an <code class="mono">EntityContainer</code> or <code class="mono">SystemRegistry</code>
+      member and the collector treats it as unreachable — it gets freed out from under you on the next
+      <code class="mono">Memory::Collect()</code>, and the failure shows up nowhere near the missing macro.
+      This is in the README, not just fixed once and forgotten.
+    </div>
+
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#8</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/8" target="_blank" rel="noopener">The demo project isn't built and worked</a></span>
+          <span class="issue-state open mono">open</span>
+        </div>
+        <div class="issue-body">Demo project build currently broken after an API change — tracked, not yet closed.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="contact">
+  <div class="wrap foot-grid">
+    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <div class="contact mono">
+      <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
+      <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
+    (document.documentElement.matches('[data-theme="dark"]') ||
+     window.matchMedia('(prefers-color-scheme: dark)').matches ||
+     !window.matchMedia('(prefers-color-scheme: light)').matches);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'default',
+    securityLevel: 'loose',
+    fontFamily: '"Cascadia Code", Consolas, monospace'
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Container — STL-free DynamicArray, Robin Hood HashMap, and a TLSF suballocator.">
+<title>Container — Wonmock Lee</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="name display">WONMOCK LEE</span>
+      <span class="kr">이원목</span>
+    </a>
+    <nav class="topnav">
+      <a href="index.html">Home</a>
+      <a href="engine.html">Engine</a>
+      <a href="ecs.html">ECS</a>
+      <a href="memory.html">Memory</a>
+      <a href="reflection.html">Reflection</a>
+      <a href="container.html" class="active">Container</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+  </div>
+</div>
+<div class="ruler mono" id="ruler" aria-hidden="true"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="crumb"><a href="index.html">← Home</a></div>
+    <span class="eyebrow"><span class="dot"></span>Project 05 · Own repository</span>
+    <h1 class="title display">STL-free <span class="accent">Container</span></h1>
+    <p class="subhead">
+      <code class="mono">DynamicArray</code>, <code class="mono">StaticArray</code>,
+      <code class="mono">HashMap</code>/<code class="mono">HashSet</code> (Robin Hood hashing, backward-shift
+      deletion), and the allocators everything else sits on: a tracked <code class="mono">Arena</code>, a
+      bump-allocating <code class="mono">LinearArena</code>, and a <code class="mono">TLSFArena</code> — O(1)
+      allocate/free/split/merge over any byte range.
+    </p>
+    <div class="contact-strip mono">
+      <a href="https://github.com/Winteradio/Container" target="_blank" rel="noopener">github.com/Winteradio/Container</a>
+    </div>
+  </section>
+
+  <section id="structure">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">Containers &amp; Allocators</h2></div>
+    </div>
+
+    <div class="arena">
+      <div class="arena-head">
+        <span class="lbl mono">TLSFArena · live block trace</span>
+        <span class="val mono" id="arenaTotal">0 / 0 B</span>
+      </div>
+      <canvas id="arenaCanvas" role="img" aria-label="Interactive visualization of TLSF memory arena blocks, allocated and free"></canvas>
+      <div class="arena-foot mono">
+        <div class="legend"><span><i class="a"></i>allocated</span><span><i class="f"></i>free</span></div>
+        <div id="arenaTip">hover a block</div>
+      </div>
+    </div>
+
+    <div class="mermaid-wrap">
+      <div class="cap mono">class diagram — containers and allocators</div>
+      <pre class="mermaid">
+classDiagram
+    class HashTable~K_V~ {
+        + Insert(k, v) void
+        + Find(k) Iterator
+    }
+    class HashMap~K_V~
+    class HashSet~K~
+    HashTable~K_V~ <|-- HashMap~K_V~
+    HashTable~K_V~ <|-- HashSet~K~
+
+    class DynamicArray~T~ {
+        + PushBack(v) void
+    }
+    class Arena {
+        + Allocate(size) void_ptr
+        + Deallocate(ptr) void
+    }
+    class LinearArena {
+        + Allocate(size) void_ptr
+        + Reset() void
+    }
+    class TLSFArena {
+        + Allocate(size) Allocation
+        + Free(allocation) void
+    }
+    DynamicArray~T~ ..> Arena : default allocator
+      </pre>
+    </div>
+
+    <div class="callout">
+      Robin Hood hashing swaps a newly-inserted key with whichever occupant has a lower probe-sequence-length,
+      so no single key ever ends up stranded far from its ideal slot — variance stays low without chaining.
+    </div>
+  </section>
+
+  <section id="issues">
+    <div class="section-head">
+      <span class="section-num mono">02</span>
+      <div><h2 class="section-title display">Two Real Bugs</h2></div>
+    </div>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#25</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/25" target="_blank" rel="noopener">Use-After-Free in DynamicArray Move Constructor</a></span>
+          <span class="issue-state closed mono">closed</span>
+        </div>
+        <div class="issue-body">
+          The move constructor moved <code class="mono">m_data</code> but not <code class="mono">m_allocator</code>
+          — the moved-from object kept a live, default-constructed allocator with no real authority over the
+          transferred memory, so its destructor freed memory it no longer owned. Fix: move the allocator
+          alongside the data in the initializer list, same fix ported to move-assignment.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#24</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/24" target="_blank" rel="noopener">HashMap::operator[] Reference Invalidation during Rehash</a></span>
+          <span class="issue-state open mono">open</span>
+        </div>
+        <div class="issue-body">
+          <code class="mono">m_map[A] = m_map[B]</code> can crash: the RHS reference is taken first, then the
+          LHS access triggers a rehash that relocates and frees the old backing array — the assignment then
+          reads through a dangling reference. Doesn't happen on <code class="mono">std::unordered_map</code>
+          (node-based, stable addresses); does happen here because contiguous open addressing is exactly what
+          makes lookups cache-friendly. Logged as an inherent trade-off of the design, not patched over.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="contact">
+  <div class="wrap foot-grid">
+    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <div class="contact mono">
+      <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
+      <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+<script>
+(function () {
+  var canvas = document.getElementById('arenaCanvas');
+  if (!canvas) { return; }
+  var ctx = canvas.getContext('2d');
+  var tip = document.getElementById('arenaTip');
+  var totalEl = document.getElementById('arenaTotal');
+
+  var TOTAL = 4096;
+  var blocks = [
+    { off: 0,    size: 512,  free: false },
+    { off: 512,  size: 256,  free: true  },
+    { off: 768,  size: 768,  free: false },
+    { off: 1536, size: 128,  free: true  },
+    { off: 1664, size: 384,  free: true  },
+    { off: 2048, size: 640,  free: false },
+    { off: 2688, size: 320,  free: true  },
+    { off: 3008, size: 704,  free: false },
+    { off: 3712, size: 384,  free: true  }
+  ];
+  var used = blocks.filter(function (b) { return !b.free; }).reduce(function (a, b) { return a + b.size; }, 0);
+  totalEl.textContent = used.toLocaleString() + ' / ' + TOTAL.toLocaleString() + ' B';
+
+  var dpr = Math.max(1, window.devicePixelRatio || 1);
+  var cssW = 0, cssH = 0;
+
+  function styleOf(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  function resize() {
+    var rect = canvas.getBoundingClientRect();
+    cssW = rect.width; cssH = rect.height;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    draw(-1);
+  }
+
+  function draw(hoverIndex) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    var pad = 14, barY = 30, barH = 40, w = cssW - pad * 2;
+    var accentA = styleOf('--accent'), accentF = styleOf('--accent-2');
+    var rule = styleOf('--rule'), textFaint = styleOf('--text-faint'), textDim = styleOf('--text-dim');
+    ctx.strokeStyle = rule; ctx.lineWidth = 1;
+
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      var x = pad + (b.off / TOTAL) * w;
+      var bw = (b.size / TOTAL) * w;
+      var hovered = i === hoverIndex;
+
+      ctx.fillStyle = b.free ? accentF : accentA;
+      ctx.globalAlpha = hovered ? 1 : (b.free ? 0.55 : 0.85);
+      ctx.fillRect(x, barY, Math.max(bw - 1, 1), barH);
+      ctx.globalAlpha = 1;
+
+      if (hovered) {
+        ctx.strokeStyle = b.free ? accentF : accentA;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + 0.75, barY + 0.75, Math.max(bw - 2.5, 1), barH - 1.5);
+      }
+      if (bw > 30) {
+        ctx.fillStyle = textFaint;
+        ctx.font = '9.5px Consolas, monospace';
+        ctx.fillText('0x' + b.off.toString(16).toUpperCase(), x + 4, barY + barH + 13);
+      }
+    }
+    ctx.fillStyle = textDim;
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillText('0x' + TOTAL.toString(16).toUpperCase(), pad + w - 34, barY + barH + 13);
+  }
+
+  function indexAt(clientX) {
+    var rect = canvas.getBoundingClientRect();
+    var pad = 14, w = rect.width - pad * 2;
+    var x = clientX - rect.left - pad;
+    var off = (x / w) * TOTAL;
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      if (off >= b.off && off < b.off + b.size) { return i; }
+    }
+    return -1;
+  }
+
+  canvas.addEventListener('mousemove', function (e) {
+    var idx = indexAt(e.clientX);
+    draw(idx);
+    if (idx === -1) { tip.textContent = 'hover a block'; }
+    else {
+      var b = blocks[idx];
+      tip.textContent = (b.free ? 'free' : 'allocated') + '  offset=0x' + b.off.toString(16).toUpperCase() + '  size=' + b.size + 'B';
+    }
+  });
+  canvas.addEventListener('mouseleave', function () { draw(-1); tip.textContent = 'hover a block'; });
+
+  window.addEventListener('resize', resize);
+  resize();
+}());
+</script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
+    (document.documentElement.matches('[data-theme="dark"]') ||
+     window.matchMedia('(prefers-color-scheme: dark)').matches ||
+     !window.matchMedia('(prefers-color-scheme: light)').matches);
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: isDark ? 'dark' : 'default',
+    securityLevel: 'loose',
+    fontFamily: '"Cascadia Code", Consolas, monospace'
+  });
+</script>
+</body>
+</html>
