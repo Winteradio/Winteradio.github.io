@@ -35,8 +35,8 @@
     <span class="eyebrow"><span class="dot"></span>Project 02 · Own repository</span>
     <h1 class="title display">ECS <span class="accent">with Scene and Node</span></h1>
     <p class="subhead">
-      Entities are names, Components hold data, Nodes filter entities down to the exact component combination
-      a System needs. Execution order comes from a dependency graph, not a hand-written list.
+      Entities are names, Components hold data, Nodes group the exact component combination a System needs.
+      Execution order comes from a dependency graph, not a hand-written list.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
@@ -53,14 +53,15 @@
       <div class="cap mono">type map — Entity / Component / Node / System / Graph</div>
       <pre class="diagram">Entity
   GetID()  -&gt; EntityID
+  HashSet&lt;TypeInfo*&gt;  m_componentType, m_nodeType
 
 Component  <span class="hi">«abstract»</span>
-Node       <span class="hi">«abstract»</span>
+Node       <span class="hi">«abstract, plain struct of ObjectPtr&lt;T&gt; fields»</span>
 
 EntityRegistry     Emplace(name)          -&gt; ObjectPtr&lt;Entity&gt;
 ComponentRegistry  Create&lt;T&gt;(entityID)    -&gt; ObjectPtr&lt;T&gt;
-NodeRegistry       Create&lt;T&gt;(entityID)    -&gt; ObjectPtr&lt;T&gt;
-                   GetContainer(nodeType) -&gt; NodeContainer
+NodeRegistry       Create&lt;T&gt;(entityID, ...fields) -&gt; ObjectPtr&lt;T&gt;
+                   GetContainer(nodeType) -&gt; Container&lt;T&gt;  <span class="hi">(HashMap&lt;UUID, T&gt;)</span>
 SystemRegistry     Create&lt;T&gt;()            -&gt; RefPtr&lt;T&gt;
                    BuildGraph()           -&gt; Graph
 
@@ -69,7 +70,8 @@ System  <span class="hi">«abstract»</span>
   Update(timeStep, nodeContainer)
 
 Graph
-  GetPartialSorted(systemID)  -&gt; SystemIDs
+  Build()               <span class="hi">Kahn's algorithm, BFS topological sort</span>
+  GetSorted()            -&gt; SystemIDs  <span class="hi">(dirty-flag cached)</span>
 
 World  <span class="hi">«GC root»</span>
 <span class="hi2">── wiring ──────────────────────────────</span>
@@ -88,8 +90,8 @@ sequenceDiagram
     participant S as System
 
     W->>SR: BuildGraph()
-    SR->>G: sort DependOn() edges
-    G-->>W: topologically sorted System IDs
+    SR->>G: Build() - Kahn's algorithm over DependOn() edges
+    G-->>W: GetSorted() - topological order, or empty if cyclic
     loop each System ID in order
         W->>S: Update(timeStep, nodeContainer)
     end
@@ -97,9 +99,38 @@ sequenceDiagram
     </div>
   </section>
 
-  <section id="design-choice">
+  <section id="mechanics">
     <div class="section-head">
       <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">How It Actually Runs</h2>
+        <span class="section-tag">verified against the current source</span>
+      </div>
+    </div>
+
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Node membership isn't automatically checked</div>
+        <div class="sub">A Node is a plain struct of <code class="mono">ObjectPtr&lt;T&gt;</code> fields, wired up by hand at creation: <code class="mono">node.Create&lt;RenderNode&gt;(entityID, cResource, cTransform, cColor)</code>. Nothing in the framework scans an Entity's components to verify a Node's fields before handing it out — Systems defensively null-check each field before using it, which is the actual safety net today.</div></div></div>
+      <div class="achv"><div><div class="head">"Filtering" is really just one HashMap per Node type</div>
+        <div class="sub">Each Node type gets its own flat <code class="mono">UUID → ObjectPtr&lt;T&gt;</code> storage. A System asking for its Node type just gets handed that container directly — an entity only has an entry if a Node was explicitly created for it, so there's no per-frame scan-and-filter happening.</div></div></div>
+      <div class="achv"><div><div class="head">The dependency graph is a textbook Kahn's algorithm</div>
+        <div class="sub">In-degree map built from every <code class="mono">DependOn()</code> edge, a queue seeded with in-degree-0 systems, each pop decrementing its dependents' in-degree.</div></div></div>
+      <div class="achv"><div><div class="head">Cycles fail silently, on purpose</div>
+        <div class="sub">If the sorted count doesn't match the total system count, a cycle exists — it's logged, not thrown. <code class="mono">GetSorted()</code> returns an empty array rather than crashing, and a dirty flag skips rebuilding the sort when nothing has changed since the last call.</div></div></div>
+      <div class="achv"><div><div class="head">GC reachability is a generic property walk</div>
+        <div class="sub">Not hand-written per-class trace functions — the collector walks whatever <code class="mono">TypeInfo</code>'s property list says exists. Any <code class="mono">ObjectPtr</code>/<code class="mono">RefPtr</code> member without <code class="mono">PROPERTY()</code> is invisible to that walk, which is exactly why the GC trap below is a direct consequence of the design, not an edge case.</div></div></div>
+    </div>
+
+    <div class="callout warn">
+      The GC only tracks a member declared with <code class="mono">PROPERTY()</code>. Miss it on a
+      <code class="mono">Registry</code> member and the collector treats it as unreachable — freed out from
+      under you on the next <code class="mono">Memory::Collect()</code>.
+    </div>
+  </section>
+
+  <section id="design-choice">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
       <div>
         <h2 class="section-title display">Node vs. Sparse Set vs. Archetype</h2>
       </div>
@@ -124,15 +155,10 @@ sequenceDiagram
     </p>
   </section>
 
-  <section id="gc-trap">
+  <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">GC Trap</h2></div>
-    </div>
-    <div class="callout warn">
-      The GC only tracks a member declared with <code class="mono">PROPERTY()</code>. Miss it on a
-      <code class="mono">Registry</code> member and the collector treats it as unreachable — freed out from
-      under you on the next <code class="mono">Memory::Collect()</code>.
+      <span class="section-num mono">04</span>
+      <div><h2 class="section-title display">Real Issue</h2></div>
     </div>
     <div class="issues">
       <div class="issue-card">
@@ -140,6 +166,10 @@ sequenceDiagram
           <span class="issue-num mono">#8</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/8" target="_blank" rel="noopener">The demo project isn't built and worked</a></span>
           <span class="issue-state open mono">open</span>
+        </div>
+        <div class="issue-body">
+          - Cause: <code class="mono">ECS.h</code> includes two headers (<code class="mono">Container/DataRegistry.h</code>, <code class="mono">Container/SystemRegistry.h</code>) that don't exist anywhere in the tracked repository — the demo and README describe API types (<code class="mono">TypedSystem&lt;T&gt;</code>, a specialized <code class="mono">SystemRegistry</code>) that aren't present in the checked-out headers.<br>
+          - Direction: a generic <code class="mono">Registry&lt;Base&gt;</code> that covers the same role does exist and compiles — the fix is either restoring the missing specialized headers, or updating the demo and README to the generic API that's actually shipped.
         </div>
       </div>
     </div>
