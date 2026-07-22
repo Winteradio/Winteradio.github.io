@@ -248,6 +248,78 @@ eLoaded --AssetSystem.Create()--> eParsed --TaskWorker.Parse()--> eReady --RHIWo
     </div>
   </section>
 
+  <section id="status">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
+      <div>
+        <h2 class="section-title display">Feature Status</h2>
+        <span class="section-tag">from the repo's own Implementation Status table</span>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="spec">
+        <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="k">ECS / Memory (GC) / Reflection / Containers</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">World · Commander · Scene · 4-thread Worker system</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">RHI layer (OpenGL) · Command List · triple buffering</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">Proxies · MeshBatch instancing · RenderGraph</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">TransformPass (GPU compute TRS)</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">GeometryPass · LightingPass (Directional / Point / Spot)</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">GBuffer Phong (UInt texture support)</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">Asset system (3-stage async pipeline)</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">Directional shadow mapping</td><td><span class="status-chip done">complete</span></td></tr>
+          <tr><td class="k">CullingPass</td><td><span class="status-chip progress">stub — pass-through</span></td></tr>
+          <tr><td class="k">GC full integration</td><td><span class="status-chip progress">in progress</span></td></tr>
+          <tr><td class="k">Cascade shadow maps</td><td><span class="status-chip progress">planned</span></td></tr>
+          <tr><td class="k">Spot / Point light shadows</td><td><span class="status-chip progress">planned</span></td></tr>
+          <tr><td class="k">Vulkan backend</td><td><span class="status-chip progress">planned</span></td></tr>
+          <tr><td class="k">Physics</td><td><span class="status-chip progress">planned</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="issues">
+    <div class="section-head">
+      <span class="section-num mono">04</span>
+      <div>
+        <h2 class="section-title display">Issues Worked Through</h2>
+        <span class="section-tag">from the repo's issue tracker and debug logs</span>
+      </div>
+    </div>
+
+    <h3 class="display" style="font-size:16px;margin:0 0 8px;">Shadow acne / NaN / blinking <span class="status-chip done">resolved</span></h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Symptom</div>
+        <div class="sub">Camera rotation intermittently turned whole objects solid black; static RenderDoc captures looked fine.</div></div></div>
+      <div class="achv"><div><div class="head">Cause</div>
+        <div class="sub">At grazing angles the RPDB depth-bias divisor (<code class="mono">det</code>) approached 0, producing NaN that propagated straight to <code class="mono">FragColor</code>.</div></div></div>
+      <div class="achv"><div><div class="head">Fix</div>
+        <div class="sub">Block NaN at the source (<code class="mono">safeDet = mix(EPSILON, det, step(EPSILON, abs(det)))</code>) instead of trying to mask it after the fact — multiplying or <code class="mono">mix</code>-ing against NaN still produces NaN. Also moved the grazing-angle cutoff to a single multiply at the very end, since branching before a <code class="mono">dFdx</code> call is undefined behavior in GLSL.</div></div></div>
+    </div>
+
+    <h3 class="display" style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty-flag race <span class="status-chip done">resolved</span></h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Symptom</div>
+        <div class="sub">An entity with both a light and a mesh sharing one Transform would silently stop updating one of the two after the first frame.</div></div></div>
+      <div class="achv"><div><div class="head">Cause</div>
+        <div class="sub">The Hash Storm fix's <code class="mono">if (!IsDirty()) OnUpdate()</code> guard cleared a dirty flag that lived on the shared Component — whichever Proxy processed first cleared it for both.</div></div></div>
+      <div class="achv"><div><div class="head">Fix</div>
+        <div class="sub">Per-proxy dirty generation counters: the Component only increments a generation number on mutation, and each Proxy independently tracks the last generation it has seen.</div></div></div>
+    </div>
+
+    <h3 class="display" style="font-size:16px;margin:26px 0 8px;">Point light incident-direction artifact <span class="status-chip progress">open</span></h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Symptom</div>
+        <div class="sub">A light positioned below a surface makes that surface brighter than expected, right at the light volume's boundary.</div></div></div>
+      <div class="achv"><div><div class="head">Cause</div>
+        <div class="sub">The two-sided lighting correction's <code class="mono">max(dot(normal, rayDir), 0.0)</code> clamps to 0 in this case, so the incident direction never gets corrected.</div></div></div>
+      <div class="achv"><div><div class="head">Direction</div>
+        <div class="sub">Compute the correction from light→fragment instead of fragment→light; a proper shadow map would also occlude this case naturally.</div></div></div>
+    </div>
+  </section>
+
   <section id="results">
     <div class="section-head">
       <span class="section-num mono">03</span>

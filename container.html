@@ -75,18 +75,56 @@ Arena          Allocate(size) / Deallocate(ptr)   <span class="hi">tracked, per-
 LinearArena    Allocate(size) / Reset()           <span class="hi">bump allocator, bulk free only</span>
 TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL bitmap size classes</span></pre>
     </div>
+  </section>
 
-    <div class="callout">
-      Robin Hood hashing swaps a new key with whichever occupant has a lower probe-sequence-length — no key
-      ends up stranded far from its ideal slot, no chaining needed.
+  <section id="mechanics">
+    <div class="section-head">
+      <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">How It Actually Runs</h2>
+        <span class="section-tag">Robin Hood hashing and the TLSF bitmap search, mechanically</span>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;margin:0 0 8px;">Robin Hood Hashing</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Slot layout</div>
+        <div class="sub"><code class="mono">{ Data data; int16_t psl; }</code>, default <code class="mono">psl = -1</code> — that's the empty-slot sentinel. No separate tombstone flag exists anywhere.</div></div></div>
+      <div class="achv"><div><div class="head">Insert = linear probe + steal-from-the-rich</div>
+        <div class="sub">Walk forward one slot at a time, incrementing the entrant's PSL each step. On landing in an occupied slot: <code class="mono">if (newSlot.psl &gt; oldSlot.psl) swap(newSlot, oldSlot)</code> — the entrant only displaces a resident whose PSL is strictly lower (closer to its own ideal slot). The displaced resident keeps probing forward with its PSL still climbing.</div></div></div>
+      <div class="achv"><div><div class="head">Growth</div>
+        <div class="sub">Rehashes at 70% load factor, doubling capacity and re-running the identical insert-with-swap into a fresh array.</div></div></div>
+      <div class="achv"><div><div class="head">Erase = backward-shift, not tombstoning</div>
+        <div class="sub">The freed slot is marked <code class="mono">psl = -1</code>, then a walk pulls every later element in that probe chain backward by its own PSL (shrinking it accordingly) until hitting a slot that's already home or empty. The hole physically dissolves instead of leaving a marker behind — which is exactly what keeps <code class="mono">Find()</code>'s early-exit rule (stop once probe distance exceeds a slot's PSL) valid forever, with no stale tombstones ever accumulating.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena — the FL/SL bitmap search</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Two-level classification</div>
+        <div class="sub">FL index = most-significant-bit position of the size (64 rows). SL index = a 4-bit linear subdivision within that power-of-two range (16 columns). <code class="mono">bucketIndex = fl*16 + sl</code> indexes a flat free-list-head array.</div></div></div>
+      <div class="achv"><div><div class="head">The search itself is branch-free</div>
+        <div class="sub">One <code class="mono">uint64_t</code> bitmap per FL row, one bit per SL column. <code class="mono">Allocate()</code> masks off every class smaller than what's needed (<code class="mono">bitmap[fl] &amp; (~0 &lt;&lt; sl)</code>) and takes the lowest set bit of what's left — the nearest sufficiently-large free class, found with pure bit ops, never touching the block list itself.</div></div></div>
+      <div class="achv"><div><div class="head">Free() merge direction</div>
+        <div class="sub">Only merges two blocks that are both free <em>and</em> physically adjacent — adjacency is decided by comparing byte <code class="mono">offset</code>, never by array index. The absorbed block's slot is recycled onto a free-index list rather than shrinking the block array.</div></div></div>
+      <div class="achv"><div><div class="head">Why two link pairs per block</div>
+        <div class="sub"><code class="mono">prev/next</code> track physical byte-order neighbors and stay valid whether a block is free or allocated — it's the only way <code class="mono">Free()</code> can find what's physically touching a block. <code class="mono">prevFree/nextFree</code> track the same-size-class free-list chain and are only meaningful while free. They encode two unrelated relationships on the same block; collapsing them into one pair would break either merging or size-class lookup.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">Arena vs. LinearArena</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Arena: individually freeable</div>
+        <div class="sub">Every allocation is its own <code class="mono">::operator new</code> with a <code class="mono">Page</code> header linked into a doubly-linked list — one pointer maps 1:1 to one OS allocation and one list node, so <code class="mono">Deallocate(ptr)</code> can walk the list and free exactly that one.</div></div></div>
+      <div class="achv"><div><div class="head">LinearArena: bulk-only by construction</div>
+        <div class="sub">Allocations just bump an offset within a shared page (new pages added on overflow). Nothing records which live objects share a page, so there's no way to free just one — only <code class="mono">Reset()</code>, which zeroes every page's offset at once.</div></div></div>
     </div>
   </section>
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">02</span>
-      <div><h2 class="section-title display">Two Real Bugs</h2></div>
+      <span class="section-num mono">03</span>
+      <div><h2 class="section-title display">Real Issues</h2></div>
     </div>
+
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
@@ -94,8 +132,10 @@ TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL b
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/25" target="_blank" rel="noopener">Use-After-Free in DynamicArray Move Constructor</a></span>
           <span class="issue-state closed mono">closed</span>
         </div>
-        <div class="issue-body">Move ctor moved <code class="mono">m_data</code> but not the allocator — the
-          moved-from object's destructor freed memory it no longer owned. Fixed by moving the allocator too.</div>
+        <div class="issue-body">
+          - Cause: the move constructor moved <code class="mono">m_data</code> but not <code class="mono">m_allocator</code> — the moved-from object kept a live, default-constructed allocator with no real claim on the transferred memory, so its destructor freed memory it no longer owned.<br>
+          - Fix: move the allocator in the initializer list alongside the data; same fix ported to move-assignment.
+        </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
@@ -103,9 +143,32 @@ TLSFArena      Allocate(size) / Free(allocation)  <span class="hi">O(1), FL/SL b
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/24" target="_blank" rel="noopener">HashMap::operator[] Reference Invalidation during Rehash</a></span>
           <span class="issue-state open mono">open</span>
         </div>
-        <div class="issue-body"><code class="mono">m_map[A] = m_map[B]</code> can crash: taking the RHS
-          reference, then the LHS access triggers a rehash that frees the old array — an inherent trade-off of
-          contiguous open addressing, not patched over.</div>
+        <div class="issue-body">
+          - Cause: <code class="mono">m_map[A] = m_map[B]</code> takes the RHS reference first; the LHS access can then trigger a rehash that allocates a new backing array and discards the old one, dangling the RHS.<br>
+          - Direction: logged as an inherent trade-off of open addressing (the same cache-locality property that makes lookups fast), not yet patched — <code class="mono">std::unordered_map</code> doesn't hit this because its nodes never move.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;margin:28px 0 8px;">From building TLSFArena directly</h3>
+    <p class="prose" style="color:var(--text-faint);font-size:13px;margin:0 0 12px;">
+      Not GitHub tickets — bugs caught during development, worth keeping because of what they reveal about the design.
+    </p>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head"><span class="issue-title">Merge direction decided by array index instead of byte offset</span></div>
+        <div class="issue-body">- Cause: <code class="mono">isLeft</code> was computed by comparing block <em>indices</em> in the block array, which have no relationship to physical memory position. Two blocks adjacent in offset can sit anywhere in the array.<br>
+          - Fix: compare <code class="mono">offset</code> directly — the same rule the confirmed-current code above still follows.</div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head"><span class="issue-title">Bitmap bit cleared unconditionally on every free-list removal</span></div>
+        <div class="issue-body">- Cause: removing a block from its size-class free-list cleared that class's bitmap bit even when other free blocks remained in the same bucket, making the allocator blind to blocks that were still there.<br>
+          - Fix: only clear the bit when the removed block was the bucket's sole occupant.</div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head"><span class="issue-title">A merge result silently discarded</span></div>
+        <div class="issue-body">- Cause: <code class="mono">Free()</code> calls <code class="mono">Merge()</code> twice (once per physical neighbor) but stored the result with <code class="mono">=</code> instead of <code class="mono">|=</code> — a successful left-merge could be overwritten by a failed right-merge, then the block got re-inserted into a free-list it was already merged out of.<br>
+          - Fix: accumulate both results with <code class="mono">|=</code> before deciding whether to insert.</div>
       </div>
     </div>
   </section>

@@ -35,7 +35,7 @@
     <span class="eyebrow"><span class="dot"></span>Project 03 · Own repository</span>
     <h1 class="title display">Memory <span class="accent">Pool &amp; GC</span></h1>
     <p class="subhead">
-      Mark-and-Sweep, referencing Unreal Engine's collector, with an incremental time budget so a cycle can
+      Mark-and-Sweep, referencing Unreal Engine's collector, with a time-budgeted phase so a cycle can
       suspend mid-pass instead of stalling a frame.
     </p>
     <div class="contact-strip mono">
@@ -51,26 +51,26 @@
 
     <div class="mermaid-wrap">
       <div class="cap mono">type map — collector, storage, smart pointers</div>
-      <pre class="diagram">GarbageCollector
-  Prepare() / Mark() / Scan() / Sweep()
+      <pre class="diagram">GarbageCollector  <span class="hi">eIdle → eMarking → eSweeping → ePurging → eIdle</span>
+  Prepare() / Mark() / Sweep() / Purge()
 
 StorageManager
   Create&lt;T&gt;()             -&gt; ObjectPtr&lt;T&gt;
   CreateArray&lt;T&gt;(count)   -&gt; ObjectPtr&lt;T[]&gt;
-  ├─ PoolBudget    single objects, Classify() -&gt; eDensity
-  └─ ArrayBudget   array objects
+  ├─ PoolBudget    single objects, 4 density buckets
+  └─ ArrayBudget   array objects, no bucketing
 
-Accessor  <span class="hi">«IAccessor, lives in each instance header»</span>
+Accessor  <span class="hi">«IAccessor, lives in each instance's own chunk, right before it»</span>
   Construct() / Destruct()
 
-ObjectPtr&lt;T&gt;
-  └─ RootPtr&lt;T&gt;  <span class="hi">registers as GC root on construct</span>
+ObjectPtr&lt;T&gt;   plain non-owning handle, no collector interaction
+  └─ RootPtr&lt;T&gt;  <span class="hi">Add/RemoveRoot(this) in every ctor/dtor/assignment</span>
 
 <span class="hi2">── wiring ──────────────────────────────</span>
 StorageManager  routes to  PoolBudget or ArrayBudget
-PoolBudget, ArrayBudget    both own  Accessor
+Both budgets  own  Accessor per object
 GarbageCollector  Mark/Sweeps  Accessor
-ObjectPtr  refers to  Accessor</pre>
+RootPtr  registers itself (its own address) into GarbageCollector's root set</pre>
     </div>
 
     <div class="mermaid-wrap">
@@ -79,51 +79,71 @@ ObjectPtr  refers to  Accessor</pre>
 sequenceDiagram
     participant App
     participant GC as GarbageCollector
-    participant Root as RootPtr set
+    participant Root as m_rootSet
     participant Acc as Accessor (per object)
 
     App->>GC: Collect()
-    GC->>GC: Prepare - reset state to eUnreachable
-    GC->>Root: for each live RootPtr
-    Root->>Acc: mark reachable, eMarked
-    GC->>GC: Scan - follow PROPERTY refs, time-limited
-    GC->>Acc: Sweep
-    alt still eUnreachable
-        Acc->>Acc: Destruct, slot returned to Pool/Array
-    else eMarked
-        Acc->>Acc: reset to eUnreachable for next cycle
-    end
+    GC->>GC: Prepare - copy every root onto a reusable DFS stack
+    GC->>Root: iterative DFS, not recursive
+    Root->>Acc: Mark() reachable objects, eMarked
+    GC->>Acc: Sweep - anything still eUnreachable moves to a dead list
+    Acc->>Acc: everything else resets to eUnreachable for next cycle
+    GC->>GC: Purge - destruct dead objects, time-limited
+    Note over GC: if Purge runs out of time, status stays ePurging - next Collect() resumes Purge directly, skipping Prepare/Mark/Sweep
       </pre>
     </div>
   </section>
 
-  <section id="compaction">
+  <section id="mechanics">
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">No Compaction, By Design</h2>
+        <h2 class="section-title display">How It Actually Runs</h2>
+        <span class="section-tag">verified against the current source, not just the design notes</span>
       </div>
     </div>
 
-    <div class="callout warn">
-      <b>Why compaction is out:</b> <code class="mono">Accessor</code> lives inline in each instance's header,
-      not a separate handle table. Moving an object during compaction moves its <code class="mono">Accessor</code>
-      too — every live <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code> already pointing at
-      it would need finding and rewriting. Without a tracked referrer list, that's a second full GC pass on
-      its own.
+    <h3 style="font-size:16px;margin:0 0 8px;">The GC cycle</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">One status field, cascading phases</div>
+        <div class="sub">A single <code class="mono">eStatus</code> drives everything (<code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code>). A single <code class="mono">Collect()</code> call can fall through several phases in one invocation if each finishes fast.</div></div></div>
+      <div class="achv"><div><div class="head">Mark is an iterative DFS</div>
+        <div class="sub">Not recursive — roots are copied onto a reusable stack, then popped one at a time. Reflected properties are classified (container / struct / object) and any child <code class="mono">BasePtr</code>s get pushed back onto the same stack.</div></div></div>
+      <div class="achv"><div><div class="head">Sweep does double duty</div>
+        <div class="sub">Anything still <code class="mono">eUnreachable</code> (never marked this cycle) moves to a dead list. Everything else gets forcibly reset to <code class="mono">eUnreachable</code> right there — which is how "unmarked next cycle" is detected without a separate bit.</div></div></div>
+      <div class="achv"><div><div class="head">The time budget applies to Purge, specifically</div>
+        <div class="sub">Mark and Sweep always run to completion in one call. Only <code class="mono">Purge()</code> — destructing dead objects and returning their slots — checks the time limit per object and can bail mid-list, resuming from the same dead list next <code class="mono">Collect()</code> call.</div></div></div>
     </div>
-    <div class="callout">
-      <b>Fragmentation handled on allocation instead:</b> each <code class="mono">PoolBudget</code> classifies
-      buckets by occupancy (<code class="mono">eSparse / eModerate / eDense / eFull</code>) and routes new
-      allocations to the <em>lowest</em>-occupancy bucket first — keeps any one bucket from hitting
-      <code class="mono">eFull</code> and forcing a fresh backing allocation.
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">ObjectPtr vs. RootPtr</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">The root set holds pointers to the pointers</div>
+        <div class="sub"><code class="mono">RootPtr</code>'s constructor calls <code class="mono">AddRoot(this)</code> — inserting the <code class="mono">RootPtr</code> wrapper's own address into the collector's root set, not the managed object's address. Mark() dereferences through the wrapper to reach the real instance.</div></div></div>
+      <div class="achv"><div><div class="head">ObjectPtr is inert</div>
+        <div class="sub">Same layout, but no constructor/destructor ever talks to the collector — it's a plain handle. Only wrapping it in <code class="mono">RootPtr</code> makes something a GC root.</div></div></div>
+      <div class="achv"><div><div class="head">Confirms why compaction is off the table</div>
+        <div class="sub">The Accessor header sits immediately before the object in the same allocated chunk — there's no separate indirection table anywhere in this path. Moving the chunk would mean rewriting every <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code> caching that raw address.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">PoolBudget bucket selection</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Four density buckets, real thresholds</div>
+        <div class="sub"><code class="mono">eSparse [0, 0.3) · eModerate [0.3, 0.7) · eDense [0.7, 1.0) · eFull [1.0, +)</code>, computed from used/total ratio.</div></div></div>
+      <div class="achv"><div><div class="head">Allocation prefers the fullest non-full pool</div>
+        <div class="sub">Search order is Dense → Moderate → Sparse, returning the first non-empty bucket found. A brand-new backing pool is only created once all three are empty. This keeps sparse pools available to potentially empty out completely, rather than spreading new allocations thin across many partially-used pools.</div></div></div>
+      <div class="achv"><div><div class="head">Reclaiming</div>
+        <div class="sub">Only pools that have drifted down to <code class="mono">eSparse</code> and are fully empty get freed back to the OS — a pool that cycles through Dense/Full is never released until it works its way back down.</div></div></div>
+    </div>
+
+    <div class="callout warn">
+      <b>Why compaction is out, in one line:</b> the Accessor lives inline in each object's own header rather than a stable handle table, so moving an object during compaction would mean finding and rewriting every live pointer to it — without a tracked referrer list, that's effectively a second full GC pass.
     </div>
   </section>
 
   <section id="issues">
     <div class="section-head">
       <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">Open Issue</h2></div>
+      <div><h2 class="section-title display">Real Issue</h2></div>
     </div>
     <div class="issues">
       <div class="issue-card">
@@ -132,7 +152,10 @@ sequenceDiagram
           <span class="issue-title"><a href="https://github.com/Winteradio/MemoryPool/issues/16" target="_blank" rel="noopener">The multi-threading GC will be crashed</a></span>
           <span class="issue-state open mono">open</span>
         </div>
-        <div class="issue-body">Concurrent GC access to object pointers isn't synchronized yet — race condition, tracked not hidden.</div>
+        <div class="issue-body">
+          - Cause: <code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code> are mutex-guarded, but the Accessor's mark-status flags and each Pool's used/free/dead lists are not — a mutator thread reading an Accessor's status through <code class="mono">ObjectPtr</code> can race with the collector thread's Mark/Sweep touching the same Accessor.<br>
+          - Direction: extend the existing root-set mutex (or move to atomics on the status field) to cover Accessor state and pool list mutation, not just root registration.
+        </div>
       </div>
     </div>
   </section>

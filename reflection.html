@@ -53,16 +53,6 @@
         <span class="section-tag">single inheritance only — that's what makes Cast&lt;T&gt; safe</span>
       </div>
     </div>
-    <div class="section-body">
-      <div class="col prose">
-        <p>
-          <code class="mono">TypeInfo</code> models one <code class="mono">SuperType</code> per class, not a
-          set of bases. <code class="mono">Cast&lt;T&gt;</code> walks that single chain — one unambiguous path
-          up, so a cast is a walk, not a search across a DAG, and <code class="mono">dynamic_cast</code> is
-          never needed.
-        </p>
-      </div>
-    </div>
 
     <div class="mermaid-wrap">
       <div class="cap mono">type map — registration</div>
@@ -105,20 +95,94 @@ sequenceDiagram
     </div>
   </section>
 
-  <section id="depth">
+  <section id="mechanics">
     <div class="section-head">
       <span class="section-num mono">02</span>
-      <div><h2 class="section-title display">Two Details Worth Knowing</h2></div>
+      <div>
+        <h2 class="section-title display">How It Actually Runs</h2>
+        <span class="section-tag">what the macros expand to, mechanically</span>
+      </div>
     </div>
+
+    <h3 style="font-size:16px;margin:0 0 8px;">GENERATE(ClassName)</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Zero-allocation iteration.</div>
-        <div class="sub">A virtual-function iterator would <code class="mono">new</code> per traversal. Instead:
-          a fixed 64-byte buffer, placement-new, lambda dispatch instead of a vtable, explicit deep-copy so
-          Debug never double-frees a shallow buffer copy.</div></div></div>
-      <div class="achv"><div><div class="head">Static method objects without <code class="mono">new</code>.</div>
-        <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code> keys on the function pointer
-          <em>value</em> — each function gets its own template instantiation, and its own unique
-          <code class="mono">static MethodCall</code>, for free.</div></div></div>
+      <div class="achv"><div><div class="head">SuperType detection</div>
+        <div class="sub">SFINAE via <code class="mono">Utils::TypeDetector</code> finds a base's reflection tag and aliases it as <code class="mono">SuperType</code>; <code class="mono">ThisType</code> aliases the class itself.</div></div></div>
+      <div class="achv"><div><div class="head">GetTypeInfo() override</div>
+        <div class="sub">A function-local <code class="mono">static const TypeInfo*</code> (a "magic static," thread-safe, initialized once) is returned by an overridden virtual — this is how a base pointer recovers the real derived type at runtime.</div></div></div>
+      <div class="achv"><div><div class="head">Self-registration</div>
+        <div class="sub"><code class="mono">inline static const TypeInfo* s_typeInfo = GetStaticTypeInfo();</code> — its dynamic initializer runs at static-init time, and <code class="mono">TypeInfo</code>'s constructor ends by calling <code class="mono">TypeManager::Regist(this)</code>, inserting into an <code class="mono">unordered_map&lt;hash, TypeInfo*&gt;</code>. Because <code class="mono">TypeManager::GetHandle()</code> is itself a Meyer's singleton, cross-TU static-init order never matters.</div></div></div>
+      <div class="achv"><div><div class="head">A named linker hazard</div>
+        <div class="sub"><code class="mono">__STATIC_USED__</code> (<code class="mono">__attribute__((used))</code> on GCC/Clang) exists specifically to stop the linker from stripping this "unreferenced" static — and it doesn't always win (see Issue #25 below).</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">PROPERTY(member)</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Offset capture</div>
+        <div class="sub"><code class="mono">offset = reinterpret_cast&lt;size_t&gt;(&amp;(static_cast&lt;Class*&gt;(nullptr)-&gt;*pointer))</code> — dereferencing a pointer-to-member through a null base pointer. Needed because plain <code class="mono">offsetof</code> is unsupported/UB once a class has a vtable (non-standard-layout).</div></div></div>
+      <div class="achv"><div><div class="head">Get/Set</div>
+        <div class="sub">Both resolve as <code class="mono">reinterpret_cast&lt;char*&gt;(instance) + m_propertyOffset</code>. Assignment goes through a captureless lambda that decays to a plain <code class="mono">void(*)(void*, const void*)</code> thunk doing <code class="mono">*(Property*)dest = *(const Property*)src</code>.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">The zero-allocation container Iterator</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">No vtable, no base class</div>
+        <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code> plus 6 plain function pointers (Next/Prev/Destroy/Element/Copy/Compare) — that fixed bundle of function pointers per container type <em>is</em> the manual vtable.</div></div></div>
+      <div class="achv"><div><div class="head">Construction</div>
+        <div class="sub"><code class="mono">begin()</code> placement-news the real STL/wtr const_iterator directly into the 64-byte buffer: <code class="mono">new (&amp;storage) ContainerConstIterator(itr)</code>.</div></div></div>
+      <div class="achv"><div><div class="head">Copy is a real deep copy</div>
+        <div class="sub">A raw <code class="mono">memcpy</code> of the buffer would corrupt any iterator holding internal pointers (hash-bucket, list node). <code class="mono">CopyFunc</code> placement-news a fresh iterator from the source instead.</div></div></div>
+      <div class="achv"><div><div class="head">Destruction is explicit</div>
+        <div class="sub">A raw <code class="mono">uint8_t[]</code> never runs destructors on its own — <code class="mono">~Iterator()</code> calls <code class="mono">DestroyFunc</code>, which calls the real iterator's destructor in place.</div></div></div>
+      <div class="achv"><div><div class="head">One sharp edge</div>
+        <div class="sub">There's no <code class="mono">static_assert(sizeof(ContainerConstIterator) &lt;= 64)</code> anywhere — an oversized concrete iterator type would silently overflow the buffer.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">Cast&lt;T&gt;()</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Compile-time fast path</div>
+        <div class="sub">If <code class="mono">IsSame&lt;T,U&gt;</code> or <code class="mono">IsChild&lt;T,U&gt;</code> (essentially <code class="mono">std::is_base_of</code>) already proves it safe, it's a plain <code class="mono">static_cast</code> — zero runtime cost.</div></div></div>
+      <div class="achv"><div><div class="head">Runtime path</div>
+        <div class="sub">Otherwise walks <code class="mono">TypeInfo::m_superType</code> one link at a time until it matches or hits null. Because that's a single pointer, not a set of bases, this is a linear walk — never a DAG search like <code class="mono">dynamic_cast</code> has to do.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">MethodCreator&lt;Func, func&gt;</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">The trick</div>
+        <div class="sub"><code class="mono">func</code> is bound as a non-type template parameter — a <em>value</em>, not just a type. Two member functions with identical signatures (<code class="mono">Foo()</code>, <code class="mono">Bar()</code>) instantiate <em>different</em> specializations because the values differ.</div></div></div>
+      <div class="achv"><div><div class="head">The payoff</div>
+        <div class="sub">Each instantiation gets its own function-local <code class="mono">static MethodCall</code> — a unique, heap-free, per-function object, keyed by template identity instead of a runtime map.</div></div></div>
+    </div>
+  </section>
+
+  <section id="issues">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
+      <div><h2 class="section-title display">Real Issues</h2></div>
+    </div>
+
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#25</span>
+          <span class="issue-title">PropertyInfo missing in template classes on GCC/Clang</span>
+          <span class="issue-state open mono">open</span>
+        </div>
+        <div class="issue-body">
+          - Cause: the <code class="mono">static</code> objects <code class="mono">PROPERTY()</code> creates inside template classes get dead-code-stripped by aggressive GCC/Clang linkers when the template looks otherwise unused, silently breaking property and GC registration.<br>
+          - Direction: force retention with compiler <code class="mono">used</code>/<code class="mono">retain</code> attributes — the same class of fix <code class="mono">__STATIC_USED__</code> targets, not yet extended to cover templates.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#29</span>
+          <span class="issue-title">TypeInfo initialization failure with forward declarations</span>
+          <span class="issue-state closed mono">closed</span>
+        </div>
+        <div class="issue-body">
+          - Cause: <code class="mono">TypeInfo&lt;T&gt;</code> needs a complete type's size/alignment at compile time to extract metadata — a forward declaration can't provide that.
+        </div>
+      </div>
     </div>
   </section>
 
