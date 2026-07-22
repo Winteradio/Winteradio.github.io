@@ -63,13 +63,18 @@ html, body {
 }
 
 .display {
-  font-family: "Quicksand", "Baloo 2", "Comfortaa", "Arial Rounded MT Bold", "Segoe UI Semibold", sans-serif;
-  letter-spacing: 0.005em;
+  font-family: Bahnschrift, "SF Compact Display", "Segoe UI Semibold", "Arial Narrow", sans-serif;
+  font-stretch: condensed;
 }
 
 .mono {
   font-family: "Cascadia Code", "SF Mono", Consolas, "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
+}
+
+/* apply the display face to emphasized in-body text too, not just headers */
+.job .org, .project-card .name, table.spec td.k, .issue-title, .resume-head .lbl, h3, h4 {
+  font-family: Bahnschrift, "SF Compact Display", "Segoe UI Semibold", "Arial Narrow", sans-serif;
 }
 
 a { color: var(--accent); }
