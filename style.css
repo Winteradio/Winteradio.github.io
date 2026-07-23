@@ -195,7 +195,7 @@ h1.title .accent { color: var(--accent); }
 @media (max-width: 640px) { .resume-row { grid-template-columns: 1fr; gap: 2px; } }
 
 /* ---------- sections ---------- */
-section { padding: 60px 0; border-top: 1px solid var(--rule); }
+section { padding: 60px 0; border-top: 1px solid var(--rule); scroll-margin-top: 76px; }
 section:first-of-type { border-top: none; }
 
 .section-head {
