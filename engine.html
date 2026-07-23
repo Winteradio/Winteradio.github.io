@@ -174,10 +174,11 @@
     <div class="uml-card">
       <img src="https://www.plantuml.com/plantuml/svg/RL7RJXin47tVhnZ12uY2saBxKArMXD2qGKcBsF81a_KaQ-7r87ksQRYyz3Fw1vNwQNn4DzvDOY1-6i-PStnyvjGBEgaha_WRRM_HOGKJB6vcZckh-cpOmRpKGX7kIrGyrtO6KpG-HWg3tW_OoZUi2FfiFJUTRGEvlYDuTnn1YgPO6rcpTyPePhM5BoobBdQsJxOoxoEmy-qiEJXv-N9FnEb9BJGis0RkssYavnpFso_lVWmd0ljB_XaxHQuREGddrSYBy7O77mR7d_j94Wn0ptiIk4y03gwlX-UWLVBOGMFoPGIVBonMkcXCuI9TOZaLejbcuDl2RvWev3IQY4rviwHcHMDMPCB6LfSrwmVzajfHHBgYwQMuzEhhiCCoaBPOay9qll125QGf-4RLaB25B6irHengxnQbt8TMhg7Yn8l3GY3Ik4JdcnK5JgZtSDdUXv_SPB8I2hqtK5HgfFqAN7dvVdRHgdJtN2R32cVKDTkFfG-7XvjedpNZr68W3YRPR8MtSxgF1ER6qIjecxaknwEZx5acd-3fzx-dFt-JKxAghin_" alt="Asset 클래스 다이어그램" loading="lazy">
     </div>
-    <pre class="diagram"><span class="hi">eLoaded</span> --AssetSystem.Create()--> <span class="hi2">eParsed</span> --TaskWorker.Parse()--> <span class="hi">eReady</span> --RHIWorker upload-->
-Parse  = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 AssetSystem 큐에 다시 넣어 다음 패스로 미룸)
-Load   = GPU 포맷 변환, AssetWorker
-Upload = glBufferData / glTexImage2D, RHIWorker 전용</pre>
+    <pre class="diagram"><span class="hi">eNone</span> --TaskWorker.Parse()--> <span class="hi2">eLoaded</span> --AssetCommander.Load() GPU 업로드--> <span class="hi">(상태 전이 없음)</span>
+Parse = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 AssetSystem 큐에 다시 넣어 다음 패스로 미룸)
+Load  = GPU 업로드(AssetCommander), RHIWorker 전용
+※ eAssetState는 eNone/eError/eLoaded/eExpried(오타)/eDirty뿐 — "완료(eReady)" 상태는 존재하지 않고,
+  준비 여부는 texture/buffer/shader 포인터가 non-null인지로 판단</pre>
   </section>
 
   <section id="findings">
@@ -236,6 +237,29 @@ Upload = glBufferData / glTexImage2D, RHIWorker 전용</pre>
           <code class="mono">Engine.cpp</code>에 하드코딩. 분배는 라운드로빈이 아니라 첫 번째로 유휴 상태인 워커를
           선형 탐색. <code class="mono">Win32InputHandler</code>의 입력 큐도 backpressure 없이
           <code class="mono">MAX_QUEUE_SIZE</code>를 넘으면 그냥 통째로 비워 밀린 입력을 버립니다.</div></div></div>
+      <div class="achv"><div><div class="head">제네릭 Task&lt;Args...&gt;가 실제로는 두 가지 다른 방식으로 쓰입니다.</div>
+        <div class="sub"><code class="mono">Task&lt;Args...&gt;</code>는 <code class="mono">std::function&lt;void(Args...)&gt;</code>
+          얇은 래퍼일 뿐인데, Asset/TaskWorker 쪽은 <code class="mono">DefaultTask = Task&lt;&gt;</code>로 인자 없이
+          클로저에 전부 캡처해서 쓰고, <code class="mono">RenderTask : Task&lt;Renderer*, RefPtr&lt;RHICommandList&gt;&gt;</code>
+          는 실제 인자를 받으며 커스텀 할당기 위에 인트루시브 리스트 노드로 placement-new됩니다 — "제네릭" 템플릿이
+          사실상 한쪽 전용 소비자를 위해 존재하는 셈입니다.</div></div></div>
+      <div class="achv"><div><div class="head">Asset 상태 머신에는 "완료(eReady)" 상태가 없습니다.</div>
+        <div class="sub">실제 <code class="mono">eAssetState</code>는 <code class="mono">eNone / eError / eLoaded /
+          eExpried(오타) / eDirty</code> 뿐입니다. GPU 업로드(<code class="mono">AssetCommander::Load</code>) 이후
+          별도 상태 전이가 없어서, 준비 여부는 상태값이 아니라 texture/buffer/shader 포인터가 non-null인지로
+          다른 코드가 추론합니다.</div></div></div>
+      <div class="achv"><div><div class="head">RHIDrawIndexDesc / RHIDispatchDesc가 자기 태그 대신 남의 태그를 씁니다.</div>
+        <div class="sub"><code class="mono">eResourceType</code>은 9개 값(Buffer/Texture/Sampler/Shader/PipeLine/
+          Layout/Target/Const/Pass)이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
+          <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
+          <code class="mono">ePipeLine</code>을 그대로 재사용합니다 — Draw 커맨드와 VertexLayout이
+          <code class="mono">desc.type</code> 값만으로는 구분되지 않습니다.</div></div></div>
+      <div class="achv"><div><div class="head">PNGParser에는 실제로 타입이 어긋나는 버그가 있습니다.</div>
+        <div class="sub"><code class="mono">stbi_load_from_memory</code>는 항상 8비트 데이터를 반환하는데,
+          <code class="mono">componentType</code>은 소스에 따라 <code class="mono">eFloat</code>/
+          <code class="mono">eUInt</code>로 설정됩니다 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지
+          않습니다. sRGB 판별도 IHDR 바로 다음 청크 하나만 검사해서(스펙상 IDAT 전 어디든 올 수 있음) 코드 안
+          TODO로 부정확함이 남아 있습니다.</div></div></div>
     </div>
   </section>
 
