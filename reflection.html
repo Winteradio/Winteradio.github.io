@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="C++17 Reflection — Unreal Engine-style GENERATE/PROPERTY/METHOD macros for compile-time type registration.">
-<title>Reflection — Wonmock Lee</title>
+<meta name="description" content="C++17 Reflection — Unreal Engine 스타일 GENERATE/PROPERTY/METHOD 매크로 기반 컴파일 타임 타입 등록.">
+<title>Reflection — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
@@ -17,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html">Home</a>
+      <a href="index.html">홈</a>
       <a href="engine.html">Engine</a>
       <a href="ecs.html">ECS</a>
       <a href="memory.html">Memory</a>
       <a href="reflection.html" class="active">Reflection</a>
       <a href="container.html">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -32,169 +32,159 @@
 <main class="wrap">
 
   <section class="hero">
-    <div class="crumb"><a href="index.html">← Home</a></div>
-    <span class="eyebrow"><span class="dot"></span>Project 04 · Own repository</span>
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>프로젝트 04 · 독립 저장소</span>
     <h1 class="title display">C++17 <span class="accent">Reflection</span></h1>
     <p class="subhead">
       <code class="mono">GENERATE</code> / <code class="mono">PROPERTY</code> / <code class="mono">METHOD</code>
-      — modeled after Unreal's <code class="mono">UCLASS</code>/<code class="mono">UPROPERTY</code>/<code class="mono">UFUNCTION</code>.
-      Register type, members, and methods at compile time via C++17 <code class="mono">inline static</code>,
-      header-only, no linker errors.
+      — Unreal의 <code class="mono">UCLASS</code>/<code class="mono">UPROPERTY</code>/<code class="mono">UFUNCTION</code>
+      을 참고했습니다. C++17 <code class="mono">inline static</code>로 타입/멤버/메서드를 컴파일 타임에
+      등록하며, 헤더만으로 완결되고 링커 에러가 없습니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Reflection" target="_blank" rel="noopener">github.com/Winteradio/Reflection</a>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
+        <li><span class="n">03</span><a href="#mechanics">매크로가 실제로 확장되는 방식</a></li>
+        <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">핵심 내용</h2></div>
+    </div>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">단일 상속 체인만 지원하고, 그래서 Cast&lt;T&gt;가 안전합니다.</div>
+        <div class="sub"><code class="mono">TypeInfo</code>는 클래스당 <code class="mono">SuperType</code>
+          하나만 모델링합니다. 위로 올라가는 경로가 하나뿐이라 <code class="mono">Cast&lt;T&gt;</code>는
+          DAG 탐색이 아니라 그냥 체인을 걷는 것으로 끝납니다 — <code class="mono">dynamic_cast</code>가 전혀
+          필요 없습니다.</div></div></div>
+      <div class="achv"><div><div class="head">컨테이너 순회는 힙 할당이 0입니다.</div>
+        <div class="sub">Iterator가 64바이트 고정 버퍼에 실제 STL/wtr 반복자를 placement-new로 생성하고,
+          vtable 대신 함수 포인터 6개로 디스패치합니다.</div></div></div>
+      <div class="achv"><div><div class="head">같은 시그니처의 함수 두 개도 서로 다른 static 객체를 가집니다.</div>
+        <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가 함수 포인터 "값"을 비타입
+          템플릿 파라미터로 받기 때문에, 시그니처가 같아도 함수마다 별도 템플릿 인스턴스 → 별도 static이
+          생깁니다.</div></div></div>
     </div>
   </section>
 
   <section id="structure">
     <div class="section-head">
-      <span class="section-num mono">01</span>
+      <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Type / Property / Method</h2>
-        <span class="section-tag">single inheritance only — that's what makes Cast&lt;T&gt; safe</span>
+        <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
+        <span class="section-tag">단일 상속만 지원 — 그래서 Cast&lt;T&gt;가 안전합니다</span>
       </div>
     </div>
 
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — registration</div>
-      <pre class="mermaid">
-classDiagram
-    class TypeInfo {
-        + GetProperty(name) PropertyInfo
-        + GetMethod(name) MethodInfo
-    }
-    class PropertyInfo {
-        + Get(instance) VoidPtr
-        + Set(instance, value) void
-    }
-    class ContainerPropertyInfo {
-        + begin(instance) Iterator
-        + end(instance) Iterator
-    }
-    class Iterator {
-        + get() VoidPtr
-    }
-    class MethodInfo {
-        + Invoke(instance, args) auto
-    }
-    class MethodCreator
-    class MethodCall
-    <<SuperTypeChain>> TypeInfo
-    <<NonTypeTemplateParam>> MethodCreator
-    PropertyInfo <|-- ContainerPropertyInfo
-    ContainerPropertyInfo ..> Iterator : creates
-    TypeInfo o-- PropertyInfo
-    TypeInfo o-- MethodInfo
-    MethodCreator ..> MethodCall : owns 1 static instance per function value
-      </pre>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — 등록 구조</div>
+      <img src="https://www.plantuml.com/plantuml/svg/RL5DInj16BxlhtZHYrALMgs74e9sQIG7Yv3YVR8xsGoPp1jcPnBi1nIC83IdOg47ur5wQrfwK2Zq_xYx_w6p7qbcuyvjvlcOvttUmr0HgNIVEs6FYG6Hf0zjulK2YLhuBdAKCEeoHIqyx18VHqm4q24yj16Fap1ie51lIP-2Yo94yr95QB7t57RtBCYd7QAvMgZNJWWFj81ZL5tchLKpSviN5bZabe9As5_z-KWfoTfQqQQ78jC-joX7Kk8e7tdz83iMwARwroXzAWlAVdQUK5RAMs-yREozSHqd2m3lpWUqAJe8jHgqz83Az07Ytt_YwJtKw_310NXsJDMfH0EgymrXkjY4-JML5emJghhe5tX-oT1FnK-sP66xmOHPkF2Cv0oPVwfa2hGiO0k6X6k33ms-C3EhL8IPJf-wjcd0XENRL5GIXPan5NuLCdUTF-H6WKcnZ3NdB2VBMKqnn1wruX8PX9j0jC8LZIjfPcwQZXx6oSNd-FOIaikRv7eItVs3P3A9fd-Zd_V9U6QQBqi9vqvfrDh7xUtg5fpgRdPswilvNa5yCOt7lvp5-j7ObLnAYBNEyYofwpAYyKs-_OYllZ_ElaPV7i1KefW7ku-p6-VGTA_x_3y0" alt="Reflection 클래스 다이어그램" loading="lazy">
     </div>
-    <p class="why mono" style="margin-top:8px;">Iterator = 64-byte SBO buffer, zero heap allocation. MethodCreator keys on the function pointer VALUE as a non-type template parameter.</p>
 
-    <div class="mermaid-wrap">
-      <div class="cap mono">sequence — macro registration to runtime Cast/lookup</div>
-      <pre class="mermaid">
-sequenceDiagram
-    participant CT as compile time
-    participant TM as TypeManager
-    participant RT as runtime caller
-
-    CT->>TM: GENERATE(Class) - inline static TypeInfo, records SuperType
-    CT->>TM: PROPERTY(member) - inline static PropertyInfo self-registers
-    RT->>TM: Cast~Derived~(basePtr)
-    TM-->>RT: Derived* or nullptr
-    RT->>TM: GetProperty("m_array")
-    TM-->>RT: ContainerPropertyInfo*
-    Note over RT: Iterator lives in a 64-byte stack buffer
-      </pre>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — 매크로 등록부터 런타임 Cast/조회까지</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XPB1Qjj054Nt-eg7id52lMYR5XfAIABA9b2dmj6cgpAsdcqHQKPz6iMuguAzCYaO6cWMLKgXYowTO8gX-Q9gz0yTsIwHMqC7PY7kUVVUcT51B1d990oC-Cpd4ICMGekrpxea4kvP8X04_PuliQJ7FUQ9li-xq651N5OyxB0aa3N1vGaB4Sm62xe9XxgGFRzjRYPF_NS83n-L0_1jWhoDXqIYl-omjRjO6w2NVaTlZaU2FAGL_MonDj2EFgtVzYF6vT5VnzogFQazjgt_39LJLfsCw5u7K_sSvHSNAhs3VFXUNOzCO35OxZha3Y9iCCwwI0lTRQphsPVfSXhogxdwyLbTJnPSqpKCouNglfw0FQZR9tRpqBKhLi3YU1kguFD0tmNeLzLcKCGSyuvu0AT9X5Hymg_vDFkQbbsSvYl7RhglAo66BQH_RHmIUbeE2YlGLTJj3BAFDuLDyzx6Oh5y_WB9FqTllz9YCJgIjWsjLJMYmJrOgJkGNKsoyINm90WYIMMNEie_SHKpVCE8sC1STx7qJyDqFIhtsZ6ua0ZY76b97Kia9WKLEKzti-cbIcVvU0vg_2qVff3TZl8FT-hJ1DGmLQERRFBTE43k9M7m6m00" alt="Reflection 시퀀스 다이어그램" loading="lazy">
     </div>
   </section>
 
   <section id="mechanics">
     <div class="section-head">
-      <span class="section-num mono">02</span>
+      <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">How It Actually Runs</h2>
-        <span class="section-tag">what the macros expand to, mechanically</span>
+        <h2 class="section-title display">매크로가 실제로 확장되는 방식</h2>
       </div>
     </div>
 
     <h3 style="font-size:16px;margin:0 0 8px;">GENERATE(ClassName)</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">SuperType detection</div>
-        <div class="sub">SFINAE via <code class="mono">Utils::TypeDetector</code> finds a base's reflection tag and aliases it as <code class="mono">SuperType</code>; <code class="mono">ThisType</code> aliases the class itself.</div></div></div>
-      <div class="achv"><div><div class="head">GetTypeInfo() override</div>
-        <div class="sub">A function-local <code class="mono">static const TypeInfo*</code> (a "magic static," thread-safe, initialized once) is returned by an overridden virtual — this is how a base pointer recovers the real derived type at runtime.</div></div></div>
-      <div class="achv"><div><div class="head">Self-registration</div>
-        <div class="sub"><code class="mono">inline static const TypeInfo* s_typeInfo = GetStaticTypeInfo();</code> — its dynamic initializer runs at static-init time, and <code class="mono">TypeInfo</code>'s constructor ends by calling <code class="mono">TypeManager::Regist(this)</code>, inserting into an <code class="mono">unordered_map&lt;hash, TypeInfo*&gt;</code>. Because <code class="mono">TypeManager::GetHandle()</code> is itself a Meyer's singleton, cross-TU static-init order never matters.</div></div></div>
-      <div class="achv"><div><div class="head">A named linker hazard</div>
-        <div class="sub"><code class="mono">__STATIC_USED__</code> (<code class="mono">__attribute__((used))</code> on GCC/Clang) exists specifically to stop the linker from stripping this "unreferenced" static — and it doesn't always win (see Issue #25 below).</div></div></div>
+      <div class="achv"><div><div class="head">SuperType 탐지</div>
+        <div class="sub"><code class="mono">Utils::TypeDetector</code>의 SFINAE로 베이스의 리플렉션 태그를
+          찾아 <code class="mono">SuperType</code>으로 alias합니다. <code class="mono">ThisType</code>은
+          클래스 자신을 가리킵니다.</div></div></div>
+      <div class="achv"><div><div class="head">GetTypeInfo() 오버라이드</div>
+        <div class="sub">함수 지역 <code class="mono">static const TypeInfo*</code>("magic static", 스레드
+          안전, 최초 1회만 초기화)를 오버라이드된 virtual이 반환합니다 — 베이스 포인터가 런타임에 실제 파생
+          타입을 복원하는 방법입니다.</div></div></div>
+      <div class="achv"><div><div class="head">자체 등록</div>
+        <div class="sub"><code class="mono">inline static const TypeInfo* s_typeInfo = GetStaticTypeInfo();</code>
+          — 정적 초기화 시점에 동적 초기자가 실행되고, <code class="mono">TypeInfo</code> 생성자 마지막에서
+          <code class="mono">TypeManager::Regist(this)</code>를 호출해 <code class="mono">unordered_map</code>
+          에 등록합니다. <code class="mono">TypeManager::GetHandle()</code>이 Meyer's singleton이라 TU 간
+          정적 초기화 순서 문제에서 자유롭습니다.</div></div></div>
+      <div class="achv"><div><div class="head">이름 붙은 링커 위험 요소</div>
+        <div class="sub"><code class="mono">__STATIC_USED__</code>(GCC/Clang의 <code class="mono">__attribute__((used))</code>)
+          가 "참조되지 않는" static이 스트리핑되는 걸 막으려고 존재하는데, 늘 이기는 건 아닙니다(아래 이슈 참고).</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">PROPERTY(member)</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Offset capture</div>
-        <div class="sub"><code class="mono">offset = reinterpret_cast&lt;size_t&gt;(&amp;(static_cast&lt;Class*&gt;(nullptr)-&gt;*pointer))</code> — dereferencing a pointer-to-member through a null base pointer. Needed because plain <code class="mono">offsetof</code> is unsupported/UB once a class has a vtable (non-standard-layout).</div></div></div>
+      <div class="achv"><div><div class="head">오프셋 캡처</div>
+        <div class="sub"><code class="mono">offset = reinterpret_cast&lt;size_t&gt;(&amp;(static_cast&lt;Class*&gt;(nullptr)-&gt;*pointer))</code>
+          — null 베이스 포인터를 통해 멤버 포인터를 역참조합니다. vtable이 있는(non-standard-layout) 클래스에서는
+          <code class="mono">offsetof</code>가 지원되지 않아 필요한 방식입니다.</div></div></div>
       <div class="achv"><div><div class="head">Get/Set</div>
-        <div class="sub">Both resolve as <code class="mono">reinterpret_cast&lt;char*&gt;(instance) + m_propertyOffset</code>. Assignment goes through a captureless lambda that decays to a plain <code class="mono">void(*)(void*, const void*)</code> thunk doing <code class="mono">*(Property*)dest = *(const Property*)src</code>.</div></div></div>
+        <div class="sub">둘 다 <code class="mono">reinterpret_cast&lt;char*&gt;(instance) + m_propertyOffset</code>
+          으로 해석됩니다. 대입은 캡처 없는 람다가 <code class="mono">void(*)(void*, const void*)</code>
+          썽크로 decay되어 <code class="mono">*(Property*)dest = *(const Property*)src</code>를 수행합니다.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">The zero-allocation container Iterator</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">Zero-allocation 컨테이너 Iterator</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">No vtable, no base class</div>
-        <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code> plus 6 plain function pointers (Next/Prev/Destroy/Element/Copy/Compare) — that fixed bundle of function pointers per container type <em>is</em> the manual vtable.</div></div></div>
-      <div class="achv"><div><div class="head">Construction</div>
-        <div class="sub"><code class="mono">begin()</code> placement-news the real STL/wtr const_iterator directly into the 64-byte buffer: <code class="mono">new (&amp;storage) ContainerConstIterator(itr)</code>.</div></div></div>
-      <div class="achv"><div><div class="head">Copy is a real deep copy</div>
-        <div class="sub">A raw <code class="mono">memcpy</code> of the buffer would corrupt any iterator holding internal pointers (hash-bucket, list node). <code class="mono">CopyFunc</code> placement-news a fresh iterator from the source instead.</div></div></div>
-      <div class="achv"><div><div class="head">Destruction is explicit</div>
-        <div class="sub">A raw <code class="mono">uint8_t[]</code> never runs destructors on its own — <code class="mono">~Iterator()</code> calls <code class="mono">DestroyFunc</code>, which calls the real iterator's destructor in place.</div></div></div>
-      <div class="achv"><div><div class="head">One sharp edge</div>
-        <div class="sub">There's no <code class="mono">static_assert(sizeof(ContainerConstIterator) &lt;= 64)</code> anywhere — an oversized concrete iterator type would silently overflow the buffer.</div></div></div>
-    </div>
-
-    <h3 style="font-size:16px;margin:26px 0 8px;">Cast&lt;T&gt;()</h3>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">Compile-time fast path</div>
-        <div class="sub">If <code class="mono">IsSame&lt;T,U&gt;</code> or <code class="mono">IsChild&lt;T,U&gt;</code> (essentially <code class="mono">std::is_base_of</code>) already proves it safe, it's a plain <code class="mono">static_cast</code> — zero runtime cost.</div></div></div>
-      <div class="achv"><div><div class="head">Runtime path</div>
-        <div class="sub">Otherwise walks <code class="mono">TypeInfo::m_superType</code> one link at a time until it matches or hits null. Because that's a single pointer, not a set of bases, this is a linear walk — never a DAG search like <code class="mono">dynamic_cast</code> has to do.</div></div></div>
-    </div>
-
-    <h3 style="font-size:16px;margin:26px 0 8px;">MethodCreator&lt;Func, func&gt;</h3>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">The trick</div>
-        <div class="sub"><code class="mono">func</code> is bound as a non-type template parameter — a <em>value</em>, not just a type. Two member functions with identical signatures (<code class="mono">Foo()</code>, <code class="mono">Bar()</code>) instantiate <em>different</em> specializations because the values differ.</div></div></div>
-      <div class="achv"><div><div class="head">The payoff</div>
-        <div class="sub">Each instantiation gets its own function-local <code class="mono">static MethodCall</code> — a unique, heap-free, per-function object, keyed by template identity instead of a runtime map.</div></div></div>
+      <div class="achv"><div><div class="head">vtable도 베이스 클래스도 없음</div>
+        <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code>에 함수 포인터 6개
+          (Next/Prev/Destroy/Element/Copy/Compare) — 컨테이너 타입별로 고정된 이 함수 포인터 묶음 자체가
+          수동으로 만든 vtable입니다.</div></div></div>
+      <div class="achv"><div><div class="head">생성</div>
+        <div class="sub"><code class="mono">begin()</code>이 실제 STL/wtr const_iterator를 64바이트 버퍼에
+          placement-new로 직접 생성합니다.</div></div></div>
+      <div class="achv"><div><div class="head">복사는 진짜 깊은 복사입니다</div>
+        <div class="sub">버퍼를 그냥 <code class="mono">memcpy</code>하면 내부 포인터(해시 버킷, 리스트 노드)를
+          들고 있는 반복자가 깨집니다. <code class="mono">CopyFunc</code>가 원본에서 새로 placement-new합니다.</div></div></div>
+      <div class="achv"><div><div class="head">소멸은 명시적입니다</div>
+        <div class="sub"><code class="mono">uint8_t[]</code>는 소멸자를 자동으로 안 불러줍니다 —
+          <code class="mono">~Iterator()</code>가 <code class="mono">DestroyFunc</code>를 호출해 그 자리에서
+          실제 반복자의 소멸자를 실행합니다.</div></div></div>
     </div>
   </section>
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">Real Issues</h2></div>
+      <span class="section-num mono">04</span>
+      <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
-
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">#25</span>
           <span class="issue-title">PropertyInfo missing in template classes on GCC/Clang</span>
-          <span class="issue-state open mono">open</span>
+          <span class="issue-state open mono">미해결</span>
         </div>
         <div class="issue-body">
-          - Cause: the <code class="mono">static</code> objects <code class="mono">PROPERTY()</code> creates inside template classes get dead-code-stripped by aggressive GCC/Clang linkers when the template looks otherwise unused, silently breaking property and GC registration.<br>
-          - Direction: force retention with compiler <code class="mono">used</code>/<code class="mono">retain</code> attributes — the same class of fix <code class="mono">__STATIC_USED__</code> targets, not yet extended to cover templates.
+          - 원인: <code class="mono">PROPERTY()</code>가 템플릿 클래스 내부에 만드는 static 객체가, 템플릿이
+          겉보기에 안 쓰이는 것처럼 보이면 GCC/Clang의 공격적인 dead-code elimination에 의해 조용히
+          스트리핑되어 프로퍼티/GC 등록이 깨집니다.<br>
+          - 개선 방향: 컴파일러 <code class="mono">used</code>/<code class="mono">retain</code> 속성으로
+          강제 보존 — <code class="mono">__STATIC_USED__</code>가 노리는 것과 같은 종류의 해법이지만 아직
+          템플릿까지는 완전히 커버하지 못했습니다.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">#29</span>
           <span class="issue-title">TypeInfo initialization failure with forward declarations</span>
-          <span class="issue-state closed mono">closed</span>
+          <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
-          - Cause: <code class="mono">TypeInfo&lt;T&gt;</code> needs a complete type's size/alignment at compile time to extract metadata — a forward declaration can't provide that.
+          - 원인: <code class="mono">TypeInfo&lt;T&gt;</code>는 메타데이터 추출을 위해 컴파일 타임에 완전한
+          타입의 크기/정렬 정보가 필요한데, 전방 선언만으로는 이걸 제공할 수 없습니다.
         </div>
       </div>
     </div>
@@ -204,7 +194,7 @@ sequenceDiagram
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
@@ -213,18 +203,5 @@ sequenceDiagram
 </footer>
 
 <script src="app.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
-</script>
 </body>
 </html>

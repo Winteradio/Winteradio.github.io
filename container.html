@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Container — STL-free DynamicArray, Robin Hood HashMap, and a TLSF suballocator.">
-<title>Container — Wonmock Lee</title>
+<meta name="description" content="Container — STL을 쓰지 않는 DynamicArray, Robin Hood HashMap, TLSF 서브 할당자.">
+<title>Container — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
@@ -17,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html">Home</a>
+      <a href="index.html">홈</a>
       <a href="engine.html">Engine</a>
       <a href="ecs.html">ECS</a>
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html" class="active">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -32,160 +32,185 @@
 <main class="wrap">
 
   <section class="hero">
-    <div class="crumb"><a href="index.html">← Home</a></div>
-    <span class="eyebrow"><span class="dot"></span>Project 05 · Own repository</span>
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>프로젝트 05 · 독립 저장소</span>
     <h1 class="title display">STL-free <span class="accent">Container</span></h1>
     <p class="subhead">
-      DynamicArray, StaticArray, HashMap/HashSet (Robin Hood hashing), and the allocators under everything
-      else: Arena, LinearArena, and TLSFArena — O(1) allocate/free/split/merge over any byte range.
+      DynamicArray, StaticArray, HashMap/HashSet(Robin Hood 해싱), 그리고 그 아래를 받치는 할당자들 —
+      Arena, LinearArena, TLSFArena. TLSFArena는 임의 바이트 범위에서 O(1) 할당/해제/분할/병합이 가능합니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Container" target="_blank" rel="noopener">github.com/Winteradio/Container</a>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
+        <li><span class="n">03</span><a href="#issues">결과물 / 이슈</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">핵심 내용</h2></div>
+    </div>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Robin Hood 해싱은 "가난한 쪽이 이긴다"는 규칙 하나로 동작합니다.</div>
+        <div class="sub">삽입할 때 자기보다 PSL(제자리에서 얼마나 멀어졌는지)이 낮은, 즉 "부자"인 원소만
+          밀어냅니다. 밀려난 원소는 계속 앞으로 탐색하며 자기 PSL을 올립니다.</div></div></div>
+      <div class="achv"><div><div class="head">삭제는 tombstone 없이 backward-shift로 처리합니다.</div>
+        <div class="sub">빈 슬롯이 생기면 뒤따르는 원소들을 자기 PSL만큼 앞으로 당겨서 구멍을 물리적으로
+          없애버립니다 — <code class="mono">Find()</code>의 조기 종료 조건이 영원히 유효하게 유지되는 이유입니다.</div></div></div>
+      <div class="achv"><div><div class="head">TLSFArena의 탐색은 분기 없이 비트 연산만으로 끝납니다.</div>
+        <div class="sub">필요한 크기보다 작은 클래스를 비트마스크로 지워버리고, 남은 것 중 최하위 비트를
+          찾으면 그게 가장 가까운 free 블록입니다. 블록 리스트를 훑을 필요가 없습니다.</div></div></div>
     </div>
   </section>
 
   <section id="structure">
     <div class="section-head">
-      <span class="section-num mono">01</span>
-      <div><h2 class="section-title display">Containers &amp; Allocators</h2></div>
+      <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
+        <span class="section-tag">Robin Hood 해싱과 TLSF 비트맵 탐색을 실제 동작 단위로</span>
+      </div>
     </div>
 
     <div class="arena">
       <div class="arena-head">
-        <span class="lbl mono">TLSFArena · live block trace</span>
+        <span class="lbl mono">TLSFArena · 실시간 블록 추적</span>
         <span class="val mono" id="arenaTotal">0 / 0 B</span>
       </div>
-      <canvas id="arenaCanvas" role="img" aria-label="Interactive visualization of TLSF memory arena blocks, allocated and free"></canvas>
+      <canvas id="arenaCanvas" role="img" aria-label="TLSF 메모리 아레나 블록의 할당/해제 상태를 보여주는 인터랙티브 시각화"></canvas>
       <div class="arena-foot mono">
-        <div class="legend"><span><i class="a"></i>allocated</span><span><i class="f"></i>free</span></div>
-        <div id="arenaTip">hover a block</div>
+        <div class="legend"><span><i class="a"></i>할당됨</span><span><i class="f"></i>해제됨</span></div>
+        <div id="arenaTip">블록에 마우스를 올려보세요</div>
       </div>
     </div>
 
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — containers and allocators</div>
-      <pre class="mermaid">
-classDiagram
-    class HashTable {
-        + Insert(k, v) void
-        + Find(k) Iterator
-    }
-    class HashMap
-    class HashSet
-    HashTable <|-- HashMap
-    HashTable <|-- HashSet
-    class DynamicArray {
-        + PushBack(v) void
-    }
-    class Arena {
-        + Allocate(size) VoidPtr
-        + Deallocate(ptr) void
-    }
-    class LinearArena {
-        + Allocate(size) VoidPtr
-        + Reset() void
-    }
-    class TLSFArena {
-        + Allocate(size) Allocation
-        + Free(allocation) void
-    }
-    DynamicArray ..> Arena : default allocator
-      </pre>
-    </div>
-  </section>
-
-  <section id="mechanics">
-    <div class="section-head">
-      <span class="section-num mono">02</span>
-      <div>
-        <h2 class="section-title display">How It Actually Runs</h2>
-        <span class="section-tag">Robin Hood hashing and the TLSF bitmap search, mechanically</span>
-      </div>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — 컨테이너와 할당자</div>
+      <img src="https://www.plantuml.com/plantuml/svg/ZL39JiD03BtdAoouf68H-m4XH2a4Ab64AEBk9gOPTJ9JUHmgjY_WmeKhuXEGkC0liVm3JTAMK8g4R_PR_Emj9yYI9jfp7MMwo9X02yDEcsrgefhLbg4NAw4IxcACR4-PDfoXTcKarEXSO8qSOa9GiyRP_cGIeQak2HQNIr14PvXg6Qcd6gZRgO4zAx4AfoOp2vkb4ZZ8pOOOLiOtLqLOjLAXUcXDhbqeKQhCjbUSFBsMLmciPVfjon7nWBAIro_AsFEcWzLWURVcUNa0s4SNds1B4rnv03DruuZ5xyp2UGNEhOgoOQ1Cv7SgK1TY5ClUJKdSm6wfQv9utvORrtDp8zA4SSOkj3iN1XCLzY_6YoB9KUhYBBi_339SMcKoM72gMjiGXNpNVrq5Jlkq8-4CsI4SObtXCOS3PGZvNpx7v4ZyCVt9GJFuMprebJNvxvZ8nz5evFJZuFdvpS5Pw_3sylJ-_0AVzu_ljwyV3tVU5faeJVGN" alt="Container 클래스 다이어그램" loading="lazy">
     </div>
 
-    <h3 style="font-size:16px;margin:0 0 8px;">Robin Hood Hashing</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">Robin Hood 해싱</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Slot layout</div>
-        <div class="sub"><code class="mono">{ Data data; int16_t psl; }</code>, default <code class="mono">psl = -1</code> — that's the empty-slot sentinel. No separate tombstone flag exists anywhere.</div></div></div>
-      <div class="achv"><div><div class="head">Insert = linear probe + steal-from-the-rich</div>
-        <div class="sub">Walk forward one slot at a time, incrementing the entrant's PSL each step. On landing in an occupied slot: <code class="mono">if (newSlot.psl &gt; oldSlot.psl) swap(newSlot, oldSlot)</code> — the entrant only displaces a resident whose PSL is strictly lower (closer to its own ideal slot). The displaced resident keeps probing forward with its PSL still climbing.</div></div></div>
-      <div class="achv"><div><div class="head">Growth</div>
-        <div class="sub">Rehashes at 70% load factor, doubling capacity and re-running the identical insert-with-swap into a fresh array.</div></div></div>
-      <div class="achv"><div><div class="head">Erase = backward-shift, not tombstoning</div>
-        <div class="sub">The freed slot is marked <code class="mono">psl = -1</code>, then a walk pulls every later element in that probe chain backward by its own PSL (shrinking it accordingly) until hitting a slot that's already home or empty. The hole physically dissolves instead of leaving a marker behind — which is exactly what keeps <code class="mono">Find()</code>'s early-exit rule (stop once probe distance exceeds a slot's PSL) valid forever, with no stale tombstones ever accumulating.</div></div></div>
+      <div class="achv"><div><div class="head">슬롯 구조</div>
+        <div class="sub"><code class="mono">{ Data data; int16_t psl; }</code>, 기본값 <code class="mono">psl = -1</code>
+          — 이게 빈 슬롯을 나타내는 sentinel입니다. 별도 tombstone 플래그는 어디에도 없습니다.</div></div></div>
+      <div class="achv"><div><div class="head">삽입 = 선형 탐사 + "부자" 밀어내기</div>
+        <div class="sub">한 칸씩 나아가며 신규 원소의 PSL을 올립니다. 점유된 슬롯에 도달하면
+          <code class="mono">if (newSlot.psl &gt; oldSlot.psl) swap(newSlot, oldSlot)</code> — 신규 원소는
+          자기보다 PSL이 낮은(제자리에 더 가까운) 원소만 밀어냅니다. 밀려난 원소는 계속 앞으로 탐사합니다.</div></div></div>
+      <div class="achv"><div><div class="head">증설</div>
+        <div class="sub">load factor 70%에서 리해시하며 용량을 두 배로 늘리고, 같은 삽입+swap 로직을 새 배열에
+          다시 돌립니다.</div></div></div>
+      <div class="achv"><div><div class="head">삭제 = backward-shift, tombstone 없음</div>
+        <div class="sub">비운 슬롯은 <code class="mono">psl = -1</code>로 표시하고, 같은 탐사 체인의 뒤따르는
+          원소들을 자기 PSL만큼 뒤에서 앞으로 당겨오며 PSL을 줄입니다 — 제자리이거나 빈 슬롯을 만날 때까지
+          반복. 구멍을 표시만 하는 게 아니라 물리적으로 없애버려서, <code class="mono">Find()</code>의 조기
+          종료 규칙(탐사 거리가 슬롯의 PSL을 넘으면 중단)이 영원히 유효합니다.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena — the FL/SL bitmap search</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena — FL/SL 비트맵 탐색</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Two-level classification</div>
-        <div class="sub">FL index = most-significant-bit position of the size (64 rows). SL index = a 4-bit linear subdivision within that power-of-two range (16 columns). <code class="mono">bucketIndex = fl*16 + sl</code> indexes a flat free-list-head array.</div></div></div>
-      <div class="achv"><div><div class="head">The search itself is branch-free</div>
-        <div class="sub">One <code class="mono">uint64_t</code> bitmap per FL row, one bit per SL column. <code class="mono">Allocate()</code> masks off every class smaller than what's needed (<code class="mono">bitmap[fl] &amp; (~0 &lt;&lt; sl)</code>) and takes the lowest set bit of what's left — the nearest sufficiently-large free class, found with pure bit ops, never touching the block list itself.</div></div></div>
-      <div class="achv"><div><div class="head">Free() merge direction</div>
-        <div class="sub">Only merges two blocks that are both free <em>and</em> physically adjacent — adjacency is decided by comparing byte <code class="mono">offset</code>, never by array index. The absorbed block's slot is recycled onto a free-index list rather than shrinking the block array.</div></div></div>
-      <div class="achv"><div><div class="head">Why two link pairs per block</div>
-        <div class="sub"><code class="mono">prev/next</code> track physical byte-order neighbors and stay valid whether a block is free or allocated — it's the only way <code class="mono">Free()</code> can find what's physically touching a block. <code class="mono">prevFree/nextFree</code> track the same-size-class free-list chain and are only meaningful while free. They encode two unrelated relationships on the same block; collapsing them into one pair would break either merging or size-class lookup.</div></div></div>
+      <div class="achv"><div><div class="head">2단계 분류</div>
+        <div class="sub">FL 인덱스 = 크기의 최상위 비트 위치(64행). SL 인덱스 = 그 2의 거듭제곱 범위 안에서의
+          4비트 선형 세분(16열). <code class="mono">bucketIndex = fl*16 + sl</code>이 평평한 free-list 헤드
+          배열을 가리킵니다.</div></div></div>
+      <div class="achv"><div><div class="head">탐색 자체는 분기가 없습니다</div>
+        <div class="sub">FL 행마다 <code class="mono">uint64_t</code> 비트맵 하나, SL 열마다 비트 하나.
+          <code class="mono">Allocate()</code>는 필요한 크기보다 작은 클래스를 전부 마스킹해서 지우고
+          (<code class="mono">bitmap[fl] &amp; (~0 &lt;&lt; sl)</code>), 남은 것 중 최하위 비트를 취합니다 —
+          블록 리스트를 전혀 훑지 않고 순수 비트 연산만으로 가장 가까운 free 클래스를 찾습니다.</div></div></div>
+      <div class="achv"><div><div class="head">Free() 병합 방향</div>
+        <div class="sub">물리적으로 인접하면서 둘 다 free인 블록만 병합합니다 — 인접 여부는 배열 인덱스가
+          아니라 바이트 <code class="mono">offset</code> 비교로 결정됩니다. 흡수된 블록의 슬롯은 블록 배열을
+          줄이는 대신 free-index 목록으로 재활용됩니다.</div></div></div>
+      <div class="achv"><div><div class="head">블록마다 링크 쌍이 두 개인 이유</div>
+        <div class="sub"><code class="mono">prev/next</code>는 물리적 바이트 순서상의 이웃을 추적하며 free든
+          allocated든 항상 유효합니다 — <code class="mono">Free()</code>가 물리적으로 맞닿은 블록을 찾는
+          유일한 방법입니다. <code class="mono">prevFree/nextFree</code>는 같은 크기 클래스의 free-list 체인을
+          추적하며 free일 때만 의미가 있습니다. 같은 블록의 서로 무관한 두 관계를 나타내기 때문에, 하나로
+          합치면 병합이나 크기 클래스 조회 둘 중 하나가 깨집니다.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">Arena vs. LinearArena</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Arena: individually freeable</div>
-        <div class="sub">Every allocation is its own <code class="mono">::operator new</code> with a <code class="mono">Page</code> header linked into a doubly-linked list — one pointer maps 1:1 to one OS allocation and one list node, so <code class="mono">Deallocate(ptr)</code> can walk the list and free exactly that one.</div></div></div>
-      <div class="achv"><div><div class="head">LinearArena: bulk-only by construction</div>
-        <div class="sub">Allocations just bump an offset within a shared page (new pages added on overflow). Nothing records which live objects share a page, so there's no way to free just one — only <code class="mono">Reset()</code>, which zeroes every page's offset at once.</div></div></div>
+      <div class="achv"><div><div class="head">Arena: 개별 해제 가능</div>
+        <div class="sub">모든 할당이 각자 <code class="mono">::operator new</code>이고 <code class="mono">Page</code>
+          헤더가 이중 연결 리스트에 연결됩니다 — 포인터 하나가 OS 할당 하나, 리스트 노드 하나에 정확히
+          대응하므로 <code class="mono">Deallocate(ptr)</code>가 리스트를 훑어 그 하나만 정확히 해제할 수 있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">LinearArena: 처음부터 일괄 해제 전용</div>
+        <div class="sub">할당은 공유 페이지 안에서 offset을 밀기만 합니다(넘치면 새 페이지 추가). 어떤 페이지를
+          누가 쓰고 있는지 기록이 없어서 하나만 골라 해제할 방법이 없고, 페이지 전체 offset을 한 번에 초기화하는
+          <code class="mono">Reset()</code>만 존재합니다.</div></div></div>
     </div>
   </section>
 
   <section id="issues">
     <div class="section-head">
       <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">Real Issues</h2></div>
+      <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
-
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">#25</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/25" target="_blank" rel="noopener">Use-After-Free in DynamicArray Move Constructor</a></span>
-          <span class="issue-state closed mono">closed</span>
+          <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
-          - Cause: the move constructor moved <code class="mono">m_data</code> but not <code class="mono">m_allocator</code> — the moved-from object kept a live, default-constructed allocator with no real claim on the transferred memory, so its destructor freed memory it no longer owned.<br>
-          - Fix: move the allocator in the initializer list alongside the data; same fix ported to move-assignment.
+          - 원인: 이동 생성자가 <code class="mono">m_data</code>는 옮겼지만 <code class="mono">m_allocator</code>
+          는 옮기지 않아서, 이동된 원본 객체가 더 이상 소유하지 않는 메모리를 소멸자에서 해제해버렸습니다.<br>
+          - 해결: 초기화 리스트에서 할당자도 함께 이동. move-assignment에도 동일하게 적용.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">#24</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/24" target="_blank" rel="noopener">HashMap::operator[] Reference Invalidation during Rehash</a></span>
-          <span class="issue-state open mono">open</span>
+          <span class="issue-state open mono">미해결</span>
         </div>
         <div class="issue-body">
-          - Cause: <code class="mono">m_map[A] = m_map[B]</code> takes the RHS reference first; the LHS access can then trigger a rehash that allocates a new backing array and discards the old one, dangling the RHS.<br>
-          - Direction: logged as an inherent trade-off of open addressing (the same cache-locality property that makes lookups fast), not yet patched — <code class="mono">std::unordered_map</code> doesn't hit this because its nodes never move.
+          - 원인: <code class="mono">m_map[A] = m_map[B]</code>에서 RHS 참조를 먼저 얻는데, LHS 접근이 리해시를
+          유발하면 기존 배열이 해제되면서 RHS 참조가 댕글링됩니다.<br>
+          - 개선 방향: 연속 메모리 open addressing이라 캐시 지역성을 얻는 대신 생기는 근본적인 트레이드오프로
+          기록해두고 아직 패치하지 않았습니다 — <code class="mono">std::unordered_map</code>은 노드가 이동하지
+          않아서 이 문제가 없습니다.
         </div>
       </div>
     </div>
 
-    <h3 style="font-size:16px;margin:28px 0 8px;">From building TLSFArena directly</h3>
+    <h3 style="font-size:16px;margin:28px 0 8px;">TLSFArena를 직접 만들면서 잡은 버그</h3>
     <p class="prose" style="color:var(--text-faint);font-size:13px;margin:0 0 12px;">
-      Not GitHub tickets — bugs caught during development, worth keeping because of what they reveal about the design.
+      GitHub 이슈 티켓은 아니지만, 개발 과정에서 발견하고 고친 것들 — 설계가 왜 그렇게 됐는지 보여줘서 남겨둡니다.
     </p>
     <div class="issues">
       <div class="issue-card">
-        <div class="issue-head"><span class="issue-title">Merge direction decided by array index instead of byte offset</span></div>
-        <div class="issue-body">- Cause: <code class="mono">isLeft</code> was computed by comparing block <em>indices</em> in the block array, which have no relationship to physical memory position. Two blocks adjacent in offset can sit anywhere in the array.<br>
-          - Fix: compare <code class="mono">offset</code> directly — the same rule the confirmed-current code above still follows.</div>
+        <div class="issue-head"><span class="issue-title">병합 방향을 배열 인덱스로 판단하던 버그</span></div>
+        <div class="issue-body">- 원인: <code class="mono">isLeft</code>를 블록 배열 상의 인덱스로 비교했는데,
+          인덱스는 물리적 메모리 위치와 아무 관계가 없습니다. offset이 인접한 두 블록이 배열 어디에나 있을 수
+          있습니다.<br>
+          - 해결: <code class="mono">offset</code>을 직접 비교하도록 수정 — 위 설명의 현재 코드가 따르는 규칙 그대로입니다.</div>
       </div>
       <div class="issue-card">
-        <div class="issue-head"><span class="issue-title">Bitmap bit cleared unconditionally on every free-list removal</span></div>
-        <div class="issue-body">- Cause: removing a block from its size-class free-list cleared that class's bitmap bit even when other free blocks remained in the same bucket, making the allocator blind to blocks that were still there.<br>
-          - Fix: only clear the bit when the removed block was the bucket's sole occupant.</div>
+        <div class="issue-head"><span class="issue-title">free-list에서 제거할 때마다 비트맵 비트를 무조건 지우던 버그</span></div>
+        <div class="issue-body">- 원인: 같은 버킷에 다른 free 블록이 남아있어도 비트맵 비트를 지워버려서,
+          할당자가 여전히 존재하는 블록을 못 찾게 됨.<br>
+          - 해결: 제거된 블록이 그 버킷의 유일한 원소였을 때만 비트를 지우도록 수정.</div>
       </div>
       <div class="issue-card">
-        <div class="issue-head"><span class="issue-title">A merge result silently discarded</span></div>
-        <div class="issue-body">- Cause: <code class="mono">Free()</code> calls <code class="mono">Merge()</code> twice (once per physical neighbor) but stored the result with <code class="mono">=</code> instead of <code class="mono">|=</code> — a successful left-merge could be overwritten by a failed right-merge, then the block got re-inserted into a free-list it was already merged out of.<br>
-          - Fix: accumulate both results with <code class="mono">|=</code> before deciding whether to insert.</div>
+        <div class="issue-head"><span class="issue-title">병합 결과가 조용히 덮어써지던 버그</span></div>
+        <div class="issue-body">- 원인: <code class="mono">Free()</code>가 물리적 이웃마다 한 번씩,
+          <code class="mono">Merge()</code>를 두 번 호출하는데 결과를 <code class="mono">=</code>로 저장 —
+          왼쪽 병합 성공이 오른쪽 병합 실패로 덮어써지면서, 이미 병합되어 빠진 블록을 다시 free-list에
+          삽입하려 시도.<br>
+          - 해결: 두 결과를 <code class="mono">|=</code>로 누적한 뒤 삽입 여부를 판단.</div>
       </div>
     </div>
   </section>
@@ -194,7 +219,7 @@ classDiagram
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
@@ -289,30 +314,17 @@ classDiagram
   canvas.addEventListener('mousemove', function (e) {
     var idx = indexAt(e.clientX);
     draw(idx);
-    if (idx === -1) { tip.textContent = 'hover a block'; }
+    if (idx === -1) { tip.textContent = '블록에 마우스를 올려보세요'; }
     else {
       var b = blocks[idx];
-      tip.textContent = (b.free ? 'free' : 'allocated') + '  offset=0x' + b.off.toString(16).toUpperCase() + '  size=' + b.size + 'B';
+      tip.textContent = (b.free ? '해제됨' : '할당됨') + '  offset=0x' + b.off.toString(16).toUpperCase() + '  size=' + b.size + 'B';
     }
   });
-  canvas.addEventListener('mouseleave', function () { draw(-1); tip.textContent = 'hover a block'; });
+  canvas.addEventListener('mouseleave', function () { draw(-1); tip.textContent = '블록에 마우스를 올려보세요'; });
 
   window.addEventListener('resize', resize);
   resize();
 }());
-</script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
 </script>
 </body>
 </html>
