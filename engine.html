@@ -185,6 +185,32 @@
       모든 GPU 호출은 커맨드 객체로 감싸고 <code class="mono">RHIWorker</code>만 실행합니다.
     </div>
 
+    <h3 style="font-size:19px;margin:36px 0 8px;">Vulkan 백엔드 <span class="status-chip progress">진행 중</span></h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      기존 <code class="mono">GLSystem</code>과 같은 <code class="mono">RHISystem</code> 인터페이스를 구현하는
+      <code class="mono">VulkanSystem</code>으로 붙습니다 — 별도 아키텍처가 아니라, 지금 있는
+      <code class="mono">RHICommand&lt;T&gt;</code> 커맨드 시스템과 <code class="mono">RHIWorker</code> 스레딩
+      모델 위에 그대로 얹힙니다.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">여기까지 실제로 동작합니다: 초기화 + 프레임 루프.</div>
+        <div class="sub">Instance/Device 선택, Surface/Swapchain 생성, Primary/Secondary 커맨드 버퍼 분리
+          (RHI 스레드용 vs 워커별), <code class="mono">BeginFrame</code>/<code class="mono">EndFrame</code>의
+          세마포어 2개 + 펜스 1개 조합 acquire→submit→present, <code class="mono">OUT_OF_DATE</code>/
+          <code class="mono">SUBOPTIMAL</code> 스왑체인 리사이즈 처리까지 구현되어 있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">여기부터는 아직입니다: 실제 리소스 생성 · 드로우 경로.</div>
+        <div class="sub"><code class="mono">InitializeVertexLayout/Texture/Sampler/RenderTarget/RenderPass</code>,
+          모든 <code class="mono">Update*</code>/<code class="mono">Set*</code>/<code class="mono">Unset*</code>,
+          <code class="mono">DispatchCompute</code>, <code class="mono">DrawIndexPrimitive</code>, <code class="mono">Clear</code>가
+          전부 빈 함수입니다. <code class="mono">InitializeBuffer</code>는 편집 중인 상태 그대로 남아 있어
+          지금 시점에는 컴파일도 되지 않습니다.</div></div></div>
+      <div class="achv"><div><div class="head">VulkanMemory: 4MB 블록 + 블록 내부는 TLSFArena로 서브 할당.</div>
+        <div class="sub">Vulkan 메모리 타입별로 고정 4MB <code class="mono">VkDeviceMemory</code> 블록을 필요할 때
+          만들고 비면 반환하는 구조 — 리소스마다 <code class="mono">VkDeviceMemory</code>를 따로 할당하는
+          흔한 안티패턴을 피했습니다. 블록 내부의 실제 서브 할당은 Container 라이브러리의 TLSF 구현을
+          그대로 재사용합니다.</div></div></div>
+    </div>
+
     <h3 style="font-size:19px;margin:36px 0 8px;">Asset</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
       3단계, 3개의 서로 다른 스레드 — Parse가 메인 루프를 절대 막지 않고, Upload는 RHIWorker 밖에서 절대 실행되지 않습니다.
@@ -313,7 +339,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <tr><td class="k">GC 전체 통합</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">Cascade 섀도우 맵</td><td><span class="status-chip progress">예정</span></td></tr>
           <tr><td class="k">Spot / Point 라이트 섀도우</td><td><span class="status-chip progress">예정</span></td></tr>
-          <tr><td class="k">Vulkan 백엔드</td><td><span class="status-chip progress">예정</span></td></tr>
+          <tr><td class="k">Vulkan 백엔드(초기화 · 스왑체인 · 프레임 루프)</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">물리 엔진</td><td><span class="status-chip progress">예정</span></td></tr>
         </tbody>
       </table>
