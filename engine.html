@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Custom C++ Game Engine — layered architecture, threading model, and rendering pipeline.">
-<title>Game Engine — Wonmock Lee</title>
+<meta name="description" content="커스텀 C++ 게임 엔진 — 4-thread 아키텍처, 디퍼드 렌더링 파이프라인.">
+<title>Game Engine — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
@@ -17,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html">Home</a>
+      <a href="index.html">홈</a>
       <a href="engine.html" class="active">Engine</a>
       <a href="ecs.html">ECS</a>
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -32,318 +32,217 @@
 <main class="wrap">
 
   <section class="hero">
-    <div class="crumb"><a href="index.html">← Home</a></div>
-    <span class="eyebrow"><span class="dot"></span>Project 01 · Active development</span>
-    <h1 class="title display">Custom C++ Game Engine</h1>
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>프로젝트 01 · 개발 진행 중</span>
+    <h1 class="title display">커스텀 C++ 게임 엔진</h1>
     <p class="subhead">
-      4 threads — <code class="mono">World</code> · <code class="mono">Render</code> · <code class="mono">RHI</code> ·
-      <code class="mono">Asset</code> — mirroring Unreal's split between game logic and rendering. Built on the
-      four systems in the nav above.
+      <code class="mono">World</code> · <code class="mono">Render</code> · <code class="mono">RHI</code> ·
+      <code class="mono">Asset</code>, 4개 스레드로 게임 로직과 렌더링을 분리한 Unreal 스타일 구조입니다.
+      본업의 OpenGL ES 지도 렌더러 바깥에서 하는 모든 것이 여기 있고, 상단 메뉴의 네 시스템 위에 얹혀 있습니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Game-Engine" target="_blank" rel="noopener">github.com/Winteradio/Game-Engine</a>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">02</span><a href="#threading">스레딩 &amp; 프레임 동기화</a></li>
+        <li><span class="n">03</span><a href="#modules">네 개의 레이어 (상세 &amp; 다이어그램)</a></li>
+        <li><span class="n">04</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
+        <li><span class="n">05</span><a href="#status">기능 현황</a></li>
+        <li><span class="n">06</span><a href="#issues">해결한 이슈</a></li>
+        <li><span class="n">07</span><a href="#results">결과물</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div>
+        <h2 class="section-title display">핵심 내용</h2>
+        <span class="section-tag">이 엔진이 실제로 하는 일</span>
+      </div>
+    </div>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">World는 렌더 타입을 절대 참조하지 않습니다.</div>
+        <div class="sub">ProxyComponent가 <code class="mono">IsDirty()</code>만 뒤집으면, Scene이 감지해서
+          Commander를 통해 스냅샷을 내보냅니다. World 코드 어디에도 렌더러 타입이 등장하지 않습니다.</div></div></div>
+      <div class="achv"><div><div class="head">RHI만 그래픽스 API를 직접 호출합니다.</div>
+        <div class="sub">OpenGL 컨텍스트는 스레드 종속성이 있어서, 모든 GPU 호출은 커맨드 객체(실측 41개)로
+          감싸고 RHIWorker만 실행합니다.</div></div></div>
+      <div class="achv"><div><div class="head">RenderCommandList는 힙 할당이 거의 없습니다.</div>
+        <div class="sub">두 개의 <code class="mono">LinearArena</code>가 핑퐁 방식으로 동작 — World 스레드가
+          하나에 람다를 쓰는 동안 Render 스레드가 다른 하나를 비웁니다.</div></div></div>
+      <div class="achv"><div><div class="head">100만 인스턴스 최적화의 진짜 병목은 "무조건 실행되는 삽입"이었습니다.</div>
+        <div class="sub">Dirty 추적용 <code class="mono">HashSet::Insert</code>가 프레임당 200만 번 무조건 호출되던
+          것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS까지 끌어올렸습니다.</div></div></div>
     </div>
   </section>
 
   <section id="threading">
     <div class="section-head">
-      <span class="section-num mono">01</span>
+      <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Threading &amp; Frame Sync</h2>
-        <span class="section-tag">FrameGate — a producer/consumer condition-variable pair</span>
+        <h2 class="section-title display">스레딩 &amp; 프레임 동기화</h2>
+        <span class="section-tag">FrameGate — producer/consumer 조건 변수 쌍</span>
       </div>
     </div>
 
-    <div class="mermaid-wrap">
-      <div class="cap mono">sequence — World → Renderer → RHI, one frame</div>
-      <pre class="mermaid">
-sequenceDiagram
-    participant WW as WorldWorker
-    participant FG1 as FrameGate (updateGate)
-    participant RCL as RenderCommandList
-    participant RW as RenderWorker
-    participant FG2 as FrameGate (renderGate)
-    participant RHICL as RHICommandList
-    participant RHIW as RHIWorker
-    participant GPU as GPU
-
-    WW->>WW: ECS Update
-    WW->>RCL: Commander.AddPrimitive / Update / SetView
-    WW->>FG1: Submit()
-    FG1->>RW: Acquire()
-    RW->>RHICL: Executor.Acquire()
-    RW->>RCL: ExecuteAll(renderer, cmdList)
-    RW->>RHICL: RenderGraph.Execute()
-    RW->>RHICL: Executor.Submit(cmdList)
-    RW->>FG2: Submit()
-    FG2->>RHIW: Acquire()
-    RHIW->>RHICL: FrameExecutor.Execute()
-    RHICL->>GPU: RHICommand::Execute(RHISystem)
-    GPU->>GPU: DrawIndexPrimitive / Present
-    RHIW->>RHIW: TaskExecutor.Execute()
-      </pre>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — World → Renderer → RHI, 프레임 1회</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP5DRzim38Rl_XL2Ucc0hKEpxT0SXgPfxHR8XY1UwyikgiKaGlJXojBSxTUFKjHKSRtDW3z4lkH3lhviBJNMIP6rEwuQQgWaZxJUROnsYisrq8PqMsuXoRTRodJ7rOQigMZJ38CrTSBcMjblL08PVQLYunGfjDtoUZIiBFbl8EUJ501F3bGDCsDqjv_Xv5Eu1aGBliPRmPKs34nKNuHhGBt4RNdD6whiLM_Da_np_l5c_f-Yb19dofhNF1bLsWY6ZnsO4Q4jgQhZV8wTeQ0MVgXJrp3yy8TnqER5-R5u1IhWfAIABNXhWsmrNmp94kZg7r0Jn2bqqkjsU_U6YA756rKAnDDnlbZUXmo-iwogoFilQ0MPafjvIUx3tZ6Ass0u4i6SpHXR6YwvvJ-1V8XQ_2Z1Fd3eOXLQXLMbUqJXwJZpHz_B4sRra-C6CBhQ0_pmdlmCjRCQ2Nr1aeQP4D4YCEz8BOC9_LPxmmj3c-rPhFixBWxPQuMs7oymYSMz5NmWwHh-vA5rmWvv5ABVVi33FvnENqGOAt-r5kGuywA3zjhGxWxtUKvjNnfeGTcKxmVxJjlT0FqI_N1I_040" alt="World Renderer RHI 시퀀스 다이어그램" loading="lazy">
     </div>
 
-    <div class="mermaid-wrap">
-      <div class="cap mono">sequence — Asset pipeline, the other path into RHI</div>
-      <pre class="mermaid">
-sequenceDiagram
-    participant AS as AssetSystem
-    participant AW as AssetWorker
-    participant TW as TaskWorker Pool
-    participant RTE as RHITaskExecutor
-    participant RHIW as RHIWorker
-
-    AS->>AS: Load(path) - state = eLoaded
-    AW->>TW: Parse - state = eParsed
-    AW->>RTE: Load - enqueue RHICommandInitializeBuffer
-    RHIW->>RTE: Execute - glBufferData / glTexImage2D
-    Note right of RHIW: state = eReady
-      </pre>
-    </div>
-
-    <div class="callout">
-      <b>RenderCommandList</b> is zero-allocation — two <code class="mono">LinearArena</code>s ping-pong,
-      World writes lambdas into one while Render drains the other.
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — Asset 파이프라인, RHI로 들어가는 또 다른 경로</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP9DJiCm48NtESMetS2YGXHOW0Hg-WUL2ghQI5qFyIInujZ5TjIMQx1cmH4uLo-1anGQIYGiUM6_R-QzaTqp5hNDC-6PbCiLQipW6SCqrYgNRA24qh1EkAMQRX9aQirb314AKrSOHPWBErRIFc56q7f44USIxfLDUDXg9XVybU2yMpUWbvnaIBxMQbrbQ5-Mgm6QyiXjINsb6UazVLsk1dhcfkKXNw6q_QCns-EhySLey4zHtMMVoLiTT6Zvnf1TR8sbh0Lem5yqw4kbKzALlloj1sZIIeQPKg9aWYDc_Z0fiD66mjoggiyy6Fs1QZR5oVFy1NJkN2IuWQb2Th92cvn21zmli0ItGCKjCSzV5bomT9mRtb0TAI--4UUwx-KGvp5GMOQIJIIt78LxsNuUHMwKtTldxkFTAr8SoghyHVDOLDmGBSAPEmQqcMGOKtVeIUKGpUF4WehAELpfJvev8TjwFP8ipyGN" alt="Asset 파이프라인 시퀀스 다이어그램" loading="lazy">
     </div>
   </section>
 
   <section id="modules">
     <div class="section-head">
-      <span class="section-num mono">02</span>
+      <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">Four Layers</h2>
-        <span class="section-tag">World never imports a render type · RHI is the only layer that calls a graphics API</span>
+        <h2 class="section-title display">네 개의 레이어 — 상세 내용 &amp; 다이어그램</h2>
+        <span class="section-tag">World는 렌더 타입을 모르고 · RHI만 그래픽스 API를 부릅니다</span>
       </div>
     </div>
 
-    <h3 class="display" style="font-size:19px;margin:0 0 8px;">WorldContext</h3>
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — WorldContext</div>
-      <pre class="mermaid">
-classDiagram
-    class WorldContext {
-        + RootPtr~World~ world
-        + RefPtr~Commander~ commander
-        + Update(timeStep) void
-    }
-    class World {
-        + Scene scene
-        + CreateEntity() ObjectPtr
-        + CreateComponent() ObjectPtr
-        + CreateNode() ObjectPtr
-    }
-    class Scene {
-        + Flush() void
-    }
-    class Commander {
-        + Enqueue(renderTask) void
-        + SetView(renderView) void
-    }
-    class ProxyComponent {
-        + OnAttached(scene) void
-        + IsDirty() bool
-    }
-    class TransformComponent
-    class StaticMeshComponent
-    class LightComponent
-    class StaticMeshNode {
-        + ObjectPtr~TransformComponent~ transform
-        + ObjectPtr~StaticMeshComponent~ mesh
-    }
-    <<abstract>> ProxyComponent
-    WorldContext *-- World
-    WorldContext *-- Commander
-    World *-- Scene
-    ProxyComponent <|-- TransformComponent
-    ProxyComponent <|-- StaticMeshComponent
-    ProxyComponent <|-- LightComponent
-    StaticMeshNode o-- TransformComponent
-    StaticMeshNode o-- StaticMeshComponent
-    Scene ..> Commander : notifies via
-      </pre>
+    <h3 style="font-size:19px;margin:0 0 8px;">WorldContext</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      엔티티, 컴포넌트, 그리고 밖으로 나가는 단방향 다리입니다. <code class="mono">Scene::Flush()</code>는
+      추가/삭제/갱신 3단계를 순서대로 도는데, 각 단계가 끝날 때마다 대상 <code class="mono">HashSet</code>을
+      비웁니다.
+    </p>
+    <div class="uml-card">
+      <img src="https://www.plantuml.com/plantuml/svg/TL9BSjGm4Dtx5Afauq0b1IImeAPS2MQ6IXNv51DWBSizOp6sUf3QJ1BW1cov0gVWHd08BCbsF1wXXItrU-hN_TIdXhYckYeZiv9gpJMlMCR5QgcnLdcA9MgsAIJ103S5pt4ZrP8jU6c6Y2YvCJDKTCahO2agWqqaH9ZBUs1FZmTG3WjUbzJVthlWvR9Mx0rI8SLUcEdJF1k0RTrQWMOdO-Kp8Yspck1Se79tdmmePrhZnhUy_yAj0PZQ-wzGvw1RoebREvIHUVkpvxFZQHf5hW3s4NNP88hWbjZNYB77xn3fclJ48GdRs9-BmyA6KwmghXhLX8bkQ-7twvmJn2Ghc1Ei3zWNb7dqVIZZyyy5A636VkqnrT3ScogIT1SViAli4mYh_u0rYcjKe2WCNs8EMqYdwOMSvgoiJH6FQkexyPof-bn33R466xlXPjNoRSr07oHiMink-rmyCwIv8F-Wx5hZxLrViSzyfPftvgA0F7PjF-GzDw-bTdrdY6LVsOtcoYnGLtsYhYNY9CK5c6ACl9NBWlvFjoQrnNG-JNPL4aPTR9iQq4rOrHoRahScwD7XeN_htN1ljuTSp3rHDF9iygr10XQ4Q253GhoHFIDZC2mOO8Nq_9mT7IM3YNh9_lxyyUVNx-YqcPYwAly1" alt="WorldContext 클래스 다이어그램" loading="lazy">
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:10px 0 0;">
-      A <code class="mono">ProxyComponent</code> never talks to the renderer — it flips
-      <code class="mono">IsDirty()</code>, <code class="mono">Scene</code> notices, a snapshot goes out through
-      <code class="mono">Commander</code>.
+      ProxyComponent는 렌더러와 직접 대화하지 않습니다 — <code class="mono">IsDirty()</code>만 뒤집으면
+      Scene이 알아채고 Commander를 통해 스냅샷을 내보냅니다. 실제로 Commander가 캡처하는 람다는
+      <code class="mono">[renderView](Renderer*, RefPtr&lt;RHICommandList&gt;){ renderer-&gt;SetView(renderView); }</code>
+      처럼 값 캡처 위주라 실질적으로 힙 할당이 거의 없습니다.
     </p>
 
-    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Renderer</h3>
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Renderer</div>
-      <pre class="mermaid">
-classDiagram
-    class Renderer {
-        + Execute(cmdList) void
-    }
-    class RenderScene {
-        + Flush(cmdList) void
-    }
-    class RenderGraph {
-        + DynamicArray~RenderPass~ passes
-        + Execute(cmdList, scene, view) void
-    }
-    class RenderPass {
-        + Draw(drawCommands, lights, cmdList) bool
-    }
-    class ComputePass
-    class GraphicPass
-    class TransformPass
-    class CullingPass
-    class GeometryPass
-    class LightingPass
-    class MeshBatch {
-        + Sync(cmdList) void
-    }
-    class MeshDrawCommand {
-        + RefPtr~RHIBuffer~ rawTransform
-        + RefPtr~RHIBuffer~ transform
-        + RefPtr~RHIVertexLayout~ vertexLayout
-        + RefPtr~MaterialProxy~ material
-    }
-    <<abstract>> RenderPass
-    <<abstract>> ComputePass
-    <<abstract>> GraphicPass
-    Renderer *-- RenderScene
-    Renderer *-- RenderGraph
-    RenderGraph *-- RenderPass
-    RenderPass <|-- ComputePass
-    RenderPass <|-- GraphicPass
-    ComputePass <|-- TransformPass
-    ComputePass <|-- CullingPass
-    GraphicPass <|-- GeometryPass
-    GraphicPass <|-- LightingPass
-    RenderScene o-- MeshBatch
-    MeshBatch *-- MeshDrawCommand
-      </pre>
+    <h3 style="font-size:19px;margin:36px 0 8px;">Renderer</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      RenderScene과 RenderGraph를 소유합니다 — 렌더링 쪽 객체는 전부 이 둘 중 하나를 거칩니다.
+    </p>
+    <div class="uml-card">
+      <img src="https://www.plantuml.com/plantuml/svg/VPFRRjf048Rl_HIhv2PDYTGsQQyGId02ZGGLWghtmtgDLza3cjq5tCExTtsG6S2jBumy_pU7dNzvT1xG1wqIzoRD5X0qMmD_sw0D9akjiiZsXVI2wAw0pEwbsR0SbACAL-3Sn1h_3RHWgJNEnaWVi98_1VjuJwHCv12KxxAlvg0smR2fzONaL_raK-OJ4TkvqGXa3-UTdxn7kGvUl79hwjmF17b2jFlcoDTVweU8QPK_jfW9R967-hb0pfPtFVaykNz9awGUW2s5YHNYRByInjw_70IFqznmdSsay-_Opiei-NF2hhWmei4dAhZYl_0KOLiqy7DfG4iU3mNbi54N4HonRNmBrzD-m5pLQy1sKkoxyh1s7e5xHljKbTes2FkRBBvIgpMOp0sOafl2nzzkqBMrwh9IJDZ6xbMfSwa-XkIrr4I-8nYNMzGabWQbuYqaaQcmMdWiIMXM3NDApOKhnk1vkwXLQVW_bbgHpyUpDVnIv0kFm-NNrt78Su4Z5ebkldx2zyi_17fnc45fWn-n7VaYt1oyG0bgWVPGZfXkF-EGtMMwlRkZjwLFg5UQq5jorEhT46E7lwD4xJdNg3-4QyHJgovawXgfqnQc1bwe9rxIVuUDOkTgSlJtjeqJ3vF7c1Uq-Wi0" alt="Renderer 클래스 다이어그램" loading="lazy">
     </div>
 
     <div class="achv-list" style="margin-top:16px;">
-      <div class="achv"><div><div class="head">One MeshDrawCommand per (mesh, material) → one draw call.</div>
-        <div class="sub">GeometryPass binds vertex layout + <code class="mono">transform</code> SSBO + material,
-          then issues a single indexed draw covering every instance in the batch.</div></div></div>
-      <div class="achv"><div><div class="head">RenderPass splits into ComputePass and GraphicPass, not one base.</div>
-        <div class="sub">ComputePass just dispatches a shader; GraphicPass owns full pipeline state (clear, depth,
-          blend, rasterizer). RenderGraph is just an ordered list of these, walked once a frame.</div></div></div>
+      <div class="achv"><div><div class="head">(mesh, material) 조합 하나당 MeshDrawCommand 하나 → Draw Call 하나.</div>
+        <div class="sub">GeometryPass가 vertex layout + <code class="mono">transform</code> SSBO + 머티리얼을
+          바인딩하고, 배치 안의 모든 인스턴스를 인덱스 Draw 한 번으로 그립니다.</div></div></div>
+      <div class="achv"><div><div class="head">RenderPass는 ComputePass와 GraphicPass, 두 개의 추상 기반으로 나뉩니다.</div>
+        <div class="sub">ComputePass는 컴퓨트 셰이더 디스패치만 담당하고, GraphicPass는 clear/depth/blend/
+          rasterizer 같은 파이프라인 상태 전체를 소유합니다.</div></div></div>
+      <div class="achv"><div><div class="head">RenderGraph는 실제로는 그래프가 아니라 고정된 체인입니다.</div>
+        <div class="sub">Transform→Shadow→Geometry→Lighting→Debug 순서로 <code class="mono">SetDependency</code>가
+          미리 걸려 있어서, "그래프" 구조인데 실제 파이프라인은 분기 없는 직선입니다.</div></div></div>
     </div>
 
     <figure class="gbuffer-row" style="margin-top:20px;">
-      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo channel"><figcaption class="mono">Albedo</figcaption></figure>
-      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal channel"><figcaption class="mono">Normal</figcaption></figure>
-      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position channel"><figcaption class="mono">Position</figcaption></figure>
+      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo 채널"><figcaption class="mono">Albedo</figcaption></figure>
+      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal 채널"><figcaption class="mono">Normal</figcaption></figure>
+      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position 채널"><figcaption class="mono">Position</figcaption></figure>
     </figure>
 
-    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">RHI</h3>
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — RHI</div>
-      <pre class="mermaid">
-classDiagram
-    class RHISystem {
-        + CreateBuffer(desc) RefPtr
-        + InitializeBuffer(info, buffer) void
-        + DrawIndexPrimitive(info) void
-        + DispatchCompute(info) void
-    }
-    class GLSystem
-    class RHICommandList {
-        + Enqueue(cmd) void
-        + ExecuteAll() void
-    }
-    class RHICommandBase {
-        + Execute(system) void
-    }
-    class RHIFrameExecutor {
-        + DynamicArray~RHICommandList~ listPool
-        + Acquire() RefPtr
-        + Execute() void
-    }
-    class RHITaskExecutor {
-        + Execute() void
-    }
-    <<abstract>> RHISystem
-    <<abstract>> RHICommandBase
-    RHISystem <|-- GLSystem
-    RHICommandList o-- RHICommandBase
-    RHIFrameExecutor ..> RHICommandList : triple-buffers
-    RHICommandList ..> RHISystem : delegates to
-      </pre>
+    <h3 style="font-size:19px;margin:36px 0 8px;">RHI</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      그래픽스 API를 직접 호출할 수 있는 유일한 레이어입니다. 실제 커맨드 클래스는 41개(초기화 11 · 갱신 3 ·
+      리사이즈 2 · 제거 7 · Set 8 · Unset 7 · 프레임/디스패치 3)이고, 전부 CRTP로 만든 <code class="mono">RHICommand&lt;T&gt;</code>
+      라 실행 시점엔 vtable이 아니라 함수 포인터 하나로 디스패치됩니다.
+    </p>
+    <div class="uml-card">
+      <img src="https://www.plantuml.com/plantuml/svg/RL6xRXD15EttAqP9in4a0X8eeYYAlR63fO2iX1-udhbhZpmFPnvnpAD0SeMWeqIKq51HKV17Zl-1yUvYZtSpnKexvt7FFNDc7HZdfKZicAi9691a07GyDDehbccX3PcEkCC8joDWUihLaEGWR8nG0TPsjNAlGIB9jB8wt3n4kEPlaJmzZ226ENZXrkgTLo26Nf4BxKQSxZpCB6sUHM2LsoWqvAW-kUMSuGFli4UrAhHF8ahB63qjLzvzKPm8p5RwjZOCJKKvAaw3KYjlj_kyUzZ9aWG6rXcWhan2hbxshcVMeIJl4a8UPGR1OTldEPgKeQLxv0hplZChiAUuuo12teh0LQuVaq7niqTkDMShshc1QKynlEiRBeFY5WjYHE1s0ewECYqdeOGO_P2KiIukorJ9EcKWIr3iabjNHkse6uyUKohPnhfpXpHOjeH8ruxDZIklDbYil4fPQekXjIn1q0szOaaANHQIyva2oMbuB9YTRESx9I9y-rgB5R55RpmtcCPD_f_NdFG6x7XxK8ExURAJz_lxcwfg9Uc0RU-QD3OvE3YjTtjCbf_-B7xyMdxzJ1Q_vyilVnS_FzQzArqLuvZSVvlVVvydPwYOb-8V" alt="RHI 클래스 다이어그램" loading="lazy">
     </div>
     <div class="callout warn">
-      An OpenGL context has thread affinity — calling it off-thread is undefined behavior. Every GPU call is a
-      command object; only <code class="mono">RHIWorker</code> ever executes one.
+      OpenGL 컨텍스트는 스레드 종속성이 있어서, 다른 스레드에서 호출하면 정의되지 않은 동작이 됩니다.
+      모든 GPU 호출은 커맨드 객체로 감싸고 <code class="mono">RHIWorker</code>만 실행합니다.
     </div>
 
-    <h3 class="display" style="font-size:19px;margin:34px 0 8px;">Asset</h3>
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Asset</div>
-      <pre class="mermaid">
-classDiagram
-    class Asset {
-        + UUID id
-    }
-    class MeshAsset {
-        + DynamicArray~MeshSection~ sections
-    }
-    class MaterialAsset {
-        + eShadingModel shadingModel
-    }
-    class TextureAsset {
-        + RefPtr~RHITexture~ texture
-    }
-    class AssetSystem {
-        + Load(path) RefPtr
-    }
-    class AssetParser {
-        + Parse(asset) void
-        + Load(asset, cmdList) void
-    }
-    class OBJParser
-    class StbImageParser
-    <<singleton>> AssetSystem
-    <<abstract>> AssetParser
-    Asset <|-- MeshAsset
-    Asset <|-- MaterialAsset
-    Asset <|-- TextureAsset
-    MeshAsset o-- MaterialAsset
-    AssetParser <|-- OBJParser
-    AssetParser <|-- StbImageParser
-    AssetSystem ..> AssetParser : uses
-      </pre>
+    <h3 style="font-size:19px;margin:36px 0 8px;">Asset</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      3단계, 3개의 서로 다른 스레드 — Parse가 메인 루프를 절대 막지 않고, Upload는 RHIWorker 밖에서 절대 실행되지 않습니다.
+    </p>
+    <div class="uml-card">
+      <img src="https://www.plantuml.com/plantuml/svg/RL7RJXin47tVhnZ12uY2saBxKArMXD2qGKcBsF81a_KaQ-7r87ksQRYyz3Fw1vNwQNn4DzvDOY1-6i-PStnyvjGBEgaha_WRRM_HOGKJB6vcZckh-cpOmRpKGX7kIrGyrtO6KpG-HWg3tW_OoZUi2FfiFJUTRGEvlYDuTnn1YgPO6rcpTyPePhM5BoobBdQsJxOoxoEmy-qiEJXv-N9FnEb9BJGis0RkssYavnpFso_lVWmd0ljB_XaxHQuREGddrSYBy7O77mR7d_j94Wn0ptiIk4y03gwlX-UWLVBOGMFoPGIVBonMkcXCuI9TOZaLejbcuDl2RvWev3IQY4rviwHcHMDMPCB6LfSrwmVzajfHHBgYwQMuzEhhiCCoaBPOay9qll125QGf-4RLaB25B6irHengxnQbt8TMhg7Yn8l3GY3Ik4JdcnK5JgZtSDdUXv_SPB8I2hqtK5HgfFqAN7dvVdRHgdJtN2R32cVKDTkFfG-7XvjedpNZr68W3YRPR8MtSxgF1ER6qIjecxaknwEZx5acd-3fzx-dFt-JKxAghin_" alt="Asset 클래스 다이어그램" loading="lazy">
     </div>
-    <pre class="diagram">eLoaded --AssetSystem.Create()--> eParsed --TaskWorker.Parse()--> eReady --RHIWorker upload--&gt;
-  Parse  = CPU-bound, TaskWorker pool (parallel)
-  Load   = GPU format conversion, AssetWorker
-  Upload = glBufferData / glTexImage2D, RHIWorker only</pre>
+    <pre class="diagram"><span class="hi">eLoaded</span> --AssetSystem.Create()--> <span class="hi2">eParsed</span> --TaskWorker.Parse()--> <span class="hi">eReady</span> --RHIWorker upload-->
+Parse  = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 다음 틱에 AssetWorker가 직접 처리)
+Load   = GPU 포맷 변환, AssetWorker
+Upload = glBufferData / glTexImage2D, RHIWorker 전용</pre>
+  </section>
+
+  <section id="findings">
+    <div class="section-head">
+      <span class="section-num mono">04</span>
+      <div>
+        <h2 class="section-title display">실제 코드에서 발견한 것들</h2>
+        <span class="section-tag">설계 문서가 아니라 소스를 직접 읽고 확인한 내용</span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
+      이 페이지는 <code class="mono">Docs/Design_*.md</code> 요약이 아니라, 이번에 <code class="mono">Engine/Private</code>
+      과 <code class="mono">Engine/Public</code>의 실제 구현을 다시 읽으면서 확인한 내용입니다. 문서와 다른 부분,
+      그리고 흥미로운 설계 판단 몇 가지를 그대로 남겨둡니다.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">RenderGraph::Execute()는 Pass 하나만 준비 안 돼도 그 프레임 전체를 중단합니다.</div>
+        <div class="sub">정렬된 순서를 돌다가 어떤 Pass의 <code class="mono">GetResourceState() != eReady</code>
+          이거나 <code class="mono">Draw()</code>가 false를 반환하면 그 자리에서 루프를 <code class="mono">break</code>
+          — 문제 있는 Pass 하나만 건너뛰는 게 아니라 이후 Pass 전부가 이번 프레임에 안 그려집니다.</div></div></div>
+      <div class="achv"><div><div class="head">WorldCommandList는 사실상 미사용 상태입니다.</div>
+        <div class="sub"><code class="mono">struct WorldCommand {};</code> 정도만 있고 <code class="mono">WorldContext::Prepare()</code>
+          는 그냥 <code class="mono">// TODO</code>. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
+          흐르고 있어서, 이 클래스는 설계 초기 흔적으로 보입니다.</div></div></div>
+      <div class="achv"><div><div class="head">RHICommand 실제 개수는 41개입니다.</div>
+        <div class="sub">기존 설계 문서의 "45개 이상"이라는 서술은 실측과 다릅니다 — 초기화 11 · 갱신 3 · 리사이즈 2 ·
+          제거 7 · Set 8 · Unset 7 · 프레임/디스패치 3.</div></div></div>
+      <div class="achv"><div><div class="head">RenderCommandList::ExecuteAll()에 기술적으로는 UB인 패턴이 하나 있습니다.</div>
+        <div class="sub">태스크를 실행한 뒤 명시적으로 <code class="mono">execute-&gt;~RenderTask()</code>를 호출하고,
+          바로 다음 줄에서 <code class="mono">execute-&gt;next</code>를 읽습니다. <code class="mono">next</code>가
+          trivial한 raw pointer라 실제로는 문제없이 동작하지만, 소멸자 호출 후 멤버를 읽는 건 엄밀히는 정의되지
+          않은 동작입니다.</div></div></div>
+      <div class="achv"><div><div class="head">Asset 파싱은 항상 병렬은 아니고, 기회적(opportunistic)입니다.</div>
+        <div class="sub">유휴 <code class="mono">TaskWorker</code>가 있을 때만 별도 스레드로 넘기고, 없으면
+          AssetWorker 자신이 다음 틱에 직접 파싱합니다 — "병렬 파싱"이 항상 보장되는 건 아닙니다.</div></div></div>
+    </div>
   </section>
 
   <section id="status">
     <div class="section-head">
-      <span class="section-num mono">03</span>
+      <span class="section-num mono">05</span>
       <div>
-        <h2 class="section-title display">Feature Status</h2>
-        <span class="section-tag">from the repo's own Implementation Status table</span>
+        <h2 class="section-title display">기능 현황</h2>
+        <span class="section-tag">저장소 README의 Implementation Status 표 그대로</span>
       </div>
     </div>
     <div class="tbl-wrap">
       <table class="spec">
-        <thead><tr><th>Feature</th><th>Status</th></tr></thead>
+        <thead><tr><th>기능</th><th>상태</th></tr></thead>
         <tbody>
-          <tr><td class="k">ECS / Memory (GC) / Reflection / Containers</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">World · Commander · Scene · 4-thread Worker system</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">RHI layer (OpenGL) · Command List · triple buffering</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">Proxies · MeshBatch instancing · RenderGraph</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">TransformPass (GPU compute TRS)</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">GeometryPass · LightingPass (Directional / Point / Spot)</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">GBuffer Phong (UInt texture support)</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">Asset system (3-stage async pipeline)</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">Directional shadow mapping</td><td><span class="status-chip done">complete</span></td></tr>
-          <tr><td class="k">CullingPass</td><td><span class="status-chip progress">stub — pass-through</span></td></tr>
-          <tr><td class="k">GC full integration</td><td><span class="status-chip progress">in progress</span></td></tr>
-          <tr><td class="k">Cascade shadow maps</td><td><span class="status-chip progress">planned</span></td></tr>
-          <tr><td class="k">Spot / Point light shadows</td><td><span class="status-chip progress">planned</span></td></tr>
-          <tr><td class="k">Vulkan backend</td><td><span class="status-chip progress">planned</span></td></tr>
-          <tr><td class="k">Physics</td><td><span class="status-chip progress">planned</span></td></tr>
+          <tr><td class="k">ECS / Memory(GC) / Reflection / Containers</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">World · Commander · Scene · 4-thread Worker 시스템</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">RHI 레이어(OpenGL) · Command List · 트리플 버퍼링</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">Proxy · MeshBatch 인스턴싱 · RenderGraph</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">TransformPass(GPU 컴퓨트 TRS)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">GeometryPass · LightingPass(Directional / Point / Spot)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">GBuffer Phong(UInt 텍스처 지원)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">Asset 시스템(3단계 비동기 파이프라인)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">Directional 섀도우 매핑</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">CullingPass</td><td><span class="status-chip progress">스텁 — pass-through</span></td></tr>
+          <tr><td class="k">GC 전체 통합</td><td><span class="status-chip progress">진행 중</span></td></tr>
+          <tr><td class="k">Cascade 섀도우 맵</td><td><span class="status-chip progress">예정</span></td></tr>
+          <tr><td class="k">Spot / Point 라이트 섀도우</td><td><span class="status-chip progress">예정</span></td></tr>
+          <tr><td class="k">Vulkan 백엔드</td><td><span class="status-chip progress">예정</span></td></tr>
+          <tr><td class="k">물리 엔진</td><td><span class="status-chip progress">예정</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -351,85 +250,90 @@ classDiagram
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">04</span>
+      <span class="section-num mono">06</span>
       <div>
-        <h2 class="section-title display">Issues Worked Through</h2>
-        <span class="section-tag">from the repo's issue tracker and debug logs</span>
+        <h2 class="section-title display">해결한 이슈</h2>
+        <span class="section-tag">저장소 이슈 트래커와 디버그 로그 기준</span>
       </div>
     </div>
 
-    <h3 class="display" style="font-size:16px;margin:0 0 8px;">Shadow acne / NaN / blinking <span class="status-chip done">resolved</span></h3>
+    <h3 style="font-size:16px;margin:0 0 8px;">섀도우 acne / NaN / 깜빡임 <span class="status-chip done">해결</span></h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Symptom</div>
-        <div class="sub">Camera rotation intermittently turned whole objects solid black; static RenderDoc captures looked fine.</div></div></div>
-      <div class="achv"><div><div class="head">Cause</div>
-        <div class="sub">At grazing angles the RPDB depth-bias divisor (<code class="mono">det</code>) approached 0, producing NaN that propagated straight to <code class="mono">FragColor</code>.</div></div></div>
-      <div class="achv"><div><div class="head">Fix</div>
-        <div class="sub">Block NaN at the source (<code class="mono">safeDet = mix(EPSILON, det, step(EPSILON, abs(det)))</code>) instead of trying to mask it after the fact — multiplying or <code class="mono">mix</code>-ing against NaN still produces NaN. Also moved the grazing-angle cutoff to a single multiply at the very end, since branching before a <code class="mono">dFdx</code> call is undefined behavior in GLSL.</div></div></div>
+      <div class="achv"><div><div class="head">증상</div>
+        <div class="sub">카메라 회전 중 간헐적으로 물체 전체가 검게 표시됨. RenderDoc 단일 프레임 캡처에서는 정상.</div></div></div>
+      <div class="achv"><div><div class="head">원인</div>
+        <div class="sub">grazing 각도에서 RPDB depth-bias의 분모(<code class="mono">det</code>)가 0에 가까워지며
+          NaN이 발생, <code class="mono">FragColor</code>까지 그대로 전파됨.</div></div></div>
+      <div class="achv"><div><div class="head">해결</div>
+        <div class="sub">NaN을 사후에 가리려 하지 않고 발생 자체를 차단(<code class="mono">safeDet = mix(EPSILON,
+          det, step(EPSILON, abs(det)))</code>) — 곱셈이나 <code class="mono">mix</code>로는 NaN을 지울 수 없기
+          때문. grazing 컷오프도 맨 끝에서 한 번만 곱하도록 이동(dFdx 앞에서 분기하면 GLSL에서 undefined behavior).</div></div></div>
     </div>
 
-    <h3 class="display" style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty-flag race <span class="status-chip done">resolved</span></h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty flag race <span class="status-chip done">해결</span></h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Symptom</div>
-        <div class="sub">An entity with both a light and a mesh sharing one Transform would silently stop updating one of the two after the first frame.</div></div></div>
-      <div class="achv"><div><div class="head">Cause</div>
-        <div class="sub">The Hash Storm fix's <code class="mono">if (!IsDirty()) OnUpdate()</code> guard cleared a dirty flag that lived on the shared Component — whichever Proxy processed first cleared it for both.</div></div></div>
-      <div class="achv"><div><div class="head">Fix</div>
-        <div class="sub">Per-proxy dirty generation counters: the Component only increments a generation number on mutation, and each Proxy independently tracks the last generation it has seen.</div></div></div>
+      <div class="achv"><div><div class="head">증상</div>
+        <div class="sub">같은 Transform을 공유하는 라이트와 메시를 가진 엔티티가, 첫 프레임 이후 둘 중 하나의
+          업데이트를 조용히 멈춤.</div></div></div>
+      <div class="achv"><div><div class="head">원인</div>
+        <div class="sub">Hash Storm 최적화의 <code class="mono">if (!IsDirty()) OnUpdate()</code> 가드가 공유
+          Component에 있던 dirty 플래그를 지워버림 — 먼저 처리된 Proxy가 둘 다의 플래그를 지운 셈.</div></div></div>
+      <div class="achv"><div><div class="head">해결</div>
+        <div class="sub">Proxy별 dirty 세대(generation) 카운터 도입: Component는 변경 시 세대 번호만 증가시키고,
+          각 Proxy가 자신이 마지막으로 본 세대를 독립적으로 추적.</div></div></div>
     </div>
 
-    <h3 class="display" style="font-size:16px;margin:26px 0 8px;">Point light incident-direction artifact <span class="status-chip progress">open</span></h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">Point Light 입사 방향 아티팩트 <span class="status-chip progress">미해결</span></h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Symptom</div>
-        <div class="sub">A light positioned below a surface makes that surface brighter than expected, right at the light volume's boundary.</div></div></div>
-      <div class="achv"><div><div class="head">Cause</div>
-        <div class="sub">The two-sided lighting correction's <code class="mono">max(dot(normal, rayDir), 0.0)</code> clamps to 0 in this case, so the incident direction never gets corrected.</div></div></div>
-      <div class="achv"><div><div class="head">Direction</div>
-        <div class="sub">Compute the correction from light→fragment instead of fragment→light; a proper shadow map would also occlude this case naturally.</div></div></div>
+      <div class="achv"><div><div class="head">증상</div>
+        <div class="sub">표면 아래에 위치한 라이트가, 라이트 볼륨 경계 부근에서 오히려 표면을 더 밝게 만듦.</div></div></div>
+      <div class="achv"><div><div class="head">원인</div>
+        <div class="sub">Two-sided 라이팅 보정의 <code class="mono">max(dot(normal, rayDir), 0.0)</code>가 이
+          경우 0으로 클램프되어, 입사 방향 보정이 아예 걸리지 않음.</div></div></div>
+      <div class="achv"><div><div class="head">개선 방향</div>
+        <div class="sub">보정을 fragment→light가 아니라 light→fragment 방향으로 계산. 섀도우 맵이 도입되면
+          이 케이스는 자연스럽게 가려지기도 함.</div></div></div>
     </div>
   </section>
 
   <section id="results">
     <div class="section-head">
-      <span class="section-num mono">03</span>
+      <span class="section-num mono">07</span>
       <div>
-        <h2 class="section-title display">Measured Results</h2>
-        <span class="section-tag">shadow mapping · deferred rendering · 1M-instance optimization</span>
+        <h2 class="section-title display">결과물</h2>
+        <span class="section-tag">섀도우 매핑 · 디퍼드 렌더링 · 100만 인스턴스 최적화</span>
       </div>
     </div>
 
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">TransformPass: TRS→matrix moved onto the GPU.</div>
-        <div class="sub">Compute shader replaced per-instance CPU GLM math. <b>500K instances @ 20 FPS</b> Release
-          — ~10× over the CPU path (couldn't hold 10 FPS Debug past 30K).</div></div></div>
-      <div class="achv"><div><div class="head">Hash Storm: an unconditional insert was the bottleneck.</div>
-        <div class="sub">2M <code class="mono">HashSet::Insert</code> calls/frame at 1M instances → an
-          <code class="mono">if (!IsDirty())</code> guard cut that to once per frame: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
-      <div class="achv"><div><div class="head">Shadow shimmering: fixed by snapping, not more samples.</div>
-        <div class="sub">Camera-frustum center quantized to the shadow map's texel grid before recomputing the
-          light view matrix — removes jitter under camera motion.</div></div></div>
-    </div>
+    <figure class="gif-embed">
+      <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 50만 큐브, 릴리즈 모드" loading="lazy">
+      <figcaption class="mono"><span><b>GPU Compute TRS</b> — 50만 큐브, Release</span>
+        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">100만 큐브 원본(112MB) →</a></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="assets/deferred-rendering.gif" alt="디퍼드 렌더링 파이프라인 데모" loading="lazy">
+      <figcaption class="mono"><span><b>디퍼드 렌더링</b> — Geometry → Lighting, 전체 파이프라인</span></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="assets/fixed_shadow_shimmering.gif" alt="섀도우 시머링 수정, 텍셀 스냅, 카메라 이동 중" loading="lazy">
+      <figcaption class="mono"><span><b>섀도우 시머링 수정</b> — 텍셀 스냅, 카메라 이동 중</span></figcaption>
+    </figure>
 
-    <figure class="gif-embed">
-      <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 500,000 cubes, release mode" loading="lazy">
-      <figcaption class="mono"><span><b>GPU Compute TRS</b> — 500K cubes, Release</span>
-        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">1M-cube capture (112MB) →</a></figcaption>
-    </figure>
-    <figure class="gif-embed">
-      <img src="assets/deferred-rendering.gif" alt="Full deferred rendering pipeline demo" loading="lazy">
-      <figcaption class="mono"><span><b>Deferred Rendering</b> — Geometry → Lighting, end to end</span></figcaption>
-    </figure>
-    <figure class="gif-embed">
-      <img src="assets/fixed_shadow_shimmering.gif" alt="Shadow shimmering fix, texel-snapped, camera moving" loading="lazy">
-      <figcaption class="mono"><span><b>Shadow Shimmering Fix</b> — texel-snapped, camera in motion</span></figcaption>
-    </figure>
+    <div class="achv-list" style="margin-top:20px;">
+      <div class="achv"><div><div class="head">TransformPass: TRS→행렬 변환을 GPU로 이전.</div>
+        <div class="sub">컴퓨트 셰이더가 인스턴스별 CPU GLM 연산을 대체. <b>50만 인스턴스 @ 20 FPS</b> Release
+          — CPU 경로 대비 약 10배(CPU는 3만 인스턴스부터 Debug 10 FPS를 못 버팀).</div></div></div>
+      <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었습니다.</div>
+        <div class="sub">100만 인스턴스에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
+          <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
+    </div>
   </section>
 
 </main>
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
@@ -438,18 +342,5 @@ classDiagram
 </footer>
 
 <script src="app.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
-</script>
 </body>
 </html>
