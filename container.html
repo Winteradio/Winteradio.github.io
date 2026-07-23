@@ -59,6 +59,24 @@
       <span class="section-num mono">01</span>
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
+
+    <div class="tbl-wrap">
+      <table class="spec">
+        <thead><tr><th>연산</th><th>컨테이너</th><th>시간</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td class="k" rowspan="2">삽입(100만 개)</td><td>std::unordered_map</td><td>743 ms</td><td>1.0×</td></tr>
+          <tr><td><b>wtr::HashMap</b></td><td><b>430 ms</b></td><td><b>1.72× 빠름</b></td></tr>
+          <tr><td class="k" rowspan="2">조회(100만 개)</td><td>std::unordered_map</td><td>274 ms</td><td>1.0×</td></tr>
+          <tr><td><b>wtr::HashMap</b></td><td><b>216 ms</b></td><td><b>1.26× 빠름</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="why mono">
+      100만 개 랜덤 정수 키, Ryzen 7 5800H · MSVC C++17 Debug 빌드 기준 —
+      <a href="https://github.com/Winteradio/Container/issues/16" target="_blank" rel="noopener">벤치마크 코드/원본 결과 →</a>
+      Open Addressing으로 노드 기반 체이닝보다 캐시 미스가 적은 게 주요 원인.
+    </p>
+
     <div class="achv-list">
       <div class="achv"><div><div class="head">Robin Hood 해싱은 "가난한 쪽이 이긴다"는 규칙 하나로 동작합니다.</div>
         <div class="sub">삽입할 때 자기보다 PSL(제자리에서 얼마나 멀어졌는지)이 낮은, 즉 "부자"인 원소만
