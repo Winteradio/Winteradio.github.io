@@ -175,7 +175,7 @@
       <img src="https://www.plantuml.com/plantuml/svg/RL7RJXin47tVhnZ12uY2saBxKArMXD2qGKcBsF81a_KaQ-7r87ksQRYyz3Fw1vNwQNn4DzvDOY1-6i-PStnyvjGBEgaha_WRRM_HOGKJB6vcZckh-cpOmRpKGX7kIrGyrtO6KpG-HWg3tW_OoZUi2FfiFJUTRGEvlYDuTnn1YgPO6rcpTyPePhM5BoobBdQsJxOoxoEmy-qiEJXv-N9FnEb9BJGis0RkssYavnpFso_lVWmd0ljB_XaxHQuREGddrSYBy7O77mR7d_j94Wn0ptiIk4y03gwlX-UWLVBOGMFoPGIVBonMkcXCuI9TOZaLejbcuDl2RvWev3IQY4rviwHcHMDMPCB6LfSrwmVzajfHHBgYwQMuzEhhiCCoaBPOay9qll125QGf-4RLaB25B6irHengxnQbt8TMhg7Yn8l3GY3Ik4JdcnK5JgZtSDdUXv_SPB8I2hqtK5HgfFqAN7dvVdRHgdJtN2R32cVKDTkFfG-7XvjedpNZr68W3YRPR8MtSxgF1ER6qIjecxaknwEZx5acd-3fzx-dFt-JKxAghin_" alt="Asset 클래스 다이어그램" loading="lazy">
     </div>
     <pre class="diagram"><span class="hi">eLoaded</span> --AssetSystem.Create()--> <span class="hi2">eParsed</span> --TaskWorker.Parse()--> <span class="hi">eReady</span> --RHIWorker upload-->
-Parse  = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 다음 틱에 AssetWorker가 직접 처리)
+Parse  = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 AssetSystem 큐에 다시 넣어 다음 패스로 미룸)
 Load   = GPU 포맷 변환, AssetWorker
 Upload = glBufferData / glTexImage2D, RHIWorker 전용</pre>
   </section>
@@ -212,7 +212,30 @@ Upload = glBufferData / glTexImage2D, RHIWorker 전용</pre>
           않은 동작입니다.</div></div></div>
       <div class="achv"><div><div class="head">Asset 파싱은 항상 병렬은 아니고, 기회적(opportunistic)입니다.</div>
         <div class="sub">유휴 <code class="mono">TaskWorker</code>가 있을 때만 별도 스레드로 넘기고, 없으면
-          AssetWorker 자신이 다음 틱에 직접 파싱합니다 — "병렬 파싱"이 항상 보장되는 건 아닙니다.</div></div></div>
+          <code class="mono">AssetSystem::AddTask()</code>로 다시 큐에 넣어 다음 패스로 미룹니다 — 동기적으로
+          직접 파싱하지 않고, "병렬 파싱"이 항상 보장되는 것도 아닙니다.</div></div></div>
+      <div class="achv"><div><div class="head">Application/Engine 초기화 중 AssetWorker가 두 번 만들어집니다.</div>
+        <div class="sub"><code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
+          <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
+          만들어 <code class="mono">m_assetWorker</code>를 덮어씁니다 — 첫 번째 인스턴스는 조용히 버려집니다.
+          WorldCommandList와 같은 종류의 흔적성 코드로 보입니다.</div></div></div>
+      <div class="achv"><div><div class="head">Win32Window의 WM_CLOSE 처리와 실제 종료 경로는 다릅니다.</div>
+        <div class="sub">WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서
+          설정한 <code class="mono">m_status = eClosed</code>가 같은 호출 안에서 곧바로 다시 eActive로 덮어써집니다.
+          실제 종료는 상태 체크가 아니라 close 콜백 → <code class="mono">Engine::Shutdown()</code> →
+          <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
+          경로로 이루어집니다.</div></div></div>
+      <div class="achv"><div><div class="head">InputStorage는 더블 버퍼가 아니라 락프리 트리플 버퍼입니다.</div>
+        <div class="sub"><code class="mono">m_InputData[3]</code> — 메인 스레드가 쓰는 <code class="mono">m_CurrData</code>,
+          핸드오프용 <code class="mono">atomic&lt;InputData*&gt; m_PrevData</code>, WorldWorker가 읽는
+          <code class="mono">m_LogicData</code>. 256개 키코드 전체 상태를 4비트(Down/Press/Release/Repeat)로
+          패킹한 128바이트 배열로 저장합니다.</div></div></div>
+      <div class="achv"><div><div class="head">TaskWorker "풀"은 사실 AssetWorker 전용이고, 로드밸런싱이 없습니다.</div>
+        <div class="sub">TaskWorker 자체는 작업 하나짜리 워커일 뿐 — "풀"은 AssetWorker가 가진
+          <code class="mono">DynamicArray&lt;RefPtr&lt;TaskWorker&gt;&gt;</code>이고, 스레드 개수 4는
+          <code class="mono">Engine.cpp</code>에 하드코딩. 분배는 라운드로빈이 아니라 첫 번째로 유휴 상태인 워커를
+          선형 탐색. <code class="mono">Win32InputHandler</code>의 입력 큐도 backpressure 없이
+          <code class="mono">MAX_QUEUE_SIZE</code>를 넘으면 그냥 통째로 비워 밀린 입력을 버립니다.</div></div></div>
     </div>
   </section>
 
