@@ -54,7 +54,8 @@
         <li><span class="n">04</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
         <li><span class="n">05</span><a href="#status">기능 현황</a></li>
         <li><span class="n">06</span><a href="#issues">해결한 이슈</a></li>
-        <li><span class="n">07</span><a href="#results">결과물</a></li>
+        <li><span class="n">07</span><a href="#notes">기술 노트</a></li>
+        <li><span class="n">08</span><a href="#results">결과물</a></li>
       </ol>
     </div>
   </section>
@@ -394,9 +395,78 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     </div>
   </section>
 
-  <section id="results">
+  <section id="notes">
     <div class="section-head">
       <span class="section-num mono">07</span>
+      <div>
+        <h2 class="section-title display">기술 노트</h2>
+        <span class="section-tag">구현하면서 직접 유도/정리한 그래픽스 이론 — 이슈 트래커에 전문을 남겨둠</span>
+      </div>
+    </div>
+
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#30</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Game-Engine/issues/30" target="_blank" rel="noopener">Position Reconstruction from Depth Buffer</a></span>
+        </div>
+        <div class="issue-body">
+          - 왜: 1920×1080에서 Position GBuffer(RGBA32F)만 프레임당 <b>~31MB</b>. Frostbite/UE4/5/CryEngine 전부
+          Position 채널을 버리고 Depth에서 역산합니다.<br>
+          - 어떻게: World → View → Clip → (÷w) → NDC → Depth 순서를 거꾸로 밟아 복원. 핵심은 Position이
+          동차좌표에서 항상 <code class="mono">w=1</code>이라는 불변식.<br>
+          - 사이트 GBuffer 스크린샷의 "Position" 채널도 실제로 저장되는 렌더 타깃이 아니라, 디버그 시각화
+          패스가 Depth로부터 그 자리에서 재구성한 것입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#37</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Game-Engine/issues/37" target="_blank" rel="noopener">Quaternion Rotation Matrix Derivation</a></span>
+        </div>
+        <div class="issue-body">
+          - 쿼터니언 샌드위치 곱 <code class="mono">q·v·q*</code>이 3×3 회전 행렬과 같다는 걸 직접 손으로 증명
+          — 곱 전개 → Rodrigues 형태 변환 → 벡터 연산을 행렬로 변환 → 쿼터니언 성분 대입, 4단계로 진행.<br>
+          - 라이브러리(GLM 등)가 이미 해주는 변환을 그대로 쓰지 않고, 왜 그 공식이 맞는지 끝까지 손으로
+          따라간 기록입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#39</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Game-Engine/issues/39" target="_blank" rel="noopener">Point Light &amp; Phong Specular 정리</a></span>
+        </div>
+        <div class="issue-body">
+          - GLSL <code class="mono">reflect(I,N) = I - 2·dot(N,I)·N</code>가 교과서 공식과 부호만 다르다는 것,
+          그리고 <code class="mono">faceforward</code>로 normal을 뒤집어도 반사 벡터 자체는 바뀌지 않는다는 걸
+          정리(NdotL 부호에만 영향).<br>
+          - 라이트가 표면 안쪽에 있는 two-sided 케이스 3가지 방법을 비교: <code class="mono">abs(NdotL)</code>(specular
+          방향이 틀어짐) → <code class="mono">faceforward</code>(diffuse만 고침) →
+          <code class="mono">incidentDir</code> 보정(권장 — 입사 방향 자체를 표면 앞쪽으로 재계산). 이 세 번째
+          방법이 실제로 채택된 방향이고, engine.html의 "Point Light 입사 방향 아티팩트" 이슈와 이어집니다.<br>
+          - 감쇠식은 <code class="mono">1/(d²+1)</code>로 <code class="mono">d→0</code> 발산을 막고,
+          range 기반 falloff를 곱해 range 밖에서 매끄럽게 0이 되도록 함.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">#48</span>
+          <span class="issue-title"><a href="https://github.com/Winteradio/Game-Engine/issues/48" target="_blank" rel="noopener">Directional Light Shadow Mapping — 종합 정리</a></span>
+        </div>
+        <div class="issue-body">
+          - 2단계 섀도우 매핑(라이트 시점 Depth 렌더 → 라이팅 패스에서 비교) 기본기부터, 텍셀 스냅으로
+          시머링을 잡는 방법, depth bias가 Slope Bias에서 RPDB + Normal Offset으로 진화한 과정까지
+          한 이슈에 정리.<br>
+          - 여기서 정리한 NaN/acne/grazing 원인 분석이 실제로 site의 "섀도우 acne / NaN / 깜빡임" 이슈
+          해결로 이어졌습니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="section-head">
+      <span class="section-num mono">08</span>
       <div>
         <h2 class="section-title display">결과물</h2>
         <span class="section-tag">섀도우 매핑 · 디퍼드 렌더링 · 100만 인스턴스 최적화</span>
