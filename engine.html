@@ -403,6 +403,55 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
     </div>
 
+    <h3 style="font-size:16px;margin:0 0 10px;">성능 최적화 여정 — 100만 인스턴스 병목 추적기</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 16px;">
+      <a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>
+      한 건에서 한 달(2026-04-22 ~ 2026-05-23)에 걸쳐 실제로 있었던 일입니다 — 프로파일러로 병목을 찾고,
+      고치고, 중간에 리팩토링으로 오히려 성능이 떨어지기도 하고, 다시 고치고, 다음 병목을 찾는 과정을 그대로
+      옮겼습니다.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">1) 3만 인스턴스 회전 — Render Thread가 scalar GLM 행렬 곱에 발목잡힘.</div>
+        <div class="sub">플레임그래프에서 <code class="mono">SceneProxy::UpdateRotation → UpdateTransform →
+          glm::detail::mul4x4</code>가 압도적 1위. GLM이 SIMD 없이 컴파일돼서 mat4×mat4가 전부 스칼라 루프로
+          도는 게 원인이었습니다.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/216b6f9b-b7e4-4f54-960e-c5ae26cae5d2" alt="플레임그래프 — glm::detail::mul4x4 병목" loading="lazy">
+      <figcaption class="mono"><span><b>플레임그래프</b> — glm::detail::mul4x4가 Render Thread 예산을 대부분 잡아먹음</span></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/f82b5884-7186-4799-b5f2-c91505c53fe0" alt="RHI 워커는 병목이 아님을 확인한 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>프로파일링으로 배제</b> — RHIWorker 자체는 원인이 아니었음을 확인</span></figcaption>
+    </figure>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">2) 리팩토링 중 오히려 후퇴 — ISM 도입 과정에서 성능이 10배 나빠짐.</div>
+        <div class="sub">Unreal의 <code class="mono">FInstancedStaticMeshSceneProxy</code>를 참고해 InstancedStaticMeshProxy
+          개념을 도입하던 중, 이전 엔진이 <b>100만 개 @ 20 FPS</b>(Release)를 버텼던 반면 리팩토링 직후 버전은
+          <b>10만 개에서야 20 FPS</b>로 오히려 후퇴했습니다 — 리팩토링이 항상 개선을 보장하지 않는다는 걸 프로파일러가
+          바로 알려준 사례입니다.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/07db348b-e48a-4199-af2b-be8fc3e90cfe" alt="ISM 리팩토링 직후, 10만 큐브에서 20fps로 후퇴한 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>회귀 확인</b> — ISM 리팩토링 직후, 10만 개에서 이미 20 FPS까지 하락</span></figcaption>
+    </figure>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">3) TransformPass로 회복 + 그 이상 — TRS 행렬 계산을 GPU 컴퓨트 셰이더로 완전히 이전.</div>
+        <div class="sub">기존에는 MeshBatch 안에서 인스턴스마다 CPU로 Translation×Rotation×Scale 행렬을 만들었는데,
+          이제 <code class="mono">local_size_x = 64</code> 컴퓨트 셰이더가 RawTransform SSBO(위치·쿼터니언·스케일)를
+          읽어 Transform SSBO(mat4)로 계산합니다. 결과: <b>Debug 10만 개 안정 20 FPS</b>(리팩토링 전에는 3만 개에서도
+          10 FPS 밑으로 떨어졌음), <b>Release 50만 개 ~15 FPS</b>.</div></div></div>
+      <div class="achv"><div><div class="head">4) 다음 병목까지 찾아둠 — HashTable::Rehash의 임시 배열이 프록시 등록 시 힙 할당을 유발.</div>
+        <div class="sub">행렬 계산 병목이 풀리자 프로파일러가 다음으로 <code class="mono">HashTable::Rehash</code> 내부의
+          임시 <code class="mono">DynamicArray</code> 생성을 새 할당 핫스팟으로 지목했습니다. 다음 단계로 대량 삽입 전에
+          예상 용량만큼 <code class="mono">Reserve</code>를 미리 호출해서 핫 패스에서 Rehash 자체를 없애는 방향을
+          이슈에 남겨뒀습니다.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/14fff8b7-0171-4dc6-a8f6-07c3c6357134" alt="TransformPass 도입 이후 HashTable::Rehash가 새 병목으로 나타난 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>다음 타겟</b> — HashTable::Rehash가 새로운 할당 핫스팟으로 떠오름</span></figcaption>
+    </figure>
+
     <figure class="gif-embed">
       <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 50만 큐브, 릴리즈 모드" loading="lazy">
       <figcaption class="mono"><span><b>GPU Compute TRS</b> — 50만 큐브, Release</span>
@@ -418,9 +467,6 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     </figure>
 
     <div class="achv-list" style="margin-top:20px;">
-      <div class="achv"><div><div class="head">TransformPass: TRS→행렬 변환을 GPU로 이전.</div>
-        <div class="sub">컴퓨트 셰이더가 인스턴스별 CPU GLM 연산을 대체. <b>50만 인스턴스 @ 20 FPS</b> Release
-          — CPU 경로 대비 약 10배(CPU는 3만 인스턴스부터 Debug 10 FPS를 못 버팀).</div></div></div>
       <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었습니다.</div>
         <div class="sub">100만 인스턴스에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
           <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
