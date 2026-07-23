@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Wonmock Lee — Graphics / Rendering Engineer. Career, skills, and a self-built C++ engine split across four systems.">
-<title>Wonmock Lee — Graphics / Rendering Engineer</title>
+<meta name="description" content="이원목 — 그래픽스 / 렌더링 엔지니어. 커리어, 기술 스택, 직접 만든 C++ 엔진을 시스템별로 소개합니다.">
+<title>이원목 — 그래픽스 / 렌더링 엔지니어</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html" class="active">Home</a>
+      <a href="index.html" class="active">홈</a>
       <a href="engine.html">Engine</a>
       <a href="ecs.html">ECS</a>
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -31,15 +32,15 @@
 <main class="wrap">
 
   <section class="hero">
-    <span class="eyebrow"><span class="dot"></span>Graphics / Rendering Engineer</span>
-    <h1 class="title display">Four systems, written from<br><span class="accent">first principles</span>, one engine.</h1>
+    <span class="eyebrow"><span class="dot"></span>그래픽스 / 렌더링 엔지니어</span>
+    <h1 class="title display">네 개의 시스템을<br>밑바닥부터 직접 짠, <span class="accent">엔진 하나</span></h1>
     <p class="subhead">
-      A multi-threaded C++ engine built independently alongside a graphics-engineering job at Hyundai
-      AutoEver — its own entity-component framework, garbage-collected memory pool, STL-free container
-      library, and compile-time reflection system, each in its own repository with its own open issues.
+      현대오토에버 그래픽스 엔지니어 업무와 병행하며 독립적으로 개발한 멀티스레드 C++ 엔진입니다.
+      엔티티-컴포넌트 프레임워크, 가비지 컬렉션 기반 메모리 풀, STL을 쓰지 않는 컨테이너 라이브러리,
+      컴파일 타임 리플렉션 시스템까지 — 각각 별도 저장소에서 이슈까지 공개로 관리하고 있습니다.
     </p>
     <div class="contact-strip mono">
-      <span>📍 Seoul, Gwangjin-gu</span>
+      <span>📍 서울 광진구</span>
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
       <a href="https://www.linkedin.com/in/wonmock-lee-642302216/" target="_blank" rel="noopener">LinkedIn</a>
@@ -50,20 +51,20 @@
     <div class="section-head">
       <span class="section-num mono">01</span>
       <div>
-        <h2 class="section-title display">Skills</h2>
-        <span class="section-tag">what shows up across the day job and the side projects</span>
+        <h2 class="section-title display">기술 스택</h2>
+        <span class="section-tag">본업과 사이드 프로젝트 전반에 걸쳐 쓰는 것들</span>
       </div>
     </div>
     <div class="tbl-wrap">
       <table class="spec">
         <tbody>
-          <tr><td class="k" style="width:170px;">Engine Architecture</td>
-            <td>Multi-thread rendering (4-thread) · RHI abstraction · Descriptor-based API · RenderPass +
-              Proxy / MeshDrawCommand · ECS (Node · System · Graph)</td></tr>
-          <tr><td class="k">C++ Systems</td>
-            <td>C++17/20 · Custom allocators (Pool · Array · LinearArena) · Mark-and-Sweep GC · Runtime
-              reflection (TMP/SFINAE) · STL-free containers (Robin Hood HashMap)</td></tr>
-          <tr><td class="k">Graphics API</td>
+          <tr><td class="k" style="width:170px;">엔진 아키텍처</td>
+            <td>멀티스레드 렌더링(4-thread) · RHI 추상화 · Descriptor 기반 API · RenderPass + Proxy /
+              MeshDrawCommand · ECS(Node · System · Graph)</td></tr>
+          <tr><td class="k">C++ 시스템</td>
+            <td>C++17/20 · 커스텀 할당자(Pool · Array · LinearArena) · Mark-and-Sweep GC · 런타임 리플렉션
+              (TMP/SFINAE) · STL-free 컨테이너(Robin Hood HashMap)</td></tr>
+          <tr><td class="k">그래픽스 API</td>
             <td>OpenGL ES · GLSL · RenderDoc · NSight Graphics</td></tr>
         </tbody>
       </table>
@@ -74,51 +75,49 @@
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">Career</h2>
-        <span class="section-tag">what the day job looks like</span>
+        <h2 class="section-title display">커리어</h2>
+        <span class="section-tag">본업에서 하는 일</span>
       </div>
     </div>
     <div class="section-body">
       <div class="col">
         <div class="job">
-          <div class="when mono">2024.01 —<br>Present</div>
+          <div class="when mono">2024.01 —<br>현재</div>
           <div>
-            <div class="org">Hyundai AutoEver</div>
-            <div class="role">Graphics Engine Team · Android (C++)</div>
+            <div class="org">현대오토에버</div>
+            <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">Split the MVT rendering pipeline into Layout and Paint, Mapbox-style.</div>
-                <div class="sub">Mesh-building logic separated from material logic; independent pipeline per layer
-                  type (Fill · Line · Fill-Extrusion · Symbol). <b>~1.5–2× FPS</b> from the split alone.</div></div></div>
-              <div class="achv"><div><div class="head">Merged per-layer draw calls into per-tile, per-style GPU buffers.</div>
-                <div class="sub"><b>90%+ fewer draw calls.</b> Also replaced Earcut tessellation's per-call dynamic
-                  allocation with a reusable static memory pool, removing a recurring frame-time spike.</div></div></div>
-              <div class="achv"><div><div class="head">Built the glTF / KTX 3D model pipeline.</div>
-                <div class="sub">Profiling showed texture decode was ~80% of load time. Drove the switch to
-                  KTX2/ASTC — <b>70–80% faster loading.</b> Added GPU skinning and a custom debugging tool; ran
-                  the internal seminar on it.</div></div></div>
+              <div class="achv"><div><div class="head">MVT 지도 렌더링 파이프라인을 Mapbox 방식으로 Layout/Paint 분리.</div>
+                <div class="sub">메시 빌드 로직과 머티리얼 로직을 분리하고, 레이어 타입별(Fill · Line ·
+                  Fill-Extrusion · Symbol) 독립 파이프라인 구성. 구조 분리만으로 <b>FPS 약 1.5~2배</b> 향상.</div></div></div>
+              <div class="achv"><div><div class="head">레이어별 Draw Call을 타일·스타일 단위 GPU 버퍼로 통합.</div>
+                <div class="sub"><b>Draw Call 90% 이상 감소.</b> Earcut 삼각분할의 호출마다 발생하던 동적 할당도
+                  재사용 가능한 정적 메모리 풀로 교체해 반복되던 프레임 스파이크를 제거.</div></div></div>
+              <div class="achv"><div><div class="head">glTF / KTX 3D 모델 파이프라인 구축.</div>
+                <div class="sub">프로파일링 결과 텍스처 디코딩이 로딩 시간의 약 80%를 차지함을 확인하고 KTX2/ASTC로
+                  전환 — <b>로딩 성능 70~80% 향상.</b> GPU 스키닝과 자체 디버깅 툴 추가, 사내 세미나 진행.</div></div></div>
             </div>
           </div>
         </div>
         <div class="job">
           <div class="when mono">2022.07 —<br>2023.03</div>
           <div>
-            <div class="org">LG Electronics</div>
-            <div class="role">VS Division · Intern → New Grad</div>
+            <div class="org">LG전자</div>
+            <div class="role">VS 사업부 · 인턴 → 정규직</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">Built smartphone-to-vehicle content streaming.</div>
-                <div class="sub">Cinemo API + DLNA. Implemented and verified the media delivery pipeline to
-                  in-car displays.</div></div></div>
+              <div class="achv"><div><div class="head">스마트폰-차량 콘텐츠 스트리밍 구축.</div>
+                <div class="sub">Cinemo API + DLNA 기반. 차량 디스플레이로의 미디어 전달 파이프라인 구현 및 검증.</div></div></div>
             </div>
           </div>
         </div>
         <div class="job">
           <div class="when mono">2021.08 —<br>2022.03</div>
           <div>
-            <div class="org">Hanyang University — CGR Lab</div>
-            <div class="role">Undergraduate Researcher</div>
+            <div class="org">한양대학교 — CGR 연구실</div>
+            <div class="role">학부 연구생</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">Elastic-particle rubber-band simulation.</div>
-                <div class="sub">Plus joint-reference-driven human animation.</div></div></div>
+              <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션.</div>
+                <div class="sub">관절 참조 데이터 기반 인체 애니메이션 구현도 함께 진행.</div></div></div>
             </div>
           </div>
         </div>
@@ -130,34 +129,34 @@
     <div class="section-head">
       <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">Side Projects</h2>
-        <span class="section-tag">the custom C++ engine, split into 5 pages — one per system</span>
+        <h2 class="section-title display">사이드 프로젝트</h2>
+        <span class="section-tag">직접 만든 C++ 엔진, 시스템 하나당 페이지 하나로 나눴습니다</span>
       </div>
     </div>
     <div class="project-grid">
       <a class="project-card" href="engine.html">
-        <span class="tag mono">01 · active dev</span>
-        <span><span class="name">Game Engine</span><br><span class="desc">4-thread architecture, deferred rendering, the layer that ties the other four together.</span></span>
+        <span class="tag mono">01 · 개발 중</span>
+        <span><span class="name">Game Engine</span><br><span class="desc">4-thread 아키텍처, 디퍼드 렌더링 — 나머지 네 시스템을 하나로 묶는 레이어.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="ecs.html">
         <span class="tag mono">02</span>
-        <span><span class="name">ECS</span><br><span class="desc">Node-filtered entity component system with dependency-graph System ordering.</span></span>
+        <span><span class="name">ECS</span><br><span class="desc">Node 기반 필터링과 의존성 그래프로 실행 순서를 정하는 엔티티 컴포넌트 시스템.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="memory.html">
         <span class="tag mono">03</span>
-        <span><span class="name">Memory Pool</span><br><span class="desc">Mark-and-Sweep GC referencing Unreal Engine, incremental and time-budgeted.</span></span>
+        <span><span class="name">Memory Pool</span><br><span class="desc">Unreal Engine을 참고한 Mark-and-Sweep GC, 점진적이고 시간 예산 기반.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="reflection.html">
         <span class="tag mono">04</span>
-        <span><span class="name">Reflection</span><br><span class="desc">UE-style GENERATE/PROPERTY/METHOD macros; compile-time type registration.</span></span>
+        <span><span class="name">Reflection</span><br><span class="desc">UE 스타일 GENERATE/PROPERTY/METHOD 매크로 — 컴파일 타임 타입 등록.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="container.html">
         <span class="tag mono">05</span>
-        <span><span class="name">Container</span><br><span class="desc">STL-free DynamicArray, Robin Hood HashMap, and a TLSF suballocator.</span></span>
+        <span><span class="name">Container</span><br><span class="desc">STL-free DynamicArray, Robin Hood HashMap, TLSF 서브 할당자.</span></span>
         <span class="go">→</span>
       </a>
     </div>
@@ -167,8 +166,8 @@
     <div class="section-head">
       <span class="section-num mono">04</span>
       <div>
-        <h2 class="section-title display">Resume</h2>
-        <span class="section-tag">education, awards, and the rest of the paperwork</span>
+        <h2 class="section-title display">이력서</h2>
+        <span class="section-tag">학력, 수상, 그 외 이력</span>
       </div>
     </div>
 
@@ -178,23 +177,23 @@
         <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       </div>
       <div class="resume-block">
-        <h4>Education</h4>
-        <div class="resume-row"><span class="rk mono">2019.02 – 2023.02</span><span class="rv"><b>Hanyang University</b>, Seoul — B.S. Mechanical Engineering (major) · B.S. Electrical &amp; Bioengineering (minor) · GPA 3.75/4.5</span></div>
+        <h4>학력</h4>
+        <div class="resume-row"><span class="rk mono">2019.02 – 2023.02</span><span class="rv"><b>한양대학교</b> — 기계공학 학사(주전공) · 전기·생체공학 학사(부전공) · 학점 3.75/4.5</span></div>
       </div>
       <div class="resume-block">
-        <h4>Awards</h4>
-        <div class="resume-row"><span class="rk mono">2021.07</span><span class="rv"><b>Innovation Award</b> — Mentoring-based AI Project Competition, Korea University</span></div>
-        <div class="resume-row"><span class="rk mono">2022.05</span><span class="rv"><b>Encouragement Award</b> — Capstone Design Presentation, Hanyang University</span></div>
+        <h4>수상</h4>
+        <div class="resume-row"><span class="rk mono">2021.07</span><span class="rv"><b>혁신상</b> — 멘토링 기반 AI 프로젝트 경진대회, 고려대학교</span></div>
+        <div class="resume-row"><span class="rk mono">2022.05</span><span class="rv"><b>장려상</b> — 졸업작품 발표회, 한양대학교</span></div>
       </div>
       <div class="resume-block">
-        <h4>Military Service</h4>
-        <div class="resume-row"><span class="rk mono">2017.01 – 2018.10</span><span class="rv">Republic of Korea Army, honorable discharge</span></div>
+        <h4>병역</h4>
+        <div class="resume-row"><span class="rk mono">2017.01 – 2018.10</span><span class="rv">육군 만기 전역</span></div>
       </div>
       <div class="resume-block">
-        <h4>Experience</h4>
-        <div class="resume-row"><span class="rk mono">2024.01 – Present</span><span class="rv"><b>Hyundai AutoEver</b> — Graphics Engine Team, Android (C++)</span></div>
-        <div class="resume-row"><span class="rk mono">2022.07 – 2023.03</span><span class="rv"><b>LG Electronics</b> — VS Division, Intern → New Grad</span></div>
-        <div class="resume-row"><span class="rk mono">2021.08 – 2022.03</span><span class="rv"><b>Hanyang University</b> — Undergraduate Researcher, CGR Lab</span></div>
+        <h4>경력</h4>
+        <div class="resume-row"><span class="rk mono">2024.01 – 현재</span><span class="rv"><b>현대오토에버</b> — 그래픽스 엔진 개발팀, Android(C++)</span></div>
+        <div class="resume-row"><span class="rk mono">2022.07 – 2023.03</span><span class="rv"><b>LG전자</b> — VS 사업부, 인턴 → 정규직</span></div>
+        <div class="resume-row"><span class="rk mono">2021.08 – 2022.03</span><span class="rv"><b>한양대학교</b> — 학부 연구생, CGR 연구실</span></div>
       </div>
     </div>
   </section>
@@ -204,7 +203,7 @@
 <footer id="contact">
   <div class="wrap foot-grid">
     <p class="foot-line">
-      Open to graphics and rendering engineering roles. Every repository above is public — issues included.
+      그래픽스/렌더링 엔지니어 포지션을 찾고 있습니다. 위 저장소는 전부 공개되어 있고, 이슈까지 그대로 볼 수 있습니다.
     </p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>

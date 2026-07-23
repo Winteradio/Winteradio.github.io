@@ -55,26 +55,23 @@ html, body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Iowan Old Style", "Palatino Linotype", Charter, Georgia, "Noto Serif KR", serif;
+  font-family: Pretendard, "Pretendard Variable", "Noto Sans KR", "Segoe UI", sans-serif;
   font-size: 17px;
-  line-height: 1.65;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  word-break: keep-all;
 }
 
-.display {
-  font-family: Bahnschrift, "SF Compact Display", "Segoe UI Semibold", "Arial Narrow", sans-serif;
-  font-stretch: condensed;
+.display, h1, h2, h3, h4,
+.job .org, .project-card .name, table.spec td.k, .issue-title, .resume-head .lbl {
+  font-family: Pretendard, "Pretendard Variable", "Noto Sans KR", "Segoe UI", sans-serif;
+  font-weight: 700;
 }
 
 .mono {
   font-family: "Cascadia Code", "SF Mono", Consolas, "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-}
-
-/* apply the display face to emphasized in-body text too, not just headers */
-.job .org, .project-card .name, table.spec td.k, .issue-title, .resume-head .lbl, h3, h4 {
-  font-family: Bahnschrift, "SF Compact Display", "Segoe UI Semibold", "Arial Narrow", sans-serif;
 }
 
 a { color: var(--accent); }
@@ -250,6 +247,22 @@ h2.section-title { font-size: clamp(23px, 3.2vw, 29px); font-weight: 600; letter
   display: flex; flex-wrap: wrap; gap: 6px 22px;
 }
 .edu b { color: var(--text-dim); }
+
+/* ---------- table of contents ---------- */
+.toc { border: 1px solid var(--rule); background: var(--surface); padding: 18px 22px; margin: 28px 0; }
+.toc-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+.toc ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.toc li { font-size: 14.5px; }
+.toc a { color: var(--text-dim); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+.toc .n { color: var(--accent-2); margin-right: 4px; }
+
+/* ---------- plantuml image card ---------- */
+.uml-card {
+  background: #fbfaf6; border: 1px solid var(--rule); padding: 16px; margin: 22px 0;
+  overflow-x: auto; text-align: center;
+}
+.uml-card img { max-width: 100%; height: auto; display: inline-block; }
 
 /* ---------- diagrams ---------- */
 .mermaid-wrap {
