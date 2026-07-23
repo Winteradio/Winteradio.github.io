@@ -163,6 +163,31 @@
       <span class="section-num mono">04</span>
       <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
+
+    <div class="achv-list" style="margin-bottom:22px;">
+      <div class="achv"><div><div class="head">Windows 밖에서는 링크가 안 됩니다 — GetName 정의가 아예 없습니다.</div>
+        <div class="sub"><code class="mono">TypeInfo.h:93</code>은 플랫폼과 무관하게 <code class="mono">Utils::GetName(...)</code>를
+          호출하는데, <code class="mono">Utils.cpp</code>는 <code class="mono">#if defined(_WIN32)</code>일 때만
+          <code class="mono">GetName</code>을 정의하고, <code class="mono">#else</code> 분기는 이름이 다른
+          <code class="mono">GetClassName</code>을 정의합니다. GCC/Clang 빌드는 이 함수를 참조하는 순간
+          "undefined reference"로 링크에 실패합니다 — #25/#29와는 별개인, 아직 등록되지 않은 빌드 차단
+          버그입니다.</div></div></div>
+      <div class="achv"><div><div class="head">MethodInfo::Invoke가 소유 클래스를 검증하지 않습니다.</div>
+        <div class="sub">시그니처(Return/Args)가 같으면 서로 무관한 두 클래스의 메서드가 같은
+          <code class="mono">MethodCall&lt;Return,Args...&gt;</code> TypeInfo로 묶여 <code class="mono">Cast</code>를
+          통과합니다. 이후 <code class="mono">MemberMethodCall::Invoke</code>는 전달받은 포인터를 그냥
+          <code class="mono">static_cast&lt;ClassType*&gt;</code>해서 호출 — <code class="mono">PropertyInfo</code>와
+          달리 런타임 타입 체크가 없어서, 잘못된 클래스의 인스턴스를 넘기면 조용히 타입 펀
+          (type-pun)됩니다.</div></div></div>
+      <div class="achv"><div><div class="head">TypeManager의 map 키가 사실상 포인터 자기 자신입니다.</div>
+        <div class="sub"><code class="mono">TypeMap</code>의 키인 <code class="mono">m_typeHash</code>는
+          <code class="mono">reinterpret_cast&lt;size_t&gt;(this)</code> — 이름 기반 해시가 아니라 TypeInfo
+          객체 자신의 메모리 주소입니다. 그래서 키가 저장된 포인터와 사실상 중복 정보이고, ASLR 때문에
+          프로세스마다 값이 달라져 직렬화나 프로세스 간 타입 식별에는 쓸 수 없습니다. 또한
+          <code class="mono">GetTypeMap()</code>은 락 없이 원본 map을 그대로 반환해서, <code class="mono">Regist()</code>가
+          거는 뮤텍스와 별개로 순회 중 경합 가능성이 있습니다.</div></div></div>
+    </div>
+
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
@@ -189,6 +214,7 @@
         </div>
       </div>
     </div>
+    <p class="foot-line" style="margin-top:14px;"><a href="bugs.html#reflection">코드 리뷰에서 발견한 버그 전체 보기 →</a></p>
   </section>
 
 </main>

@@ -158,6 +158,30 @@
       <span class="section-num mono">03</span>
       <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
+
+    <div class="achv-list" style="margin-bottom:22px;">
+      <div class="achv"><div><div class="head">TLSFArena.h의 include guard 매크로 이름이 서로 다릅니다.</div>
+        <div class="sub"><code class="mono">#ifndef __WTR_TLSF_ARENA_H__</code>로 체크하고
+          <code class="mono">#define __WTR_TLSF_ANREA_H__</code>("ANREA")로 정의 — 오타 때문에 실제로는
+          guard가 걸리지 않습니다. 한 번역 단위에서 이 헤더가 두 번 include되면 재정의 에러가 납니다.</div></div></div>
+      <div class="achv"><div><div class="head">HashMap의 ReverseIterator가 실제로는 정방향입니다.</div>
+        <div class="sub"><code class="mono">Iterator</code>/<code class="mono">ReverseIterator</code> 두 alias가
+          <code class="mono">BaseIterator&lt;IsConst, IsReverse&gt;</code>의 두 번째 인자를 다르게 채워야 하는데,
+          <code class="mono">Key != Data</code>(HashMap) 케이스에서 <code class="mono">ReverseIterator</code>가
+          <code class="mono">BaseIterator&lt;true, false&gt;</code>로 풀립니다 — reverse 플래그가 꺼진 채로.
+          결과적으로 HashMap의 <code class="mono">rBegin()/rEnd()</code>는 뒤가 아니라 앞으로 순회합니다.</div></div></div>
+      <div class="achv"><div><div class="head">Variant::Move()가 실제로는 move가 아니라 copy를 부릅니다.</div>
+        <div class="sub">이름 붙은 <code class="mono">T&amp;&amp; rhsValue</code> 변수를 만든 뒤 <code class="mono">T(rhsValue)</code>에
+          그대로 넘기는데, 이름이 붙은 rvalue 참조는 lvalue라서 copy 생성자/대입이 선택됩니다 — 흔한 실수지만
+          <code class="mono">Variant</code>의 핵심 연산에서 발생.</div></div></div>
+      <div class="achv"><div><div class="head">LinearArena는 DynamicArray/HashTable의 Allocator 인터페이스와 안 맞습니다.</div>
+        <div class="sub"><code class="mono">Allocate</code>가 두 인자(size, align)를 요구하는데 나머지 컨테이너가
+          기대하는 시그니처는 한 인자, <code class="mono">Deallocate(void*)</code>도 아예 없습니다 — 즉
+          <code class="mono">DynamicArray&lt;T, LinearArena&gt;</code>로는 실제로 못 씁니다. 같은 파일의
+          <code class="mono">Page::~Page()</code>도 <code class="mono">::operator new</code>로 받은 메모리를
+          <code class="mono">delete data;</code>로 해제해서 new/delete 형태가 안 맞습니다.</div></div></div>
+    </div>
+
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
@@ -214,6 +238,7 @@
           - 해결: 두 결과를 <code class="mono">|=</code>로 누적한 뒤 삽입 여부를 판단.</div>
       </div>
     </div>
+    <p class="foot-line" style="margin-top:14px;"><a href="bugs.html#container">코드 리뷰에서 발견한 버그 전체 보기 →</a></p>
   </section>
 
 </main>
