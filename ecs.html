@@ -197,6 +197,22 @@
       </div>
       <div class="issue-card">
         <div class="issue-head">
+          <span class="issue-num mono">include/Graph/Graph.h:105,136,193</span>
+          <span class="issue-title">Graph의 BaseNode 템플릿 인자가 Create()/Add()에서 무시됨</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Graph&lt;Base, BaseNode = GraphNode&lt;Base&gt;&gt;</code>는 커스텀 노드 타입을
+          받을 수 있게 설계됐고 <code class="mono">m_nodeData</code>도 <code class="mono">HashMap&lt;UUID,
+          BaseNode&gt;</code>인데, <code class="mono">Create()</code>와 <code class="mono">Add()</code>는 둘 다
+          자기 <code class="mono">BaseNode</code> 대신 <code class="mono">GraphNode&lt;Base&gt; node;</code>를
+          하드코딩합니다. 기본값(<code class="mono">BaseNode = GraphNode&lt;Base&gt;</code>)으로 쓰는 한은
+          문제없지만, 실제로 커스텀 <code class="mono">BaseNode</code>를 넘기면 이 대입 자체가 컴파일되지
+          않습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
           <span class="issue-num mono">include/Graph/Graph.h:174-184</span>
           <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static 싱글턴을 반환</span>
           <span class="issue-state open mono">버그 · 미수정</span>

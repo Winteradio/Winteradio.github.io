@@ -260,6 +260,22 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
+          <span class="issue-num mono">include/List.h:336</span>
+          <span class="issue-title">List::Splice(4-인자 오버로드)에 잘못된 다운캐스트 — 인스턴스화하면 컴파일 안 됨</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Node* prev = node-&gt;prev;</code>인데 <code class="mono">node</code>는
+          <code class="mono">NodeBase*</code>이고 <code class="mono">NodeBase::prev</code>도
+          <code class="mono">NodeBase*</code>입니다 — 명시적 캐스트 없이 베이스 포인터를 파생 포인터에 대입하는
+          코드라 C++에서는 컴파일되지 않습니다. 바로 옆의 다른 <code class="mono">Splice</code> 오버로드
+          3개(257·298·400행)는 전부 <code class="mono">NodeBase*</code>로 맞게 타입을 씁니다 — 이 오버로드만
+          복붙 중 타입을 놓친 것으로 보이고, 실제로 이 특정 오버로드가 호출(인스턴스화)되기 전까지는 템플릿이라
+          드러나지 않습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
           <span class="issue-num mono">include/TLSFArena.h:1-2</span>
           <span class="issue-title">TLSFArena.h의 include guard 매크로 이름이 서로 다름</span>
           <span class="issue-state open mono">버그 · 미수정</span>

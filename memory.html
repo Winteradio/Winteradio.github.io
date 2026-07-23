@@ -264,6 +264,21 @@ int main()
           설정해서, 최대 9번의 destruction만큼 예산을 초과할 수 있습니다.
         </div>
       </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">src/Storage/StorageManager.cpp:65-96</span>
+          <span class="issue-title">Purge()가 풀 버킷 하나만 시간 초과해도 배열 버킷 전체와 Clear()를 건너뜀</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">m_poolMap</code>을 순회하다 어떤 버킷의 <code class="mono">Purge(timeLimit)</code>이
+          false를 반환하면 그 자리에서 <code class="mono">return false</code> — 이후 배열 버킷 루프와
+          <code class="mono">Clear()</code>가 통째로 스킵됩니다. 게다가 배열 버킷 루프는
+          <code class="mono">timeLimit</code>을 아예 체크하지 않아서(<code class="mono">ArrayBudget</code>에는
+          시간 제한을 받는 <code class="mono">Purge</code> 오버로드 자체가 없음), 도달하면 항상 전체를 끝까지
+          처리합니다 — 시간 예산 시스템이 배열 쪽에는 사실상 적용되지 않습니다.
+        </div>
+      </div>
     </div>
   </section>
 
