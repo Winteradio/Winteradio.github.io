@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="코드 리뷰 중 직접 발견한 버그와 설계 이슈 — GitHub 이슈 트래커가 아니라 이번 포트폴리오 작업 중 소스를 다시 읽으며 찾은 것들.">
+<title>발견한 버그 — 이원목</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐞</text></svg>">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="name display">WONMOCK LEE</span>
+    </a>
+    <nav class="topnav">
+      <a href="index.html">홈</a>
+      <a href="engine.html">Engine</a>
+      <a href="ecs.html">ECS</a>
+      <a href="memory.html">Memory</a>
+      <a href="reflection.html">Reflection</a>
+      <a href="container.html">Container</a>
+      <a href="bugs.html" class="active">버그</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
+  </div>
+</div>
+<div class="ruler mono" id="ruler" aria-hidden="true"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>코드 리뷰 로그</span>
+    <h1 class="title display">발견한 버그와 이슈</h1>
+    <p class="subhead">
+      GitHub 이슈 트래커에 등록된 것들은 각 프로젝트 페이지의 "해결한 이슈" 섹션에 있습니다.
+      여기 있는 것들은 그것과 다릅니다 — 이번에 포트폴리오를 작성하면서 <code class="mono">Engine</code>과
+      네 개 서브 프로젝트의 실제 소스를 처음부터 끝까지 다시 읽으며 <b>직접 찾아낸</b> 버그, 죽은 코드,
+      설계상 허점입니다. 아직 대부분 코드에는 반영되지 않은, 발견 시점의 원본 상태 그대로입니다.
+    </p>
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#engine">Engine</a></li>
+        <li><span class="n">02</span><a href="#ecs">ECS</a></li>
+        <li><span class="n">03</span><a href="#memory">Memory</a></li>
+        <li><span class="n">04</span><a href="#reflection">Reflection</a></li>
+        <li><span class="n">05</span><a href="#container">Container</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="engine">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div>
+        <h2 class="section-title display">Engine</h2>
+        <span class="section-tag"><a href="engine.html">engine.html 자세히 보기 →</a></span>
+      </div>
+    </div>
+
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/LightingPass.cpp:64-65, 160-185</span>
+          <span class="issue-title">라이트가 여러 개면 마지막 라이트만 남는 블렌딩 버그</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 증상: 라이트 하나당 풀스크린 쿼드 Draw 한 번씩 그리는 구조인데, 여러 라이트가 있으면 화면에는
+          가장 마지막에 그려진 라이트의 결과만 남아야 정상적으로 보임(누적이 안 됨).<br>
+          - 원인: <code class="mono">GetPipeLine()</code>이 채우는 <code class="mono">RHIPipeLineCreateDesc</code>의
+          <code class="mono">blend</code> 필드가 끝까지 비어 있음. 로컬로 <code class="mono">RHIBlendState
+          blendState; blendState.enable = false;</code>를 선언은 하지만 어디에도 대입·전달되지 않는 죽은 코드.<br>
+          - 개선 방향: additive 블렌딩(<code class="mono">ONE, ONE</code>)을 <code class="mono">desc.blend</code>에
+          연결해서 라이트 기여도가 프레임버퍼에 누적되도록 해야 함. 라이트가 하나뿐인 데모/스크린샷에서는
+          드러나지 않아서 지금까지 남아있었던 것으로 보임.
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Framework/Application.cpp, Engine.cpp</span>
+          <span class="issue-title">AssetWorker가 초기화 중 두 번 생성되고 첫 번째는 버려짐</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
+          <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로
+          또 하나를 만들어 <code class="mono">m_assetWorker</code>를 덮어씀.<br>
+          - 영향: 기능상 즉시 문제를 일으키진 않지만(두 번째 인스턴스가 정상 동작), 첫 번째 인스턴스가
+          만든 스레드/리소스가 조용히 새어나가는 초기화 순서 버그.
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Platform/Win32/Win32Window.cpp — WndProc</span>
+          <span class="issue-title">WM_CLOSE에서 설정한 종료 상태가 같은 호출 안에서 즉시 덮어써짐</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없음 — WM_CLOSE에서
+          <code class="mono">m_status = eClosed</code>를 설정한 직후 아래 케이스로 흘러들어가(fallthrough)
+          다시 eActive로 되돌아감.<br>
+          - 실제 동작: 겉보기 상태 머신은 신뢰할 수 없고, 실제 종료는 close 콜백 →
+          <code class="mono">Engine::Shutdown()</code> → <code class="mono">m_window</code> 리셋 →
+          <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는 별개 경로로 이루어짐 — 결과적으로
+          종료 자체는 되지만, <code class="mono">GetStatus()</code>를 신뢰하는 코드가 있다면 오작동함.
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/RHIDescriptions.h:397, 410</span>
+          <span class="issue-title">RHIDrawIndexDesc / RHIDispatchDesc가 자기 타입 태그 대신 다른 타입 태그를 재사용</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">eResourceType</code>은 Buffer/Texture/Sampler/Shader/PipeLine/Layout/
+          Target/Const/Pass 9개 값이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는 자기 것 대신
+          <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
+          <code class="mono">ePipeLine</code>을 그대로 재사용.<br>
+          - 영향: <code class="mono">desc.type</code> 값만으로는 Draw 커맨드와 VertexLayout, Dispatch
+          커맨드와 PipeLine을 구분할 수 없음 — 현재는 타입을 이 필드로 분기하는 코드가 없어서 조용히
+          묻혀 있음.
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Asset/PNGParser.cpp:66-73</span>
+          <span class="issue-title">PNGParser의 componentType이 실제 데이터 타입과 어긋남</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">stbi_load_from_memory</code>는 항상 8비트 데이터를 반환하는데,
+          <code class="mono">componentType</code>은 소스에 따라 <code class="mono">eFloat</code>/
+          <code class="mono">eUInt</code>로 설정됨 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지 않음.<br>
+          - 부수적으로: sRGB 판별(<code class="mono">IsSRGB</code>)이 IHDR 바로 다음 청크 하나만 검사 —
+          PNG 스펙상 sRGB 청크는 IDAT 이전 어디에나 올 수 있어서 오탐/누락 가능(코드 안에 TODO로 남아있음).
+        </div>
+      </div>
+
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderCommandList.cpp — ExecuteAll()</span>
+          <span class="issue-title">소멸자 호출 후 멤버를 읽는 기술적 UB 패턴</span>
+          <span class="issue-state open mono">버그(경미) · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: 태스크를 실행한 뒤 명시적으로 <code class="mono">execute->~RenderTask()</code>를 호출하고,
+          바로 다음 줄에서 <code class="mono">execute->next</code>를 읽음.<br>
+          - 실제 위험도: <code class="mono">next</code>가 trivial한 raw pointer라 지금 컴파일러/최적화
+          수준에서는 문제없이 동작하지만, 엄밀히는 정의되지 않은 동작 — 공격적인 최적화나 sanitizer
+          환경에서 깨질 수 있음.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;margin:30px 0 8px;">버그는 아니지만 — 미구현 / 죽은 코드</h3>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderPass/CullingPass.cpp, culling.cs.glsl</span>
+          <span class="issue-title">CullingPass는 리소스 배선만 되어 있는 스텁</span>
+          <span class="issue-state closed mono">미구현</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Draw()</code>는 상태 체크만 하고 항상 true 반환,
+          <code class="mono">GetResourceState()</code>도 항상 eReady로 하드코딩.<br>
+          - 카메라/인다이렉트 드로우 버퍼/가시성 버퍼/AABB 버퍼를 바인딩하는 <code class="mono">SetCommand()</code>는
+          이미 있어서, 나중에 실제 컬링 로직만 끼워넣을 수 있는 상태.<br>
+          - <code class="mono">culling.cs.glsl</code>은 이름과 달리 실제로는 compute가 아니라 vertex 셰이더
+          내용 — 복사해온 자리표시자로 보임.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderPass/OverlayPass.h, .cpp</span>
+          <span class="issue-title">OverlayPass는 완전히 빈 파일</span>
+          <span class="issue-state closed mono">미구현</span>
+        </div>
+        <div class="issue-body">
+          - 두 파일 다 0바이트, 클래스 선언조차 없음 — 시작조차 안 된 자리표시자.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">World/WorldContext.cpp — WorldCommand</span>
+          <span class="issue-title">WorldCommandList는 사실상 미사용</span>
+          <span class="issue-state closed mono">흔적 코드</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">struct WorldCommand {};</code> 정도만 있고 <code class="mono">WorldContext::Prepare()</code>는
+          그냥 <code class="mono">// TODO</code>. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
+          흐르고 있어서, 설계 초기 흔적으로 보임.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Asset/AssetTypes.h:47-54</span>
+          <span class="issue-title">Asset 상태 enum에 "완료(eReady)" 상태가 없고, 오타(eExpried)가 있음</span>
+          <span class="issue-state closed mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - 실제 <code class="mono">eAssetState</code>는 <code class="mono">eNone / eError / eLoaded /
+          eExpried(오타, Expired가 맞음) / eDirty</code>뿐. GPU 업로드 이후 별도 상태 전이가 없어서,
+          준비 여부는 상태값이 아니라 texture/buffer/shader 포인터가 non-null인지로 다른 코드가 추론함.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ecs">
+    <div class="section-head">
+      <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">ECS</h2>
+        <span class="section-tag"><a href="ecs.html">ecs.html 자세히 보기 →</a></span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;">추가 리서치 진행 중 — 곧 갱신됩니다.</p>
+  </section>
+
+  <section id="memory">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
+      <div>
+        <h2 class="section-title display">Memory</h2>
+        <span class="section-tag"><a href="memory.html">memory.html 자세히 보기 →</a></span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;">추가 리서치 진행 중 — 곧 갱신됩니다.</p>
+  </section>
+
+  <section id="reflection">
+    <div class="section-head">
+      <span class="section-num mono">04</span>
+      <div>
+        <h2 class="section-title display">Reflection</h2>
+        <span class="section-tag"><a href="reflection.html">reflection.html 자세히 보기 →</a></span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;">추가 리서치 진행 중 — 곧 갱신됩니다.</p>
+  </section>
+
+  <section id="container">
+    <div class="section-head">
+      <span class="section-num mono">05</span>
+      <div>
+        <h2 class="section-title display">Container</h2>
+        <span class="section-tag"><a href="container.html">container.html 자세히 보기 →</a></span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;">추가 리서치 진행 중 — 곧 갱신됩니다.</p>
+  </section>
+
+</main>
+
+<footer id="contact">
+  <div class="wrap foot-grid">
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
+    <div class="contact mono">
+      <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
+      <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
