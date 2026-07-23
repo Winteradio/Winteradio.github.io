@@ -23,9 +23,7 @@
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
-      <a href="bugs.html">버그</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -34,11 +32,11 @@
 
   <section class="hero">
     <span class="eyebrow"><span class="dot"></span>그래픽스 / 렌더링 엔지니어</span>
-    <h1 class="title display">네 개의 시스템을<br>밑바닥부터 직접 짠, <span class="accent">엔진 하나</span></h1>
+    <h1 class="title display">구조 짜는 걸<br>좋아하는 <span class="accent">엔지니어</span>입니다</h1>
     <p class="subhead">
-      현대오토에버 그래픽스 엔지니어 업무와 병행하며 독립적으로 개발한 멀티스레드 C++ 엔진입니다.
-      엔티티-컴포넌트 프레임워크, 가비지 컬렉션 기반 메모리 풀, STL을 쓰지 않는 컨테이너 라이브러리,
-      컴파일 타임 리플렉션 시스템까지 — 각각 별도 저장소에서 이슈까지 공개로 관리하고 있습니다.
+      본업인 그래픽스 엔지니어 일과 병행해서, 몇 년째 혼자 C++ 엔진을 만들고 있습니다. 엔티티-컴포넌트,
+      메모리 풀, 리플렉션, 컨테이너까지 전부 밑바닥부터 짰고, 각각 따로 저장소를 두고 이슈까지 공개로
+      관리합니다. 뭐가 어떻게 왜 그렇게 동작하는지 끝까지 알고 싶어서 하는 일입니다.
     </p>
     <div class="contact-strip mono">
       <span>📍 서울 광진구</span>
@@ -88,15 +86,9 @@
             <div class="org">현대오토에버</div>
             <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">MVT 지도 렌더링 파이프라인을 Mapbox 방식으로 Layout/Paint 분리.</div>
-                <div class="sub">메시 빌드 로직과 머티리얼 로직을 분리하고, 레이어 타입별(Fill · Line ·
-                  Fill-Extrusion · Symbol) 독립 파이프라인 구성. 구조 분리만으로 <b>FPS 약 1.5~2배</b> 향상.</div></div></div>
-              <div class="achv"><div><div class="head">레이어별 Draw Call을 타일·스타일 단위 GPU 버퍼로 통합.</div>
-                <div class="sub"><b>Draw Call 90% 이상 감소.</b> Earcut 삼각분할의 호출마다 발생하던 동적 할당도
-                  재사용 가능한 정적 메모리 풀로 교체해 반복되던 프레임 스파이크를 제거.</div></div></div>
-              <div class="achv"><div><div class="head">glTF / KTX 3D 모델 파이프라인 구축.</div>
-                <div class="sub">프로파일링 결과 텍스처 디코딩이 로딩 시간의 약 80%를 차지함을 확인하고 KTX2/ASTC로
-                  전환 — <b>로딩 성능 70~80% 향상.</b> GPU 스키닝과 자체 디버깅 툴 추가, 사내 세미나 진행.</div></div></div>
+              <div class="achv"><div><div class="head">MVT 지도 렌더링을 Mapbox 방식 Layout/Paint로 재설계 — FPS 1.5~2배.</div></div></div>
+              <div class="achv"><div><div class="head">레이어별 Draw Call을 타일 단위로 통합 — Draw Call 90% 이상 감소.</div></div></div>
+              <div class="achv"><div><div class="head">glTF/KTX2 파이프라인 구축 — 로딩 성능 70~80% 향상.</div></div></div>
             </div>
           </div>
         </div>
@@ -106,8 +98,7 @@
             <div class="org">LG전자</div>
             <div class="role">VS 사업부 · 인턴 → 정규직</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">스마트폰-차량 콘텐츠 스트리밍 구축.</div>
-                <div class="sub">Cinemo API + DLNA 기반. 차량 디스플레이로의 미디어 전달 파이프라인 구현 및 검증.</div></div></div>
+              <div class="achv"><div><div class="head">Cinemo/DLNA 기반 스마트폰-차량 미디어 스트리밍 구현.</div></div></div>
             </div>
           </div>
         </div>
@@ -117,8 +108,7 @@
             <div class="org">한양대학교 — CGR 연구실</div>
             <div class="role">학부 연구생</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션.</div>
-                <div class="sub">관절 참조 데이터 기반 인체 애니메이션 구현도 함께 진행.</div></div></div>
+              <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션, 관절 참조 애니메이션.</div></div></div>
             </div>
           </div>
         </div>
@@ -162,9 +152,8 @@
       </a>
     </div>
     <p class="foot-line" style="margin-top:18px;">
-      이 포트폴리오를 쓰면서 다섯 프로젝트의 소스를 처음부터 다시 읽었고, 그 과정에서 찾은 버그들을
-      <a href="bugs.html">별도 페이지에 정리</a>해뒀습니다 — GitHub 이슈로 등록된 것과는 별개로, 코드 리뷰
-      중 직접 발견한 것들입니다.
+      이 포트폴리오를 쓰면서 다섯 프로젝트의 소스를 처음부터 다시 읽었습니다. 그 과정에서 찾은 버그는
+      GitHub 이슈로 등록된 것과 따로, 각 페이지 안에 "버그" 섹션으로 정리해뒀습니다.
     </p>
   </section>
 

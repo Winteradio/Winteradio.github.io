@@ -23,9 +23,7 @@
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
-      <a href="bugs.html">버그</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -38,8 +36,9 @@
     <h1 class="title display">커스텀 C++ 게임 엔진</h1>
     <p class="subhead">
       <code class="mono">World</code> · <code class="mono">Render</code> · <code class="mono">RHI</code> ·
-      <code class="mono">Asset</code>, 4개 스레드로 게임 로직과 렌더링을 분리한 Unreal 스타일 구조입니다.
-      본업의 OpenGL ES 지도 렌더러 바깥에서 하는 모든 것이 여기 있고, 상단 메뉴의 네 시스템 위에 얹혀 있습니다.
+      <code class="mono">Asset</code>, 4개 스레드로 게임 로직과 렌더링을 나눈 Unreal 스타일 구조로 짰습니다.
+      본업의 OpenGL ES 지도 렌더러 바깥에서 해보고 싶었던 걸 여기 다 담았고, 위 메뉴의 네 시스템이 이 엔진
+      위에 얹혀 있습니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Game-Engine" target="_blank" rel="noopener">github.com/Winteradio/Game-Engine</a>
@@ -56,6 +55,7 @@
         <li><span class="n">06</span><a href="#issues">해결한 이슈</a></li>
         <li><span class="n">07</span><a href="#notes">기술 노트</a></li>
         <li><span class="n">08</span><a href="#results">결과물</a></li>
+        <li><span class="n">09</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -540,6 +540,168 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었습니다.</div>
         <div class="sub">100만 인스턴스에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
           <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
+    </div>
+  </section>
+
+  <section id="bugs">
+    <div class="section-head">
+      <span class="section-num mono">09</span>
+      <div>
+        <h2 class="section-title display">버그</h2>
+        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+      </div>
+    </div>
+
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/LightingPass.cpp:64-65, 160-185</span>
+          <span class="issue-title">라이트가 여러 개면 마지막 라이트만 남는 블렌딩 버그</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 증상: 라이트 하나당 풀스크린 쿼드를 한 번씩 그리는 구조라, 라이트가 여러 개면 화면엔 가장
+          마지막에 그려진 라이트만 남습니다(누적이 안 됨).<br>
+          - 원인: <code class="mono">GetPipeLine()</code>이 채우는 <code class="mono">RHIPipeLineCreateDesc</code>의
+          <code class="mono">blend</code> 필드가 끝까지 비어 있습니다. 로컬로 <code class="mono">RHIBlendState
+          blendState; blendState.enable = false;</code>를 선언은 하지만 어디에도 대입·전달되지 않는 죽은 코드입니다.<br>
+          - 개선 방향: additive 블렌딩(<code class="mono">ONE, ONE</code>)을 <code class="mono">desc.blend</code>에
+          연결해야 합니다. 라이트가 하나뿐인 데모/스크린샷에서는 드러나지 않아서 지금까지 남아있었던 것 같습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Framework/Application.cpp, Engine.cpp</span>
+          <span class="issue-title">AssetWorker가 초기화 중 두 번 생성되고 첫 번째는 버려짐</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
+          <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
+          만들어 <code class="mono">m_assetWorker</code>를 덮어씁니다. 두 번째 인스턴스가 정상 동작해서 당장 문제는
+          없지만, 첫 번째가 만든 스레드/리소스가 조용히 새는 초기화 순서 버그입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Platform/Win32/Win32Window.cpp — WndProc</span>
+          <span class="issue-title">WM_CLOSE에서 설정한 종료 상태가 같은 호출 안에서 즉시 덮어써짐</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서 설정한
+          <code class="mono">m_status = eClosed</code>가 곧바로 eActive로 되돌아갑니다.<br>
+          - 실제 종료는 이 상태값이 아니라 close 콜백 → <code class="mono">Engine::Shutdown()</code> →
+          <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
+          별개 경로로 이루어집니다. 종료 자체는 되지만, <code class="mono">GetStatus()</code>를 신뢰하는 코드가
+          있다면 오작동합니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/RHIDescriptions.h:397, 410</span>
+          <span class="issue-title">RHIDrawIndexDesc / RHIDispatchDesc가 자기 타입 태그 대신 다른 태그를 재사용</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">eResourceType</code>은 9개 값이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
+          자기 것 대신 <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
+          <code class="mono">ePipeLine</code>을 그대로 재사용합니다. 지금은 이 필드로 타입을 분기하는 코드가 없어서
+          조용히 묻혀 있습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Asset/PNGParser.cpp:66-73</span>
+          <span class="issue-title">PNGParser의 componentType이 실제 데이터 타입과 어긋남</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">stbi_load_from_memory</code>는 항상 8비트를 반환하는데,
+          <code class="mono">componentType</code>은 <code class="mono">eFloat</code>/<code class="mono">eUInt</code>로
+          설정됩니다 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지 않습니다. sRGB 판별도 IHDR 바로 다음
+          청크 하나만 검사해서 오탐/누락 여지가 있습니다(코드 안에 TODO로 남아 있음).
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderCommandList.cpp — ExecuteAll()</span>
+          <span class="issue-title">소멸자 호출 후 멤버를 읽는 기술적 UB 패턴</span>
+          <span class="issue-state open mono">버그(경미) · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 태스크를 실행한 뒤 <code class="mono">execute->~RenderTask()</code>를 호출하고 바로 다음 줄에서
+          <code class="mono">execute->next</code>를 읽습니다. <code class="mono">next</code>가 trivial한 raw
+          pointer라 지금은 문제없이 동작하지만, 엄밀히는 정의되지 않은 동작이라 공격적인 최적화나 sanitizer
+          환경에서 깨질 수 있습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/Vulkan/VulkanSystem.cpp:602-666</span>
+          <span class="issue-title">Vulkan InitializeBuffer가 편집 중인 상태로 남아 지금은 컴파일이 안 됨</span>
+          <span class="issue-state open mono">버그 · 작업 중</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">vkCreateBuffer()</code>를 인자 없이 호출하고, 끝에 매달린
+          <code class="mono">VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;</code> 구문이 그대로 남아 있습니다.<br>
+          - <code class="mono">VulkanMemory::CreateBlock</code>도 <code class="mono">memoryType</code>과
+          <code class="mono">blockSize</code> 인자가 호출부에서 뒤바뀐 것으로 보입니다 — Vulkan 백엔드가
+          한창 작업 중이라 당연히 있을 수 있는 상태입니다.
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;margin:30px 0 8px;">버그는 아니지만 — 미구현 / 죽은 코드</h3>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderPass/CullingPass.cpp, culling.cs.glsl</span>
+          <span class="issue-title">CullingPass는 리소스 배선만 되어 있는 스텁</span>
+          <span class="issue-state closed mono">미구현</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Draw()</code>는 상태 체크만 하고 항상 true 반환,
+          <code class="mono">GetResourceState()</code>도 항상 eReady로 하드코딩. 카메라/인다이렉트 드로우
+          버퍼/가시성 버퍼/AABB 버퍼를 바인딩하는 <code class="mono">SetCommand()</code>는 이미 있어서, 나중에
+          실제 컬링 로직만 끼워넣으면 됩니다. <code class="mono">culling.cs.glsl</code>은 이름과 달리 실제로는
+          compute가 아니라 vertex 셰이더 내용입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Renderer/RenderPass/OverlayPass.h, .cpp</span>
+          <span class="issue-title">OverlayPass는 완전히 빈 파일</span>
+          <span class="issue-state closed mono">미구현</span>
+        </div>
+        <div class="issue-body">
+          - 두 파일 다 0바이트, 클래스 선언조차 없습니다. 시작조차 안 한 자리표시자입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">World/WorldContext.cpp — WorldCommand</span>
+          <span class="issue-title">WorldCommandList는 사실상 미사용</span>
+          <span class="issue-state closed mono">흔적 코드</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">struct WorldCommand {};</code> 정도만 있고 <code class="mono">WorldContext::Prepare()</code>는
+          그냥 <code class="mono">// TODO</code>입니다. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
+          흐르고 있어서, 설계 초기의 흔적으로 보입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Asset/AssetTypes.h:47-54</span>
+          <span class="issue-title">Asset 상태 enum에 "완료(eReady)" 상태가 없고, 오타(eExpried)가 있음</span>
+          <span class="issue-state closed mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - 실제 <code class="mono">eAssetState</code>는 <code class="mono">eNone / eError / eLoaded /
+          eExpried(오타, Expired가 맞음) / eDirty</code>뿐입니다. GPU 업로드 이후 별도 상태 전이가 없어서,
+          준비 여부는 상태값이 아니라 texture/buffer/shader 포인터가 non-null인지로 판단합니다.
+        </div>
+      </div>
     </div>
   </section>
 

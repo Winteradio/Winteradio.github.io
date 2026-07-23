@@ -23,9 +23,7 @@
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
-      <a href="bugs.html">버그</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -51,6 +49,7 @@
         <li><span class="n">02</span><a href="#relationships">상세 내용 &amp; 다이어그램</a></li>
         <li><span class="n">03</span><a href="#design-choice">왜 Sparse Set도 Archetype도 아닌 Node인가</a></li>
         <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+        <li><span class="n">05</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -159,7 +158,95 @@
         </div>
       </div>
     </div>
-    <p class="foot-line" style="margin-top:14px;"><a href="bugs.html#ecs">코드 리뷰에서 발견한 버그 전체 보기 →</a></p>
+  </section>
+
+  <section id="bugs">
+    <div class="section-head">
+      <span class="section-num mono">05</span>
+      <div>
+        <h2 class="section-title display">버그</h2>
+        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+      </div>
+    </div>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Object/Entity.h:72</span>
+          <span class="issue-title">Entity::AddNode&lt;T&gt;()가 Node가 아니라 Component 쪽에 등록됨</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 템플릿 래퍼가 <code class="mono">AddNode(nodeType)</code> 대신 <code class="mono">AddComponent(nodeType)</code>를
+          호출합니다. 짝인 <code class="mono">RemoveNode&lt;T&gt;()</code>는 맞게 작성돼 있어서 더 눈에 안 띄는
+          비대칭 버그입니다. 이 경로로 등록한 Node는 <code class="mono">HasNode&lt;T&gt;()</code>가 항상 false를
+          반환합니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">src/Object/Entity.cpp:47-59</span>
+          <span class="issue-title">Entity의 move 대입 연산자가 실제로는 아무것도 move하지 않음</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Object::operator=(other)</code>가 lvalue를 받아 베이스 클래스는 복사되고,
+          <code class="mono">m_name = std::move(m_name)</code>은 <code class="mono">other.m_name</code>이 아니라
+          자기 자신을 self-move — 사실상 no-op입니다. "move" 대입인데 이름은 그대로, UUID만 원본과 같은 값이
+          됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Graph/Graph.h:174-184</span>
+          <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static 싱글턴을 반환</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">static GraphNode&lt;T&gt; null;</code>은 같은 타입 <code class="mono">T</code>의 모든
+          조회 미스가 공유하는 함수-로컬 정적 변수입니다. 호출자가 반환값에 <code class="mono">SetDependency</code>
+          등으로 쓰기를 하면, 그 타입에 대한 이후 모든 미스가 오염된 상태를 보게 됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Graph/Graph.h:18-28</span>
+          <span class="issue-title">GraphObserver::m_updated가 초기화되지 않음</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 기본 멤버 초기화자가 없고 생성자는 <code class="mono">= default</code>입니다.
+          <code class="mono">Graph::GetSorted()</code>는 <code class="mono">Add</code>/<code class="mono">Create</code>가
+          한 번도 호출되지 않은 상태에서도 <code class="mono">IsUpdated()</code>를 읽어서, 첫 호출은 정의되지
+          않은 값을 읽는 셈입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">demofile/main.cpp, SystemList.h, ComponentList.h, NodeList.h</span>
+          <span class="issue-title">데모가 실제로 존재하지 않는 API 전체를 호출 — 이슈 #8보다 한 겹 더 깊은 불일치</span>
+          <span class="issue-state open mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">ECS::NodeRegistry</code>, <code class="mono">ECS::ComponentRegistry</code>,
+          <code class="mono">ECS::SystemRegistry</code>, <code class="mono">ECS::TypedSystem&lt;Node&gt;</code>,
+          <code class="mono">System::DependOn/RemoveOn</code>을 쓰지만 <code class="mono">include/</code> 아래
+          어디에도 없습니다. 체크인된 코드는 범용 <code class="mono">Registry&lt;Base&gt;</code>와, 의존성 그래프
+          API가 없는 추상 <code class="mono">System&lt;Base&gt;</code>뿐입니다. <code class="mono">ECS::Component</code>/
+          <code class="mono">ECS::Node</code>도 기본 생성자만 선언하는데 데모는 <code class="mono">ECS::Component(uuid)</code>처럼
+          없는 생성자를 호출해서, 헤더를 복원해도 이 부분은 여전히 컴파일되지 않습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">Container/Storage.h:12-111</span>
+          <span class="issue-title">ObjectStorage&lt;T&gt;는 DataStorage&lt;T&gt;와 거의 동일한 미사용 죽은 코드</span>
+          <span class="issue-state closed mono">죽은 코드</span>
+        </div>
+        <div class="issue-body">
+          - 유일한 차이는 ID 부여 방식뿐인 복붙 클래스입니다. ECS/데모 어디에서도 참조되지 않습니다.
+        </div>
+      </div>
+    </div>
   </section>
 
 </main>

@@ -23,9 +23,7 @@
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html" class="active">Container</a>
-      <a href="bugs.html">버그</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -50,6 +48,7 @@
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
         <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
         <li><span class="n">03</span><a href="#issues">결과물 / 이슈</a></li>
+        <li><span class="n">04</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -248,7 +247,84 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
           - 해결: 두 결과를 <code class="mono">|=</code>로 누적한 뒤 삽입 여부를 판단.</div>
       </div>
     </div>
-    <p class="foot-line" style="margin-top:14px;"><a href="bugs.html#container">코드 리뷰에서 발견한 버그 전체 보기 →</a></p>
+  </section>
+
+  <section id="bugs">
+    <div class="section-head">
+      <span class="section-num mono">04</span>
+      <div>
+        <h2 class="section-title display">버그</h2>
+        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+      </div>
+    </div>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/TLSFArena.h:1-2</span>
+          <span class="issue-title">TLSFArena.h의 include guard 매크로 이름이 서로 다름</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">#ifndef __WTR_TLSF_ARENA_H__</code>로 체크하고
+          <code class="mono">#define __WTR_TLSF_ANREA_H__</code>("ANREA")로 정의 — 오타 때문에 guard가 실제로
+          걸리지 않습니다. 한 번역 단위에서 이 헤더가 두 번 include되면 재정의 에러가 납니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/HashTable.h:263,266</span>
+          <span class="issue-title">HashMap의 ReverseIterator가 실제로는 정방향</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Key != Data</code>(HashMap) 케이스에서 <code class="mono">ReverseIterator</code>가
+          <code class="mono">BaseIterator&lt;true, false&gt;</code>로 풀립니다 — reverse 플래그가 꺼진 채로.
+          HashMap의 <code class="mono">rBegin()/rEnd()</code>가 뒤가 아니라 앞으로 순회하고, const 여부도
+          <code class="mono">Iterator</code>와 어긋납니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Variant.h:124-139</span>
+          <span class="issue-title">Variant::Move()가 실제로는 copy를 호출</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 이름 붙은 <code class="mono">T&amp;&amp; rhsValue</code> 변수를 만든 뒤 <code class="mono">T(rhsValue)</code>에
+          그대로 넘깁니다 — 이름 있는 rvalue 참조는 lvalue라서 copy 생성자/대입이 선택됩니다.
+          <code class="mono">operator==</code>도 저장된 값이 아니라 <code class="mono">m_nCurrentHash</code>만
+          비교하는데, <code class="mono">std::hash</code> 특수화가 없는 타입은 항상 0을 반환해서 그런 타입의
+          모든 값이 내용과 무관하게 같다고 판정됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/LinearArena.h:107, 37, 7-8</span>
+          <span class="issue-title">LinearArena는 DynamicArray/HashTable의 Allocator 인터페이스와 안 맞음</span>
+          <span class="issue-state closed mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Allocate</code>가 두 인자(size, align)를 요구하는데 나머지 컨테이너가 기대하는
+          시그니처는 한 인자, <code class="mono">Deallocate(void*)</code>도 아예 없어서 실제로는
+          <code class="mono">DynamicArray&lt;T, LinearArena&gt;</code>로 못 씁니다. <code class="mono">Page::~Page()</code>도
+          <code class="mono">::operator new</code>로 받은 메모리를 <code class="mono">delete data;</code>로
+          해제해서 new/delete 형태가 안 맞습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/DynamicArray.h:250-257</span>
+          <span class="issue-title">복사 대입 후 실제 용량과 기록된 m_capacity가 어긋날 수 있음</span>
+          <span class="issue-state closed mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">operator=(const DynamicArray&amp;)</code>가 기존 버퍼로 충분하면 재할당하지
+          않으면서도 <code class="mono">m_capacity = other.m_size</code>를 무조건 대입합니다. 실제 할당
+          크기가 기록된 값보다 커진 채로 남아서, 이후 <code class="mono">Reserve()</code>가 필요 이상으로
+          일찍 재할당합니다.
+        </div>
+      </div>
+    </div>
   </section>
 
 </main>

@@ -23,9 +23,7 @@
       <a href="memory.html" class="active">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
-      <a href="bugs.html">버그</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -51,6 +49,7 @@
         <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
         <li><span class="n">03</span><a href="#compaction">Compaction을 하지 않은 이유</a></li>
         <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+        <li><span class="n">05</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -177,7 +176,82 @@ int main()
         </div>
       </div>
     </div>
-    <p class="foot-line" style="margin-top:14px;"><a href="bugs.html#memory">코드 리뷰에서 발견한 버그 전체 보기 →</a></p>
+  </section>
+
+  <section id="bugs">
+    <div class="section-head">
+      <span class="section-num mono">05</span>
+      <div>
+        <h2 class="section-title display">버그</h2>
+        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+      </div>
+    </div>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">src/Storage/PoolBudget.cpp:52-72</span>
+          <span class="issue-title">소멸자가 버킷 하나만 비어 있어도 Release()를 건너뛰어 대부분 그냥 샙니다</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">eSparse..eFull</code> 네 버킷을 순회하다 하나라도 비면 <code class="mono">empty = true;
+          break;</code>로 즉시 탈출하고, <code class="mono">Release()</code>는 <b>모든</b> 버킷이 비어있지 않을
+          때만 호출됩니다. 종료 시점에 버킷 하나(특히 eSparse)가 비어있는 게 흔한 상황이라, 살아있는
+          <code class="mono">Pool&lt;T&gt;</code>와 그 arena가 대부분의 경우 그냥 새어나갑니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Storage/Pool.h:161-166, 203-205</span>
+          <span class="issue-title">Sweep이 free-list가 아니라 DynamicArray라서 대량 소멸 시 O(n²)</span>
+          <span class="issue-state open mono">성능</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">m_usedList</code>가 인트루시브 리스트가 아니라 평범한
+          <code class="mono">DynamicArray&lt;uint8_t*&gt;</code>라서, <code class="mono">Sweep()</code>이 죽은
+          객체마다 부르는 <code class="mono">Erase(itr)</code>가 매번 뒤 원소를 전부 당기는 O(n) 연산입니다.
+          한 사이클에 여럿이 동시에 죽으면 비용이 누적됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Accessor/Accessor.h:19, src/Collector/GarbageCollector.cpp:82-126</span>
+          <span class="issue-title">새 객체가 "흰색"으로 태어나고 write barrier가 없음</span>
+          <span class="issue-state open mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Accessor</code>의 기본 상태는 <code class="mono">eUnreachable</code>입니다. Mark는
+          <code class="mono">Collect()</code> 한 번 안에서 동기적으로 끝까지 도는데, 이미 마킹을 마친 부모
+          그래프에 그 이후 연결된 객체를 강제로 살아있다고 표시할 장치(write barrier)가 없어서, 생성된 바로 그
+          사이클에 수거될 수 있는 경로가 이론상 존재합니다(#16의 스레드 경합과는 별개 문제).
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/Pointer/RefPtr.h:22-33</span>
+          <span class="issue-title">RefPtr 참조 카운트에 acquire 펜스가 없음</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">AddRef</code>/<code class="mono">Release</code> 모두 <code class="mono">memory_order_release</code>로만
+          증감하고, 마지막 <code class="mono">Release()</code>가 <code class="mono">delete this</code>를 호출하기
+          전에 acquire 펜스가 없습니다. 약한 메모리 모델 하드웨어에서는 다른 스레드가 막판에 쓴 내용이 소멸자
+          실행 시점에 보이지 않을 수 있습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">src/TimeLimit.cpp:32-55, GarbageCollector.cpp:141</span>
+          <span class="issue-title">Purge 시간 예산이 10번에 한 번만 체크됨</span>
+          <span class="issue-state closed mono">설계 노트</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">TimeLimit::HasTime()</code>은 <code class="mono">m_interval</code>번마다 한 번씩만
+          시계를 샘플링하는데, <code class="mono">Purge()</code>는 <code class="mono">SetInterval(10)</code>으로
+          설정해서, 최대 9번의 destruction만큼 예산을 초과할 수 있습니다.
+        </div>
+      </div>
+    </div>
   </section>
 
 </main>
