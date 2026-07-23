@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="MemoryPool — a Mark-and-Sweep garbage collector referencing Unreal Engine's GC design.">
-<title>Memory — Wonmock Lee</title>
+<meta name="description" content="MemoryPool — Unreal Engine을 참고한 Mark-and-Sweep 가비지 컬렉터.">
+<title>Memory — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
@@ -17,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html">Home</a>
+      <a href="index.html">홈</a>
       <a href="engine.html">Engine</a>
       <a href="ecs.html">ECS</a>
       <a href="memory.html" class="active">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -32,144 +32,122 @@
 <main class="wrap">
 
   <section class="hero">
-    <div class="crumb"><a href="index.html">← Home</a></div>
-    <span class="eyebrow"><span class="dot"></span>Project 03 · Own repository</span>
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>프로젝트 03 · 독립 저장소</span>
     <h1 class="title display">Memory <span class="accent">Pool &amp; GC</span></h1>
     <p class="subhead">
-      Mark-and-Sweep, referencing Unreal Engine's collector, with a time-budgeted phase so a cycle can
-      suspend mid-pass instead of stalling a frame.
+      Unreal Engine의 가비지 컬렉터를 참고한 Mark-and-Sweep 방식이며, 사이클이 중간에 멈췄다가 이어서
+      재개될 수 있도록 시간 예산을 두고 있습니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/MemoryPool" target="_blank" rel="noopener">github.com/Winteradio/MemoryPool</a>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
+        <li><span class="n">03</span><a href="#compaction">Compaction을 하지 않은 이유</a></li>
+        <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">핵심 내용</h2></div>
+    </div>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">상태 하나가 전체 사이클을 이끕니다.</div>
+        <div class="sub"><code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code> 하나의
+          <code class="mono">eStatus</code>가 전부 결정합니다. 각 단계가 빨리 끝나면 <code class="mono">Collect()</code>
+          한 번 호출로 여러 단계를 연속으로 통과할 수 있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">시간 예산은 정확히 Purge 단계에만 적용됩니다.</div>
+        <div class="sub">Mark와 Sweep은 항상 한 번에 끝까지 돕니다. 죽은 객체를 파괴하고 슬롯을 반환하는
+          <code class="mono">Purge()</code>만 객체 단위로 시간을 체크하고, 부족하면 중간에 멈췄다가 다음
+          <code class="mono">Collect()</code>에서 그 지점부터 이어갑니다.</div></div></div>
+      <div class="achv"><div><div class="head">Compaction은 실수로 빠진 게 아니라 의도적으로 뺐습니다.</div>
+        <div class="sub">Accessor(객체 메타데이터)가 별도 핸들 테이블이 아니라 각 인스턴스 자신의 헤더 바로
+          앞에 있어서, 객체를 옮기면 그 객체를 가리키는 모든 포인터를 찾아 다시 써야 합니다. 대신 버킷 점유율
+          기반 할당 정책으로 단편화를 관리합니다.</div></div></div>
     </div>
   </section>
 
   <section id="structure">
     <div class="section-head">
-      <span class="section-num mono">01</span>
-      <div><h2 class="section-title display">Collector, Storage, Smart Pointers</h2></div>
-    </div>
-
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — collector, storage, smart pointers</div>
-      <pre class="mermaid">
-classDiagram
-    class GarbageCollector {
-        + Prepare() void
-        + Mark() void
-        + Sweep() void
-        + Purge() void
-    }
-    class StorageManager {
-        + Create() ObjectPtr
-        + CreateArray(count) ObjectPtr
-    }
-    class PoolBudget {
-        + GetPool() IPool
-    }
-    class ArrayBudget
-    class Accessor {
-        + Construct() void
-        + Destruct() void
-    }
-    class ObjectPtr {
-        + Get() T
-    }
-    class RootPtr
-    <<IAccessor>> Accessor
-    ObjectPtr <|-- RootPtr
-    StorageManager --> PoolBudget : single objects
-    StorageManager --> ArrayBudget : array objects
-    PoolBudget --> Accessor
-    ArrayBudget --> Accessor
-    GarbageCollector ..> Accessor : Mark / Sweep
-    ObjectPtr ..> Accessor : refers to
-      </pre>
-    </div>
-    <p class="why mono" style="margin-top:8px;">Status machine: eIdle → eMarking → eSweeping → ePurging → eIdle. Accessor lives inline in each instance's own chunk, right before it — no separate handle table. RootPtr registers its own address (not the managed object's) into the collector's root set on every ctor/dtor/assignment.</p>
-
-    <div class="mermaid-wrap">
-      <div class="cap mono">sequence — one Collect() cycle</div>
-      <pre class="mermaid">
-sequenceDiagram
-    participant App
-    participant GC as GarbageCollector
-    participant Root as m_rootSet
-    participant Acc as Accessor (per object)
-
-    App->>GC: Collect()
-    GC->>GC: Prepare - copy every root onto a reusable DFS stack
-    GC->>Root: iterative DFS, not recursive
-    Root->>Acc: Mark() reachable objects, eMarked
-    GC->>Acc: Sweep - anything still eUnreachable moves to a dead list
-    Acc->>Acc: everything else resets to eUnreachable for next cycle
-    GC->>GC: Purge - destruct dead objects, time-limited
-    Note over GC: if Purge runs out of time, status stays ePurging - next Collect() resumes Purge directly, skipping Prepare/Mark/Sweep
-      </pre>
-    </div>
-  </section>
-
-  <section id="mechanics">
-    <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">How It Actually Runs</h2>
-        <span class="section-tag">verified against the current source, not just the design notes</span>
+        <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
+        <span class="section-tag">Collector, Storage, Smart Pointer</span>
       </div>
     </div>
 
-    <h3 style="font-size:16px;margin:0 0 8px;">The GC cycle</h3>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">One status field, cascading phases</div>
-        <div class="sub">A single <code class="mono">eStatus</code> drives everything (<code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code>). A single <code class="mono">Collect()</code> call can fall through several phases in one invocation if each finishes fast.</div></div></div>
-      <div class="achv"><div><div class="head">Mark is an iterative DFS</div>
-        <div class="sub">Not recursive — roots are copied onto a reusable stack, then popped one at a time. Reflected properties are classified (container / struct / object) and any child <code class="mono">BasePtr</code>s get pushed back onto the same stack.</div></div></div>
-      <div class="achv"><div><div class="head">Sweep does double duty</div>
-        <div class="sub">Anything still <code class="mono">eUnreachable</code> (never marked this cycle) moves to a dead list. Everything else gets forcibly reset to <code class="mono">eUnreachable</code> right there — which is how "unmarked next cycle" is detected without a separate bit.</div></div></div>
-      <div class="achv"><div><div class="head">The time budget applies to Purge, specifically</div>
-        <div class="sub">Mark and Sweep always run to completion in one call. Only <code class="mono">Purge()</code> — destructing dead objects and returning their slots — checks the time limit per object and can bail mid-list, resuming from the same dead list next <code class="mono">Collect()</code> call.</div></div></div>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — Collector, Storage, Smart Pointer</div>
+      <img src="https://www.plantuml.com/plantuml/svg/RP9DJlCm48RtEOK56n0g7_yBL5L0e5KNXOfo0TSPqdnrRJGUK_5t0Wx0YWKxbX5YmO8JGGw1awQfASqYaUTzvlMyTWuCSIGxae4P9kgA8n-nFXV36BLLKQYbHZOU90IURWOyqkD4nUoII-ChGd9ZcbhHAHy12xKosbKM0Rta5jZcjYT5SCcjfAfxgSDbR1LhQHeaOcanER7PyiHoRbI0R6T-vqCYJFgMe2sqAdetFEGGKOydaPVtYiSJmxp_I6C4M28xnVC7cJkyvUPkS_ia389Y0DRYsESnE4s28AVV1OojTH6S1QoiickTH7cbmt7eBNjZW2jltRKOL_X3wTrpViwxmvLxbyuX0gUSFEl_Tnjs2MTLbvVVh0WtA_dwrAwhjJooKGmqiMe1vINdrSw_5LVOJC1fHGWmneMhrrcxMZGQvKZkjo2qWhmyn_2xDFMkfgf6SCH59PzhNOmym-htjLfLdZkGMgtXXzfdtu-lsVCd-qgVixVtHRGNBSVJD7jwd-AUKu6MCGE_vvVmv-hNrsUgiy-ldFrZnLLxYUQeBFt8NjBW05HaH_87" alt="Memory 클래스 다이어그램" loading="lazy">
+    </div>
+
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — Collect() 사이클 한 번</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XLDDRzD04BtxLupIIoBH0ry7EA2sWUH2KKN46MtiIMB5yORrcaYSaYP8g8a44aJDmQbIgOM2SZ3KV1puHTdrVs1iXv9KaLZ9ihtllNblPkqTJp8X_PPZU4tRRJF1Mb1bPhCkkEzQHUvm0Ps6BN45znhCuXtRhKEDETugOc6D-OuiSLS-OIs4t3vpwhuBPIuRjfdRpApOhn1ktberm1S-kYRk2i4xMOQjE-dQG7fir-XoSOyB2yMIVIzT6zW7rArjsctcohrhRMwLxfPkFoh-HxJgiinajF_XaDjjjtF0FA3xEb1ceihgI5e7JSb5oYeNrqcjvu9pMK6Pea_f-LfrqqJFuoA_2AVwMwGk1uNCpJGDWonX-m7LXFkmjCaN37hzktaWaAeXR8FwSg7Upo0nK-U_uM6f0lheBEvFzV4xK9VVzU5yAKmoa5I5asHxrakvUNqoN_piWXuFr71IC58IaIa6SVUPQEOBeDuIE8T5s5L7v_4uW2pp3S24WDRI8DDKEeYK7lJnNCy6ySaRm6UkG6OsMDL1FOtKvuY-6cQ1OtjIdGP6ehkIgyE9klYbFv7L1r33CpqT0VL0khWNwUa0T328nz5QKIe2wkDSlnwkpSWNzMH2gLUM6EBHQ15HS3qC5Y7LcWNKZk5oYS1VeiY46KYEe7vqzUdNU3n9CcDICFbPTByNzmCACgEOoH5aAQyEYkQKcPCy7eIGZ3WCZ1rqBR_b_040" alt="Collect 사이클 시퀀스 다이어그램" loading="lazy">
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">ObjectPtr vs. RootPtr</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">The root set holds pointers to the pointers</div>
-        <div class="sub"><code class="mono">RootPtr</code>'s constructor calls <code class="mono">AddRoot(this)</code> — inserting the <code class="mono">RootPtr</code> wrapper's own address into the collector's root set, not the managed object's address. Mark() dereferences through the wrapper to reach the real instance.</div></div></div>
-      <div class="achv"><div><div class="head">ObjectPtr is inert</div>
-        <div class="sub">Same layout, but no constructor/destructor ever talks to the collector — it's a plain handle. Only wrapping it in <code class="mono">RootPtr</code> makes something a GC root.</div></div></div>
-      <div class="achv"><div><div class="head">Confirms why compaction is off the table</div>
-        <div class="sub">The Accessor header sits immediately before the object in the same allocated chunk — there's no separate indirection table anywhere in this path. Moving the chunk would mean rewriting every <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code> caching that raw address.</div></div></div>
+      <div class="achv"><div><div class="head">Root set은 "포인터를 가리키는 포인터"를 담습니다.</div>
+        <div class="sub"><code class="mono">RootPtr</code>의 생성자는 <code class="mono">AddRoot(this)</code>를
+          호출해서 관리 대상 객체의 주소가 아니라 <code class="mono">RootPtr</code> 래퍼 자신의 주소를 root
+          set에 넣습니다. <code class="mono">Mark()</code>는 이 래퍼를 거쳐 실제 인스턴스에 도달합니다.</div></div></div>
+      <div class="achv"><div><div class="head">ObjectPtr은 비활성입니다.</div>
+        <div class="sub">레이아웃은 같지만 생성자/소멸자 어디서도 컬렉터와 대화하지 않는 평범한 핸들입니다.
+          <code class="mono">RootPtr</code>로 감싸야만 GC root가 됩니다.</div></div></div>
     </div>
+  </section>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">PoolBudget bucket selection</h3>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">Four density buckets, real thresholds</div>
-        <div class="sub"><code class="mono">eSparse [0, 0.3) · eModerate [0.3, 0.7) · eDense [0.7, 1.0) · eFull [1.0, +)</code>, computed from used/total ratio.</div></div></div>
-      <div class="achv"><div><div class="head">Allocation prefers the fullest non-full pool</div>
-        <div class="sub">Search order is Dense → Moderate → Sparse, returning the first non-empty bucket found. A brand-new backing pool is only created once all three are empty. This keeps sparse pools available to potentially empty out completely, rather than spreading new allocations thin across many partially-used pools.</div></div></div>
-      <div class="achv"><div><div class="head">Reclaiming</div>
-        <div class="sub">Only pools that have drifted down to <code class="mono">eSparse</code> and are fully empty get freed back to the OS — a pool that cycles through Dense/Full is never released until it works its way back down.</div></div></div>
+  <section id="compaction">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
+      <div>
+        <h2 class="section-title display">Compaction을 하지 않은 이유</h2>
+        <span class="section-tag">빠진 기능이 아니라 의도적인 트레이드오프</span>
+      </div>
     </div>
 
     <div class="callout warn">
-      <b>Why compaction is out, in one line:</b> the Accessor lives inline in each object's own header rather than a stable handle table, so moving an object during compaction would mean finding and rewriting every live pointer to it — without a tracked referrer list, that's effectively a second full GC pass.
+      <b>Compaction을 배제한 이유:</b> <code class="mono">Accessor</code>는 별도의 안정된 핸들 테이블이 아니라
+      각 인스턴스 헤더에 인라인으로 존재합니다. Compaction 중 객체를 옮기면 그 <code class="mono">Accessor</code>도
+      함께 옮겨지므로, 이미 그 인스턴스를 가리키고 있던 모든 <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code>
+      을 찾아서 다시 써야 합니다. 참조자를 추적하는 목록이 따로 없다면, 이건 사실상 GC를 한 번 더 도는 것과 같은 비용입니다.
+    </div>
+    <div class="callout">
+      <b>대신 할당 시점에서 단편화를 관리합니다:</b> 각 <code class="mono">PoolBudget</code>은 버킷을 점유율로
+      분류하고(<code class="mono">eSparse / eModerate / eDense / eFull</code>), 새 할당은 <em>가장 꽉 찬</em>
+      비어있지 않은 버킷부터 찾습니다 — 어느 한 버킷이 <code class="mono">eFull</code>까지 차서 새 백킹 할당을
+      강제하는 상황을 줄이고, sparse 버킷은 완전히 비워져 회수될 여지를 남겨둡니다.
     </div>
   </section>
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">03</span>
-      <div><h2 class="section-title display">Real Issue</h2></div>
+      <span class="section-num mono">04</span>
+      <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">#16</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/MemoryPool/issues/16" target="_blank" rel="noopener">The multi-threading GC will be crashed</a></span>
-          <span class="issue-state open mono">open</span>
+          <span class="issue-state open mono">미해결</span>
         </div>
         <div class="issue-body">
-          - Cause: <code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code> are mutex-guarded, but the Accessor's mark-status flags and each Pool's used/free/dead lists are not — a mutator thread reading an Accessor's status through <code class="mono">ObjectPtr</code> can race with the collector thread's Mark/Sweep touching the same Accessor.<br>
-          - Direction: extend the existing root-set mutex (or move to atomics on the status field) to cover Accessor state and pool list mutation, not just root registration.
+          - 원인: <code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 뮤텍스로 보호되지만,
+          Accessor의 마킹 상태와 각 Pool의 used/free/dead 리스트는 그렇지 않습니다 — mutator 스레드가
+          <code class="mono">ObjectPtr</code>을 통해 Accessor 상태를 읽는 동안 컬렉터 스레드가 같은 Accessor를
+          건드리면 경합이 발생할 수 있습니다.<br>
+          - 개선 방향: 기존 root set 뮤텍스 범위를 Accessor 상태와 pool 리스트 변경까지 확장하거나, 상태 필드를
+          atomic으로 바꾸는 방향.
         </div>
       </div>
     </div>
@@ -179,7 +157,7 @@ sequenceDiagram
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
@@ -188,18 +166,5 @@ sequenceDiagram
 </footer>
 
 <script src="app.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
-</script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="ECS with Scene and Node — a Node-filtered, dependency-graph-ordered entity component system.">
-<title>ECS — Wonmock Lee</title>
+<meta name="description" content="ECS with Scene and Node — Node 기반 필터링과 의존성 그래프로 실행 순서를 정하는 엔티티 컴포넌트 시스템.">
+<title>ECS — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="style.css">
@@ -17,14 +17,14 @@
       <span class="name display">WONMOCK LEE</span>
     </a>
     <nav class="topnav">
-      <a href="index.html">Home</a>
+      <a href="index.html">홈</a>
       <a href="engine.html">Engine</a>
       <a href="ecs.html" class="active">ECS</a>
       <a href="memory.html">Memory</a>
       <a href="reflection.html">Reflection</a>
       <a href="container.html">Container</a>
     </nav>
-    <button class="theme-toggle" id="themeToggle" type="button">Theme</button>
+    <button class="theme-toggle" id="themeToggle" type="button">테마</button>
   </div>
 </div>
 <div class="ruler mono" id="ruler" aria-hidden="true"></div>
@@ -32,123 +32,79 @@
 <main class="wrap">
 
   <section class="hero">
-    <div class="crumb"><a href="index.html">← Home</a></div>
-    <span class="eyebrow"><span class="dot"></span>Project 02 · Own repository</span>
+    <div class="crumb"><a href="index.html">← 홈</a></div>
+    <span class="eyebrow"><span class="dot"></span>프로젝트 02 · 독립 저장소</span>
     <h1 class="title display">ECS <span class="accent">with Scene and Node</span></h1>
     <p class="subhead">
-      Entities are names, Components hold data, Nodes group the exact component combination a System needs.
-      Execution order comes from a dependency graph, not a hand-written list.
+      Entity는 이름일 뿐이고, Component가 데이터를 들고, Node가 System에 필요한 정확한 컴포넌트 조합을 묶습니다.
+      실행 순서는 손으로 짠 목록이 아니라 의존성 그래프가 정합니다.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
+    </div>
+
+    <div class="toc">
+      <div class="toc-title">목차</div>
+      <ol>
+        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">02</span><a href="#relationships">상세 내용 &amp; 다이어그램</a></li>
+        <li><span class="n">03</span><a href="#design-choice">왜 Sparse Set도 Archetype도 아닌 Node인가</a></li>
+        <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="section-head">
+      <span class="section-num mono">01</span>
+      <div><h2 class="section-title display">핵심 내용</h2></div>
+    </div>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Node 멤버십은 자동으로 검증되지 않습니다.</div>
+        <div class="sub">Node는 <code class="mono">ObjectPtr&lt;T&gt;</code> 필드로 구성된 평범한 struct이고, 생성
+          시점에 수동으로 연결합니다. 프레임워크가 Entity의 컴포넌트를 스캔해서 확인해주는 과정은 없고, System이
+          사용 시점에 방어적으로 null 체크를 하는 게 실질적인 안전장치입니다.</div></div></div>
+      <div class="achv"><div><div class="head">"필터링"은 사실 Node 타입별 HashMap 하나일 뿐입니다.</div>
+        <div class="sub">각 Node 타입은 자기만의 <code class="mono">UUID → ObjectPtr&lt;T&gt;</code> 저장소를 갖고,
+          System은 그 컨테이너를 그대로 받습니다. 프레임마다 훑으면서 필터링하는 과정은 없습니다.</div></div></div>
+      <div class="achv"><div><div class="head">의존성 그래프는 교과서적인 칸의 알고리즘(Kahn's algorithm)입니다.</div>
+        <div class="sub"><code class="mono">DependOn()</code> 엣지로 진입 차수(in-degree) 맵을 만들고, 진입 차수
+          0인 System부터 큐에 넣어 위상정렬합니다. 순환이 있으면 조용히 실패 — 예외를 던지지 않고 로그만 남긴 뒤
+          빈 배열을 돌려줍니다.</div></div></div>
     </div>
   </section>
 
   <section id="relationships">
     <div class="section-head">
-      <span class="section-num mono">01</span>
-      <div><h2 class="section-title display">Class Map</h2></div>
-    </div>
-
-    <div class="mermaid-wrap">
-      <div class="cap mono">class diagram — Entity / Component / Node / System / Graph</div>
-      <pre class="mermaid">
-classDiagram
-    class Entity {
-        + GetID() EntityID
-    }
-    class Component
-    class Node
-    class EntityRegistry {
-        + Emplace(name) ObjectPtr
-    }
-    class ComponentRegistry {
-        + Create(entityID) ObjectPtr
-    }
-    class NodeRegistry {
-        + Create(entityID) ObjectPtr
-        + GetContainer(nodeType) Container
-    }
-    class SystemRegistry {
-        + Create() RefPtr
-        + BuildGraph() Graph
-    }
-    class System {
-        + DependOn(other) void
-        + Update(timeStep, nodeContainer) void
-    }
-    class Graph {
-        + Build() void
-        + GetSorted() SystemIDs
-    }
-    class Scene {
-        + RegisterNode(node) void
-        + RegisterSystem(system) void
-    }
-    class World
-    <<abstract>> Component
-    <<abstract>> Node
-    <<abstract>> System
-    <<GCRoot>> World
-    Component <|-- TransformComponent
-    Node <|-- PhysicsNode
-    World *-- EntityRegistry
-    World *-- ComponentRegistry
-    World *-- NodeRegistry
-    World *-- SystemRegistry
-    World *-- Scene
-    SystemRegistry ..> Graph : builds
-    Scene ..> System : registers
-    Scene ..> Node : registers
-      </pre>
-    </div>
-    <p class="why mono" style="margin-top:8px;">Node = a plain struct of ObjectPtr fields, built by hand at creation — not a scanned/filtered query. See below.</p>
-
-    <div class="mermaid-wrap">
-      <div class="cap mono">sequence — one World::Update() tick</div>
-      <pre class="mermaid">
-sequenceDiagram
-    participant W as World::Update
-    participant SR as SystemRegistry
-    participant G as Graph
-    participant S as System
-
-    W->>SR: BuildGraph()
-    SR->>G: Build() - Kahn's algorithm over DependOn() edges
-    G-->>W: GetSorted() - topological order, or empty if cyclic
-    loop each System ID in order
-        W->>S: Update(timeStep, nodeContainer)
-    end
-      </pre>
-    </div>
-  </section>
-
-  <section id="mechanics">
-    <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">How It Actually Runs</h2>
-        <span class="section-tag">verified against the current source</span>
+        <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
+        <span class="section-tag">실제 소스 코드 기준으로 검증</span>
       </div>
     </div>
 
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — Entity / Component / Node / System / Graph</div>
+      <img src="https://www.plantuml.com/plantuml/svg/ZL9DRzD04BtxLupQYmEq0beuL57KrlbG3hHLKyHvOq_YfVQkjJic2eLVWJZsq3iN3l2ZA3-2zQxhR1mVyCNIl7bltio-KqrCKPbdWRxbec2AvJ1dyUrIoL8aaSoaWbNA2JrSfooHAowMi62Pzf4uOrgFfQ0BbYD4KcXfAbqDC_uPuTMH1oMuO6L63Nll7SkMfO29f9J7UzsTJkQr1zQ-bK05n-t9PqIApql2QIo5vRxqMiwKaYktylvR-tbWLF7FfKfGrIt7zjjfQHrlV_ncV3IAWi0QW94WJcku2m2UJv2cmx1NrwR3u6l0vfeKYydPDHVC2obGK1kua0bkALxZafkEMdcK5ncBCHJca3sud7_4cAv8cG4jtMrQf90HXbZxwM9MW_-Rv7OqCI36pNk4mf1lreMnrDGQuTbQ4-QTqZsunaMjTrxoB9aeLgIcRF-xLtDIJcA81OhaKeGcHQXwy4dofAg_Bv9AcdYECyBY1LJU6bTrtvCtEyVfsVdXHiViDvEAiAgvkTEXtYmLeq17T9kXgWve3x7HU88SFzJsrxBmGQeiWNuV9f69k2GO36haHZ6X5rBbcx0uu2fTQnvh6vK6W_wNWuCkJjNcG9_dnZuprUsOUS1EbZpCJujNtdvh7wZk5RIYS7Wug5_W1Fxy-l7tz_V0tRK2whS-WSTlFnyVxZt4BjJKJqqAoZpx1m00" alt="ECS 클래스 다이어그램" loading="lazy">
+    </div>
+
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — World::Update() 한 틱</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP9BIoin5CVt-HI7kcd1Bdmjx4AqrSx65mxITMvpsWOpoTnCXg8hHHSkNBWHAupGomKlWek2NUXNCl4x66SKgnHk80avv_S_ZoIhYQ7Qf94WoG6NCTKqWb-qVT3LAfMieOJIqEznWnF-f4UPwdFPXGuLoQI7OOUcmZILDDiqGYXjKT5D9GJAz7YxD9qC-H72tFna0loTecpZcjQgNzGmivYFAT0cx_WfiQuqG_r1B-TZ2hthk-Lj7bDfwZ_Qd6akDHSs6lyHJMRvg8d4NtuejPGMh5RRZnarM0AQGEix41uc1gCzxFB4wCES2FU-8u6cSI_t1DEqXOQG5bHNl1PgK4-vOBcgN27Uukt1fxbSWIgiOuoIxKX_SDT_tRzZU7aQsT40tFEJk_NRrSNBuz3UFRYx0GcWwWEqV800JQYqmIA8oyxSwOaRNjdXmoouy-prPk1kn_P-3FRv7EnevAx7H2WLGm7Po-mTSsUPlJYsVp82KDJiGnSNL3Oymj1WF0jICMpu_q3zO-eAyUMILR-aaNW3" alt="World Update 시퀀스 다이어그램" loading="lazy">
+    </div>
+
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Node membership isn't automatically checked</div>
-        <div class="sub">A Node is a plain struct of <code class="mono">ObjectPtr&lt;T&gt;</code> fields, wired up by hand at creation: <code class="mono">node.Create&lt;RenderNode&gt;(entityID, cResource, cTransform, cColor)</code>. Nothing in the framework scans an Entity's components to verify a Node's fields before handing it out — Systems defensively null-check each field before using it, which is the actual safety net today.</div></div></div>
-      <div class="achv"><div><div class="head">"Filtering" is really just one HashMap per Node type</div>
-        <div class="sub">Each Node type gets its own flat <code class="mono">UUID → ObjectPtr&lt;T&gt;</code> storage. A System asking for its Node type just gets handed that container directly — an entity only has an entry if a Node was explicitly created for it, so there's no per-frame scan-and-filter happening.</div></div></div>
-      <div class="achv"><div><div class="head">The dependency graph is a textbook Kahn's algorithm</div>
-        <div class="sub">In-degree map built from every <code class="mono">DependOn()</code> edge, a queue seeded with in-degree-0 systems, each pop decrementing its dependents' in-degree.</div></div></div>
-      <div class="achv"><div><div class="head">Cycles fail silently, on purpose</div>
-        <div class="sub">If the sorted count doesn't match the total system count, a cycle exists — it's logged, not thrown. <code class="mono">GetSorted()</code> returns an empty array rather than crashing, and a dirty flag skips rebuilding the sort when nothing has changed since the last call.</div></div></div>
-      <div class="achv"><div><div class="head">GC reachability is a generic property walk</div>
-        <div class="sub">Not hand-written per-class trace functions — the collector walks whatever <code class="mono">TypeInfo</code>'s property list says exists. Any <code class="mono">ObjectPtr</code>/<code class="mono">RefPtr</code> member without <code class="mono">PROPERTY()</code> is invisible to that walk, which is exactly why the GC trap below is a direct consequence of the design, not an edge case.</div></div></div>
+      <div class="achv"><div><div class="head">GC 도달 가능성은 범용 프로퍼티 순회입니다.</div>
+        <div class="sub">클래스별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 프로퍼티
+          목록을 그대로 따라갑니다. <code class="mono">PROPERTY()</code>로 등록하지 않은
+          <code class="mono">ObjectPtr</code>/<code class="mono">RefPtr</code> 멤버는 이 순회에 보이지 않습니다
+          — 아래 GC 함정이 예외적인 버그가 아니라 이 설계의 직접적인 결과인 이유입니다.</div></div></div>
     </div>
 
     <div class="callout warn">
-      The GC only tracks a member declared with <code class="mono">PROPERTY()</code>. Miss it on a
-      <code class="mono">Registry</code> member and the collector treats it as unreachable — freed out from
-      under you on the next <code class="mono">Memory::Collect()</code>.
+      GC는 <code class="mono">PROPERTY()</code>로 선언된 멤버만 추적합니다. <code class="mono">Registry</code>
+      멤버에 이걸 빠뜨리면 컬렉터가 도달 불가능하다고 판단해서, 다음 <code class="mono">Memory::Collect()</code>
+      때 조용히 해제해버립니다.
     </div>
   </section>
 
@@ -156,44 +112,48 @@ sequenceDiagram
     <div class="section-head">
       <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">Node vs. Sparse Set vs. Archetype</h2>
+        <h2 class="section-title display">Sparse Set도 Archetype도 아닌 Node</h2>
       </div>
     </div>
 
     <div class="tbl-wrap">
       <table class="spec">
-        <thead><tr><th>Strategy</th><th>The problem</th></tr></thead>
+        <thead><tr><th>방식</th><th>문제점</th></tr></thead>
         <tbody>
-          <tr><td class="k">Sparse Set</td><td>Fast, but access is scoped to <b>one</b> component type by
-            Entity ID — not every System reduces to a single component.</td></tr>
-          <tr><td class="k">Archetype</td><td>Adding one component means a <b>new archetype</b> — duplicate the
-            shared data in, remove it from the old one.</td></tr>
-          <tr><td class="k">Node <span class="mono" style="color:var(--accent-2);">(this project)</span></td>
-            <td>A Node declares the component combo a System needs, without moving or duplicating the entity's
-              data. Light + render on one entity = register both Nodes, share the Transform.</td></tr>
+          <tr><td class="k">Sparse Set</td><td>빠르지만 Entity ID로 접근 가능한 컴포넌트가 <b>하나</b>뿐 —
+            모든 System이 컴포넌트 하나로 환원되지는 않습니다.</td></tr>
+          <tr><td class="k">Archetype</td><td>컴포넌트 하나만 추가해도 <b>새 archetype</b>이 필요 — 기존
+            데이터를 복제해서 옮기고 원래 자리에서 지워야 합니다.</td></tr>
+          <tr><td class="k">Node <span class="mono" style="color:var(--accent-2);">(이 프로젝트)</span></td>
+            <td>Entity의 데이터를 옮기거나 복제하지 않고도 System이 필요한 컴포넌트 조합을 선언합니다.
+              라이트+렌더 = 같은 Entity에 두 Node를 등록하고 Transform을 공유합니다.</td></tr>
         </tbody>
       </table>
     </div>
     <p class="why mono">
-      source: <a href="https://winteradio.notion.site/Entity-Component-System-18d52805442e4a1a97fd41c0e0897bb6" target="_blank" rel="noopener">research notes, Entity Component System</a>
+      출처: <a href="https://winteradio.notion.site/Entity-Component-System-18d52805442e4a1a97fd41c0e0897bb6" target="_blank" rel="noopener">개인 리서치 노트, Entity Component System</a>
     </p>
   </section>
 
   <section id="issues">
     <div class="section-head">
       <span class="section-num mono">04</span>
-      <div><h2 class="section-title display">Real Issue</h2></div>
+      <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">#8</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/8" target="_blank" rel="noopener">The demo project isn't built and worked</a></span>
-          <span class="issue-state open mono">open</span>
+          <span class="issue-state open mono">미해결</span>
         </div>
         <div class="issue-body">
-          - Cause: <code class="mono">ECS.h</code> includes two headers (<code class="mono">Container/DataRegistry.h</code>, <code class="mono">Container/SystemRegistry.h</code>) that don't exist anywhere in the tracked repository — the demo and README describe API types (<code class="mono">TypedSystem&lt;T&gt;</code>, a specialized <code class="mono">SystemRegistry</code>) that aren't present in the checked-out headers.<br>
-          - Direction: a generic <code class="mono">Registry&lt;Base&gt;</code> that covers the same role does exist and compiles — the fix is either restoring the missing specialized headers, or updating the demo and README to the generic API that's actually shipped.
+          - 원인: <code class="mono">ECS.h</code>가 저장소에 실제로 존재하지 않는 헤더 두 개
+          (<code class="mono">Container/DataRegistry.h</code>, <code class="mono">Container/SystemRegistry.h</code>)
+          를 include하고 있습니다 — 데모와 README가 체크아웃된 헤더에는 없는 API(<code class="mono">TypedSystem&lt;T&gt;</code>,
+          전용 <code class="mono">SystemRegistry</code>)를 설명하고 있는 상태입니다.<br>
+          - 개선 방향: 같은 역할을 하는 범용 <code class="mono">Registry&lt;Base&gt;</code>가 이미 존재하고 컴파일도
+          됩니다 — 빠진 전용 헤더를 복원하거나, 데모/README를 실제로 있는 범용 API 기준으로 갱신하면 됩니다.
         </div>
       </div>
     </div>
@@ -203,7 +163,7 @@ sequenceDiagram
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">Part of a larger portfolio. <a href="index.html">Back to the overview →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
@@ -212,18 +172,5 @@ sequenceDiagram
 </footer>
 
 <script src="app.js"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  const isDark = !document.documentElement.matches('[data-theme="light"]') &&
-    (document.documentElement.matches('[data-theme="dark"]') ||
-     window.matchMedia('(prefers-color-scheme: dark)').matches ||
-     !window.matchMedia('(prefers-color-scheme: light)').matches);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: isDark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    fontFamily: '"Cascadia Code", Consolas, monospace'
-  });
-</script>
 </body>
 </html>
