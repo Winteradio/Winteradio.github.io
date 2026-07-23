@@ -228,6 +228,19 @@ int main()
       </div>
       <div class="issue-card">
         <div class="issue-head">
+          <span class="issue-num mono">src/Storage/ArrayBudget.cpp:45-52,130-138</span>
+          <span class="issue-title">ArrayBudget은 배열을 절대 재사용하지 않고 매번 새로 만듦</span>
+          <span class="issue-state open mono">성능</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">GetArray()</code>는 free 목록을 확인하는 <code class="mono">Pool&lt;T&gt;</code>과
+          달리 항상 <code class="mono">CreateArray()</code>로 새 인스턴스를 만듭니다. <code class="mono">Array&lt;T&gt;</code>
+          자체도 <code class="mono">bool m_used</code> 하나로 지키는 슬롯 1개짜리 구조라, 배열 스토리지는
+          커지기만 하고 <code class="mono">Remove()</code>가 빈 항목을 목록에서 걷어내는 것에만 의존합니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
           <span class="issue-num mono">include/Pointer/RefPtr.h:22-33</span>
           <span class="issue-title">RefPtr 참조 카운트에 acquire 펜스가 없음</span>
           <span class="issue-state open mono">버그 · 미수정</span>
