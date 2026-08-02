@@ -199,10 +199,15 @@
           Class 선언조차 없는, 시작조차 안 된 자리표시자임.</div></div></div>
     </div>
 
+    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:16px 0 8px;">
+      GeometryPass가 한 프레임에 이 3개 채널을 GBuffer로 나눠서 씀 — LightingPass가 이 값들만 갖고 라이트별로
+      다시 계산. Position 채널은 실제로 저장되는 렌더 타깃이 아니라, Depth에서 그 자리에서 재구성한 디버그
+      시각화(<a href="https://github.com/Winteradio/Game-Engine/issues/30" target="_blank" rel="noopener">이슈 #30</a> 참고).
+    </p>
     <figure class="gbuffer-row" style="margin-top:20px;">
-      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo 채널"><figcaption class="mono">Albedo</figcaption></figure>
-      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal 채널"><figcaption class="mono">Normal</figcaption></figure>
-      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position 채널"><figcaption class="mono">Position</figcaption></figure>
+      <figure><img src="assets/gbuffer-albedo.png" alt="GBuffer albedo 채널"><figcaption class="mono">Albedo — 표면 고유색</figcaption></figure>
+      <figure><img src="assets/gbuffer-normal.png" alt="GBuffer normal 채널"><figcaption class="mono">Normal — 라이팅 계산용 표면 법선</figcaption></figure>
+      <figure><img src="assets/gbuffer-position.png" alt="GBuffer world-position 채널"><figcaption class="mono">Position — Depth에서 재구성</figcaption></figure>
     </figure>
 
     <h3 style="font-size:19px;margin:36px 0 8px;">RHI</h3>
@@ -441,9 +446,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     </div>
 
     <figure class="gbuffer-row" style="margin-top:16px;">
-      <figure><img src="assets/shadow_debug_acne.png" alt="섀도우 acne 디버그 캡처"><figcaption class="mono">Acne</figcaption></figure>
-      <figure><img src="assets/shadow_debug_nan_1.png" alt="NaN으로 물체 전체가 검게 나오는 디버그 캡처"><figcaption class="mono">NaN 전파</figcaption></figure>
-      <figure><img src="assets/shadow_debug_grazing.png" alt="grazing 각도 디버그 캡처"><figcaption class="mono">Grazing 각도</figcaption></figure>
+      <figure><img src="assets/shadow_debug_acne.png" alt="섀도우 acne 디버그 캡처"><figcaption class="mono">Acne — depth-bias 부족으로 표면에 줄무늬</figcaption></figure>
+      <figure><img src="assets/shadow_debug_nan_1.png" alt="NaN으로 물체 전체가 검게 나오는 디버그 캡처"><figcaption class="mono">NaN 전파 — 원인 규명 전 증상</figcaption></figure>
+      <figure><img src="assets/shadow_debug_grazing.png" alt="grazing 각도 디버그 캡처"><figcaption class="mono">Grazing 각도 — det가 0에 가까워지는 지점</figcaption></figure>
     </figure>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty flag race <span class="status-chip done">해결</span></h3>
