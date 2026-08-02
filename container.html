@@ -196,7 +196,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
         <div class="issue-head">
           <span class="issue-num mono">#25</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/25" target="_blank" rel="noopener">Use-After-Free in DynamicArray Move Constructor</a></span>
-          <span class="issue-state closed mono">해결</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#25">해결</span>
         </div>
         <div class="issue-body">
           - 원인: 이동 생성자가 <code class="mono">m_data</code>는 옮겼지만 <code class="mono">m_allocator</code>
@@ -208,7 +208,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
         <div class="issue-head">
           <span class="issue-num mono">#24</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/Container/issues/24" target="_blank" rel="noopener">HashMap::operator[] Reference Invalidation during Rehash</a></span>
-          <span class="issue-state open mono">미해결</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#24">미해결</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">m_map[A] = m_map[B]</code>에서 RHS 참조를 먼저 얻는데, LHS 접근이 리해시를
