@@ -88,6 +88,36 @@
         <div class="sub">필요한 크기보다 작은 클래스를 비트마스크로 지워버리고, 남은 것 중 최하위 비트를
           찾으면 그게 가장 가까운 free 블록입니다. 블록 리스트를 훑을 필요가 없습니다.</div></div></div>
     </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">실측 벤치마크로 뒷받침됩니다.</div>
+        <div class="sub">std::unordered_map 대비 삽입 1.72배, 조회 1.26배 — Open Addressing의 캐시 지역성
+          이득이 "느낌"이 아니라 숫자로 남아 있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">TLSF로 임의 크기를 O(1)에 할당/해제/병합합니다.</div>
+        <div class="sub">FL/SL 비트맵 덕분에 블록 리스트를 훑지 않고, 물리적 offset 비교로 병합 방향을 정해서
+          인덱스 순서에 의존하지 않습니다.</div></div></div>
+      <div class="achv"><div><div class="head">Allocator를 템플릿 인자로 분리해서 전략을 바꿀 수 있게 설계했습니다.</div>
+        <div class="sub">컨테이너 자료구조와 메모리 전략을 독립적으로 교체할 수 있다는 의도 자체는 STL-free
+          라이브러리를 직접 만드는 핵심 이유이기도 합니다.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">RTree는 이번 세션 전까지 죽은 코드나 다름없었습니다.</div>
+        <div class="sub"><code class="mono">Boundary</code>가 private라 외부에서 <code class="mono">Insert()</code>를
+          호출할 방법조차 없었고, <code class="mono">SplitNode()</code>엔 컴파일이 깨지는 오타가 있었습니다 —
+          한 번도 실행 안 해본 코드가 라이브러리에 포함돼 있었다는 뜻입니다.</div></div></div>
+      <div class="achv"><div><div class="head">"Allocator 교체 가능"이라는 설계 의도가 절반만 실현돼 있습니다.</div>
+        <div class="sub"><code class="mono">LinearArena</code>가 실제로는 다른 컨테이너들이 기대하는
+          Allocator 인터페이스(1인자 <code class="mono">Allocate</code>, <code class="mono">Deallocate</code>
+          존재)와 안 맞아서, <code class="mono">DynamicArray&lt;T, LinearArena&gt;</code>로는 실제로 못 씁니다.</div></div></div>
+      <div class="achv"><div><div class="head">테스트되지 않은 경로에 실제 버그가 몰려 있습니다.</div>
+        <div class="sub"><code class="mono">List::Splice</code> 특정 오버로드는 인스턴스화하면 아예 컴파일이
+          안 되고, <code class="mono">HashMap</code>의 <code class="mono">rBegin()/rEnd()</code>는 실제로는
+          정방향으로 순회합니다 — 둘 다 이번에 처음 코드를 다시 읽으면서 찾을 때까지 아무도 걸린 적이
+          없었습니다.</div></div></div>
+    </div>
   </section>
 
   <section id="structure">

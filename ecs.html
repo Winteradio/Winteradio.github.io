@@ -72,6 +72,35 @@
           0인 System부터 큐에 넣어 위상정렬합니다. 순환이 있으면 조용히 실패 — 예외를 던지지 않고 로그만 남긴 뒤
           빈 배열을 돌려줍니다.</div></div></div>
     </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">Node가 Sparse Set과 Archetype의 트레이드오프를 둘 다 피합니다.</div>
+        <div class="sub">데이터를 옮기거나 복제하지 않고도 System이 필요한 컴포넌트 조합을 선언할 수 있어서,
+          라이트+렌더처럼 같은 Entity가 여러 System에 걸치는 경우를 자연스럽게 처리합니다.</div></div></div>
+      <div class="achv"><div><div class="head">GC와 리플렉션이 이미 통합되어 있습니다.</div>
+        <div class="sub"><code class="mono">PROPERTY()</code>로 등록된 멤버는 자동으로 GC 추적 대상이 되어서,
+          수동 참조 카운팅 없이 도달 불가능한 Entity/Component가 정리됩니다.</div></div></div>
+      <div class="achv"><div><div class="head">실행 순서를 하드코딩하지 않습니다.</div>
+        <div class="sub"><code class="mono">DependOn()</code> 선언만 해두면 위상정렬이 알아서 순서를 정해서,
+          System을 추가/제거할 때 다른 System의 실행 순서 코드를 손댈 필요가 없습니다.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">데모가 실제 API와 완전히 다릅니다.</div>
+        <div class="sub">체크인된 코드에 없는 <code class="mono">NodeRegistry</code>/<code class="mono">SystemRegistry</code>/
+          <code class="mono">DependOn</code> 등을 데모가 그대로 참조하고 있어서, 처음 이 프로젝트를 받은
+          사람은 데모조차 컴파일할 수 없습니다(이슈 #8보다 한 겹 더 깊은 불일치).</div></div></div>
+      <div class="achv"><div><div class="head">GC 등록을 빠뜨리면 컴파일 타임에 못 잡습니다.</div>
+        <div class="sub"><code class="mono">PROPERTY()</code>를 깜빡한 멤버는 조용히 GC 추적에서 빠져서,
+          다음 <code class="mono">Collect()</code> 때 예고 없이 해제됩니다 — 런타임에야 드러나는 종류의
+          실수입니다.</div></div></div>
+      <div class="achv"><div><div class="head">인스턴스화되기 전까지는 안 드러나는 버그가 있습니다.</div>
+        <div class="sub"><code class="mono">Entity::AddNode&lt;T&gt;()</code>가 실제로는 Component 쪽에 등록되는
+          비대칭 버그, move 대입이 아무것도 move하지 않는 버그 등 — 템플릿이라 실제로 그 경로를 쓰기 전까지는
+          조용히 묻혀 있었습니다.</div></div></div>
+    </div>
   </section>
 
   <section id="relationships">

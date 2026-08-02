@@ -82,6 +82,36 @@
         <div class="sub">Dirty 추적용 <code class="mono">HashSet::Insert</code>가 프레임당 200만 번 무조건 호출되던
           것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS까지 끌어올렸습니다.</div></div></div>
     </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">World-Render 경계가 실제로 지켜집니다.</div>
+        <div class="sub">렌더 타입을 아예 모르는 구조라, 렌더러를 통째로 교체해도(OpenGL→Vulkan) World/ECS
+          코드는 한 줄도 안 건드립니다 — 지금 Vulkan 백엔드를 별도 아키텍처 없이 기존 RHICommand/RHIWorker
+          위에 그대로 얹을 수 있는 것도 이 경계 덕분입니다.</div></div></div>
+      <div class="achv"><div><div class="head">vtable 없이 41개 커맨드를 함수 포인터 하나로 디스패치합니다.</div>
+        <div class="sub">CRTP 기반 <code class="mono">RHICommand&lt;T&gt;</code>라 실행 시점에 가상 함수 호출
+          오버헤드가 없고, OpenGL 컨텍스트는 RHIWorker 스레드 하나로만 격리해서 스레드 안전성을 구조적으로
+          확보합니다.</div></div></div>
+      <div class="achv"><div><div class="head">실측 근거가 있습니다.</div>
+        <div class="sub">TransformPass(GPU 컴퓨트)로 50만 인스턴스, Hash Storm 가드로 5.4→22 FPS — 숫자로
+          뒷받침된 최적화 히스토리가 실제 프로파일러 스크린샷과 함께 남아 있습니다.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">라이트 하나짜리 데모에서는 안 드러나는 결함이 있습니다.</div>
+        <div class="sub">LightingPass 블렌딩 버그가 대표적 — 실사용 시나리오(여러 라이트 동시)로 테스트하지
+          않으면 놓치는 종류의 문제입니다.</div></div></div>
+      <div class="achv"><div><div class="head">설계 초기 흔적이 여러 군데 남아 있습니다.</div>
+        <div class="sub">WorldCommandList(사실상 미사용), CullingPass·OverlayPass(미구현)처럼 구조는
+          있는데 내용이 없는 부분이 있어서, 코드만 보고 "이게 지금 쓰이는 경로인지" 판단하기 어려운 지점이
+          있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">GC와 Vulkan, 둘 다 아직 절반입니다.</div>
+        <div class="sub">Memory 라이브러리는 이미 완성됐지만 엔진에 완전히 통합되지는 않았고(기능 현황 "진행
+          중"), Vulkan은 초기화·스왑체인·프레임 루프까지만 동작하고 리소스 생성·드로우 경로는 전부
+          비어있습니다.</div></div></div>
+    </div>
   </section>
 
   <section id="threading">

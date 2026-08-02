@@ -75,6 +75,35 @@
           템플릿 파라미터로 받기 때문에, 시그니처가 같아도 함수마다 별도 템플릿 인스턴스 → 별도 static이
           생깁니다.</div></div></div>
     </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">매크로 하나로 보일러플레이트를 거의 다 없앱니다.</div>
+        <div class="sub"><code class="mono">GENERATE</code>/<code class="mono">PROPERTY</code>/<code class="mono">METHOD</code>만
+          붙이면 등록 코드를 손으로 안 써도 되고, 컴파일 타임 빠른 경로와 런타임 SuperType 워크를 나눠서
+          평소엔 <code class="mono">dynamic_cast</code>보다 빠릅니다.</div></div></div>
+      <div class="achv"><div><div class="head">런타임 오버헤드를 설계 단계에서부터 줄이려 한 흔적이 뚜렷합니다.</div>
+        <div class="sub">64바이트 SBO Iterator(힙 할당 0), 비타입 템플릿 파라미터로 <code class="mono">new</code>
+          없는 정적 MethodCall 등 — "리플렉션은 느리다"는 통념을 구조적으로 반박하려는 선택들입니다.</div></div></div>
+      <div class="achv"><div><div class="head">Get/Set의 타입 안전성 기준이 명확합니다.</div>
+        <div class="sub">Get은 상속 관계를 허용하고 Set은 완전히 같은 타입만 허용하는 식으로, object slicing이나
+          의도치 않은 다형성 허용 같은 위험을 원천 차단하는 규칙이 문서에 남아 있습니다.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었습니다.</div>
+        <div class="sub"><code class="mono">Utils.cpp</code>가 Windows 아닐 때 <code class="mono">GetName</code>
+          대신 이름이 다른 <code class="mono">GetClassName</code>을 정의해서, GCC/Clang 빌드는
+          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크가 실패합니다 — 실제로 리눅스/맥에서
+          한 번도 안 돌려봤다는 뜻입니다.</div></div></div>
+      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않습니다.</div>
+        <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 클래스를 검증하지 않아서, 시그니처만
+          같으면 서로 무관한 클래스끼리도 조용히 타입 펀될 수 있습니다.</div></div></div>
+      <div class="achv"><div><div class="head">템플릿 클래스 조합에서 매크로가 깨질 수 있습니다.</div>
+        <div class="sub">템플릿 클래스 내부의 <code class="mono">PROPERTY()</code>가 GCC/Clang의 공격적인
+          dead-code elimination에 스트리핑되는 문제가 아직 완전히 해결되지 않았습니다(이슈 #25).</div></div></div>
+    </div>
   </section>
 
   <section id="structure">
