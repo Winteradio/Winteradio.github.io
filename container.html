@@ -231,6 +231,16 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       쪼개지면) 완전히 새로운 루트를 하나 더 만듭니다.
     </p>
 
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — Entry / DataEntry / NodeEntry / RTree</div>
+      <img src="https://www.plantuml.com/plantuml/svg/VLHDJzim6BxdLxmgby28D3wsGuKGq053sZW0ErTkuhOMYLtPRg5ZI4pgeIeSk4piq4xiCkt0eTlGrXtsXnhlFyoEsoHZrI8biP_dUR-TR0Y9k6n6eIEE2MqWZYAe8F-unbcJ1YKMCWudTI9nZXTr5B0JGcjGHQ78Ctw8XDXXLEwZ24E9KS4qCajmI5vZM5h9KG6kecOeK-l2InJMcXHscQmJlp1RQTqivyX9tfnY3giF8szAoKcbAV6UpsXY-pWdsUISdTYIvvucLuui6VijnWFC9vBLvFf7yg1vSpjFTbQsIuw3Aa9ov4kR2MnJoTjmvW0ysZ9gf7ULoSA0-op0YMO1j7TCfG7FfaxEOHVBetO3k_DG12iqM-VSiUwV8Obo8SpMyD12OJDJfK6igi9O24IymAYQ6BKfYeYlsuBQQpQNTT2PS8A5uPyZuIR-J0x6DlLxSCGnJdnwkJgYCcVCrE49tVgor424JXFoRv3G5DmCG-OZgHiPbT5qROBlKO6vTASjMuH0bpXlc0CSiHQUnHnnrC9SOBT51D5-3EXPHoPDb-h7Ob9XEor9AmuR8Vclu5L3Xy3JCRgMJvkHZjTEWaIO2i9eCWvTwWmGdMfZnmvcxOtdPTFCWsbddMoCXQK2CCqL5WgJ4rPC9vOfF6yzUKypS-oy3BHWZFKxSrcSpeqoYO6JMbq2gsQ2OZ4x4kh3NVoz4m-7e2xxuAtRamlZuHTrUGjnjnCFVa7yjJF-CT9gL_yW92BcIrM3UzNhmjpACeo_TTJD_NpyiQybuvyzDRY0txrH_EbEtLohJX_q7O-kB3GUNcYLJN12nszxuz48LFUzJgUhRhfgS0MUsQlRT_7rPmVJ04mjpePUcJ_V7m00" alt="RTree 클래스 다이어그램" loading="lazy">
+    </div>
+
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — Insert()가 재귀적으로 SplitNode를 타는 경로</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XLFBQjj05DthAoxEHWQxqDUYXOGq8Yw6DeJQ-pAnHlQGyOmx6c7IbI5UX2IbXZx8mYw5XjQ5BDJYfYxqYwpnF_IEvFWH31tGIEASS--vPvZjK1EbeoPtmaCcMaIH9XoGsc5ToKZudkHIGRl1D5t2mmRnPPk9EWI4Xyk8JmCISLsIGk-H9eNSSyBhaO2dKZTOBRUUMM6lATozjzo0legegD4dIibsvc7ZGRhMa9wn01z1TwJogPgn7wLh3NiVfsKrrY92xzmQSwFqi7H_r_kFQBdBp9FJMk2GymZdLEM0XE2j8Y-gYj8KgAu2PH5IfVUadw7bLRJIucm1LXp7W-8MLE4nP3htmCv0r541VA99tgbQl3p7hTHLKke2KA7LKTuXN8Fvr4k-Nk7hn0pEmVM8oDXv1r0xAs3vZ8PtzgEmOUDoPmKe7ZjCuaxoRW0c7jz8AYYPktK5RlEMWE2CWVdiPdMn-rLotKtY65mP127LC1d7vhA3oLCVJFVpz7XWjTQmBLVSmcIm8cnkWeWuRsa5wMZceeDZMEfI8tDy0icNuVHqZ9y3q_rHWEPBouR9hvxvEK8s5VwDjLk1POqA86ZR_jlIGceAYjKR6cI0fsIRPRJaRNSHnp0DjVyt-JvAASdPfJdhBuA1wSNONFTJpCK49hyxK0HqYUU1HM3weO-Q8IHltiFapwdvE3BVUldCREh1iQwtSRFNzXy0" alt="RTree Insert/SplitNode 재귀 시퀀스 다이어그램" loading="lazy">
+    </div>
+
     <pre class="diagram">using Tree2D = wtr::RTree&lt;std::string, float, 2&gt;;
 Tree2D tree(4, 2); // maxEntry=4, minEntry=2
 
