@@ -86,9 +86,10 @@
             <div class="org">현대오토에버</div>
             <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">MVT 지도 렌더링을 Mapbox 방식 Layout/Paint로 재설계 — FPS 1.5~2배.</div></div></div>
-              <div class="achv"><div><div class="head">레이어별 Draw Call을 타일 단위로 통합 — Draw Call 90% 이상 감소.</div></div></div>
-              <div class="achv"><div><div class="head">glTF/KTX2 파이프라인 구축 — 로딩 성능 70~80% 향상.</div></div></div>
+              <div class="achv"><div><div class="head">MVT Rendering Architecture — Paint/Layout 로직 분리, 레이어 타입별(Fill·Line·Fill-Extrusion·Symbol) 파이프라인 구축.</div></div></div>
+              <div class="achv"><div><div class="head">Style 타입별 VBO 통합 → Draw Call 90%+ 감소 / Ear Clipping 동적 할당 → Static Memory Pool 교체 → Frame-time Spike 제거.</div></div></div>
+              <div class="achv"><div><div class="head">glTF·KTX 파이프라인 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑ / GPU 기반 Skinning Shader 개발.</div></div></div>
+              <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 레이어 구현.</div></div></div>
             </div>
           </div>
         </div>
