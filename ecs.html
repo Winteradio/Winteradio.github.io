@@ -78,7 +78,7 @@
           빈 배열을 반환.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">특징</h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">Node가 Sparse Set과 Archetype의 트레이드오프를 둘 다 피함.</div>
         <div class="sub">데이터를 옮기거나 복제하지 않고도 System이 필요한 Component 조합을 선언할 수 있어서,
@@ -91,7 +91,7 @@
           System을 추가/제거할 때 다른 System의 실행 순서 코드를 손댈 필요 없음.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">데모가 실제 API와 완전히 다름.</div>
         <div class="sub">체크인된 코드에 없는 <code class="mono">NodeRegistry</code>/<code class="mono">SystemRegistry</code>/
@@ -113,7 +113,6 @@
       <span class="section-num mono">02</span>
       <div>
         <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
-        <span class="section-tag">실제 소스 코드 기준으로 검증</span>
       </div>
     </div>
 
@@ -133,7 +132,7 @@
           다섯 개의 전용 Manager가 따로 있었음. 지금 코드는 이걸 범용 <code class="mono">Registry&lt;Base&gt;</code>
           하나로 합침 — 타입 해시를 키로 <code class="mono">Container&lt;T, Base&gt;</code>를 담는
           <code class="mono">HashMap</code> 하나가 생성(<code class="mono">Create&lt;T&gt;</code>)·조회·삭제를
-          타입 구분 없이 전부 처리. 위 "아쉬운 점"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
+          타입 구분 없이 전부 처리. 위 "주요 내용"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
           차이 때문.</div></div></div>
       <div class="achv"><div><div class="head">GC 도달 가능성은 범용 Property 순회.</div>
         <div class="sub">Class별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 Property
