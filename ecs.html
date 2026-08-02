@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="ECS with Scene and Node — Node 기반 필터링과 의존성 그래프로 실행 순서를 정하는 엔티티 컴포넌트 시스템.">
+<meta name="description" content="ECS with Scene and Node — Node 기반 필터링과 의존성 Graph로 실행 순서를 정하는 Entity Component System.">
 <title>ECS — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -35,8 +35,8 @@
     <span class="eyebrow"><span class="dot"></span>프로젝트 02 · 독립 저장소</span>
     <h1 class="title display">ECS <span class="accent">with Scene and Node</span></h1>
     <p class="subhead">
-      Entity는 이름일 뿐이고, Component가 데이터를 들고, Node가 System에 필요한 정확한 컴포넌트 조합을 묶습니다.
-      실행 순서는 손으로 짠 목록이 아니라 의존성 그래프가 정합니다.
+      Entity는 이름일 뿐, Component가 데이터를 들고, Node가 System에 필요한 정확한 Component 조합을 묶음.
+      실행 순서는 손으로 짠 목록이 아니라 의존성 Graph가 정함.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
@@ -60,46 +60,46 @@
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Node 멤버십은 자동으로 검증되지 않습니다.</div>
-        <div class="sub">Node는 <code class="mono">ObjectPtr&lt;T&gt;</code> 필드로 구성된 평범한 struct이고, 생성
-          시점에 수동으로 연결합니다. 프레임워크가 Entity의 컴포넌트를 스캔해서 확인해주는 과정은 없고, System이
-          사용 시점에 방어적으로 null 체크를 하는 게 실질적인 안전장치입니다.</div></div></div>
-      <div class="achv"><div><div class="head">"필터링"은 사실 Node 타입별 HashMap 하나일 뿐입니다.</div>
+      <div class="achv"><div><div class="head">Node 멤버십은 자동으로 검증되지 않음.</div>
+        <div class="sub">Node는 <code class="mono">ObjectPtr&lt;T&gt;</code> 필드로 구성된 평범한 struct — 생성
+          시점에 수동으로 연결함. 프레임워크가 Entity의 Component를 스캔해서 확인해주는 과정은 없고, System이
+          사용 시점에 방어적으로 null 체크를 하는 게 실질적인 안전장치.</div></div></div>
+      <div class="achv"><div><div class="head">"필터링"은 Node 타입별 HashMap 하나일 뿐.</div>
         <div class="sub">각 Node 타입은 자기만의 <code class="mono">UUID → ObjectPtr&lt;T&gt;</code> 저장소를 갖고,
-          System은 그 컨테이너를 그대로 받습니다. 프레임마다 훑으면서 필터링하는 과정은 없습니다.</div></div></div>
-      <div class="achv"><div><div class="head">의존성 그래프는 교과서적인 칸의 알고리즘(Kahn's algorithm)입니다.</div>
+          System은 그 Container를 그대로 받음. 프레임마다 훑으면서 필터링하는 과정은 없음.</div></div></div>
+      <div class="achv"><div><div class="head">의존성 Graph는 교과서적인 Kahn's Algorithm.</div>
         <div class="sub"><code class="mono">DependOn()</code> 엣지로 진입 차수(in-degree) 맵을 만들고, 진입 차수
-          0인 System부터 큐에 넣어 위상정렬합니다. 순환이 있으면 조용히 실패 — 예외를 던지지 않고 로그만 남긴 뒤
-          빈 배열을 돌려줍니다.</div></div></div>
+          0인 System부터 Queue에 넣어 위상정렬. 순환이 있으면 조용히 실패 — 예외를 던지지 않고 로그만 남긴 뒤
+          빈 배열을 반환.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Node가 Sparse Set과 Archetype의 트레이드오프를 둘 다 피합니다.</div>
-        <div class="sub">데이터를 옮기거나 복제하지 않고도 System이 필요한 컴포넌트 조합을 선언할 수 있어서,
-          라이트+렌더처럼 같은 Entity가 여러 System에 걸치는 경우를 자연스럽게 처리합니다.</div></div></div>
-      <div class="achv"><div><div class="head">GC와 리플렉션이 이미 통합되어 있습니다.</div>
+      <div class="achv"><div><div class="head">Node가 Sparse Set과 Archetype의 트레이드오프를 둘 다 피함.</div>
+        <div class="sub">데이터를 옮기거나 복제하지 않고도 System이 필요한 Component 조합을 선언할 수 있어서,
+          라이트+렌더처럼 같은 Entity가 여러 System에 걸치는 경우를 자연스럽게 처리.</div></div></div>
+      <div class="achv"><div><div class="head">GC와 Reflection이 이미 통합됨.</div>
         <div class="sub"><code class="mono">PROPERTY()</code>로 등록된 멤버는 자동으로 GC 추적 대상이 되어서,
-          수동 참조 카운팅 없이 도달 불가능한 Entity/Component가 정리됩니다.</div></div></div>
-      <div class="achv"><div><div class="head">실행 순서를 하드코딩하지 않습니다.</div>
+          수동 참조 카운팅 없이 도달 불가능한 Entity/Component가 정리됨.</div></div></div>
+      <div class="achv"><div><div class="head">실행 순서를 하드코딩하지 않음.</div>
         <div class="sub"><code class="mono">DependOn()</code> 선언만 해두면 위상정렬이 알아서 순서를 정해서,
-          System을 추가/제거할 때 다른 System의 실행 순서 코드를 손댈 필요가 없습니다.</div></div></div>
+          System을 추가/제거할 때 다른 System의 실행 순서 코드를 손댈 필요 없음.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">데모가 실제 API와 완전히 다릅니다.</div>
+      <div class="achv"><div><div class="head">데모가 실제 API와 완전히 다름.</div>
         <div class="sub">체크인된 코드에 없는 <code class="mono">NodeRegistry</code>/<code class="mono">SystemRegistry</code>/
-          <code class="mono">DependOn</code> 등을 데모가 그대로 참조하고 있어서, 처음 이 프로젝트를 받은
-          사람은 데모조차 컴파일할 수 없습니다(이슈 #8보다 한 겹 더 깊은 불일치).</div></div></div>
-      <div class="achv"><div><div class="head">GC 등록을 빠뜨리면 컴파일 타임에 못 잡습니다.</div>
+          <code class="mono">DependOn</code> 등을 데모가 그대로 참조 — 처음 이 프로젝트를 받은
+          사람은 데모조차 컴파일할 수 없음(이슈 #8보다 한 겹 더 깊은 불일치).</div></div></div>
+      <div class="achv"><div><div class="head">GC 등록을 빠뜨리면 컴파일 타임에 못 잡음.</div>
         <div class="sub"><code class="mono">PROPERTY()</code>를 깜빡한 멤버는 조용히 GC 추적에서 빠져서,
-          다음 <code class="mono">Collect()</code> 때 예고 없이 해제됩니다 — 런타임에야 드러나는 종류의
-          실수입니다.</div></div></div>
-      <div class="achv"><div><div class="head">인스턴스화되기 전까지는 안 드러나는 버그가 있습니다.</div>
+          다음 <code class="mono">Collect()</code> 때 예고 없이 해제됨 — 런타임에야 드러나는 종류의
+          실수.</div></div></div>
+      <div class="achv"><div><div class="head">Instance화되기 전까지는 안 드러나는 버그가 있음.</div>
         <div class="sub"><code class="mono">Entity::AddNode&lt;T&gt;()</code>가 실제로는 Component 쪽에 등록되는
-          비대칭 버그, move 대입이 아무것도 move하지 않는 버그 등 — 템플릿이라 실제로 그 경로를 쓰기 전까지는
-          조용히 묻혀 있었습니다.</div></div></div>
+          비대칭 버그, move 대입이 아무것도 move하지 않는 버그 등 — Template이라 실제로 그 경로를 쓰기 전까지는
+          조용히 묻혀 있었음.</div></div></div>
     </div>
   </section>
 
@@ -113,34 +113,34 @@
     </div>
 
     <div class="uml-card">
-      <div class="cap mono" style="text-align:left;margin-bottom:10px;">클래스 다이어그램 — Entity / Component / Node / System / Graph</div>
-      <img src="https://www.plantuml.com/plantuml/svg/ZL9DRzD04BtxLupQYmEq0beuL57KrlbG3hHLKyHvOq_YfVQkjJic2eLVWJZsq3iN3l2ZA3-2zQxhR1mVyCNIl7bltio-KqrCKPbdWRxbec2AvJ1dyUrIoL8aaSoaWbNA2JrSfooHAowMi62Pzf4uOrgFfQ0BbYD4KcXfAbqDC_uPuTMH1oMuO6L63Nll7SkMfO29f9J7UzsTJkQr1zQ-bK05n-t9PqIApql2QIo5vRxqMiwKaYktylvR-tbWLF7FfKfGrIt7zjjfQHrlV_ncV3IAWi0QW94WJcku2m2UJv2cmx1NrwR3u6l0vfeKYydPDHVC2obGK1kua0bkALxZafkEMdcK5ncBCHJca3sud7_4cAv8cG4jtMrQf90HXbZxwM9MW_-Rv7OqCI36pNk4mf1lreMnrDGQuTbQ4-QTqZsunaMjTrxoB9aeLgIcRF-xLtDIJcA81OhaKeGcHQXwy4dofAg_Bv9AcdYECyBY1LJU6bTrtvCtEyVfsVdXHiViDvEAiAgvkTEXtYmLeq17T9kXgWve3x7HU88SFzJsrxBmGQeiWNuV9f69k2GO36haHZ6X5rBbcx0uu2fTQnvh6vK6W_wNWuCkJjNcG9_dnZuprUsOUS1EbZpCJujNtdvh7wZk5RIYS7Wug5_W1Fxy-l7tz_V0tRK2whS-WSTlFnyVxZt4BjJKJqqAoZpx1m00" alt="ECS 클래스 다이어그램" loading="lazy">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Class 다이어그램 — Entity / Component / Node / System / Graph</div>
+      <img src="https://www.plantuml.com/plantuml/svg/ZL9DRzD04BtxLupQYmEq0beuL57KrlbG3hHLKyHvOq_YfVQkjJic2eLVWJZsq3iN3l2ZA3-2zQxhR1mVyCNIl7bltio-KqrCKPbdWRxbec2AvJ1dyUrIoL8aaSoaWbNA2JrSfooHAowMi62Pzf4uOrgFfQ0BbYD4KcXfAbqDC_uPuTMH1oMuO6L63Nll7SkMfO29f9J7UzsTJkQr1zQ-bK05n-t9PqIApql2QIo5vRxqMiwKaYktylvR-tbWLF7FfKfGrIt7zjjfQHrlV_ncV3IAWi0QW94WJcku2m2UJv2cmx1NrwR3u6l0vfeKYydPDHVC2obGK1kua0bkALxZafkEMdcK5ncBCHJca3sud7_4cAv8cG4jtMrQf90HXbZxwM9MW_-Rv7OqCI36pNk4mf1lreMnrDGQuTbQ4-QTqZsunaMjTrxoB9aeLgIcRF-xLtDIJcA81OhaKeGcHQXwy4dofAg_Bv9AcdYECyBY1LJU6bTrtvCtEyVfsVdXHiViDvEAiAgvkTEXtYmLeq17T9kXgWve3x7HU88SFzJsrxBmGQeiWNuV9f69k2GO36haHZ6X5rBbcx0uu2fTQnvh6vK6W_wNWuCkJjNcG9_dnZuprUsOUS1EbZpCJujNtdvh7wZk5RIYS7Wug5_W1Fxy-l7tz_V0tRK2whS-WSTlFnyVxZt4BjJKJqqAoZpx1m00" alt="ECS Class 다이어그램" loading="lazy">
     </div>
 
     <div class="uml-card">
-      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — World::Update() 한 틱</div>
-      <img src="https://www.plantuml.com/plantuml/svg/XP9BIoin5CVt-HI7kcd1Bdmjx4AqrSx65mxITMvpsWOpoTnCXg8hHHSkNBWHAupGomKlWek2NUXNCl4x66SKgnHk80avv_S_ZoIhYQ7Qf94WoG6NCTKqWb-qVT3LAfMieOJIqEznWnF-f4UPwdFPXGuLoQI7OOUcmZILDDiqGYXjKT5D9GJAz7YxD9qC-H72tFna0loTecpZcjQgNzGmivYFAT0cx_WfiQuqG_r1B-TZ2hthk-Lj7bDfwZ_Qd6akDHSs6lyHJMRvg8d4NtuejPGMh5RRZnarM0AQGEix41uc1gCzxFB4wCES2FU-8u6cSI_t1DEqXOQG5bHNl1PgK4-vOBcgN27Uukt1fxbSWIgiOuoIxKX_SDT_tRzZU7aQsT40tFEJk_NRrSNBuz3UFRYx0GcWwWEqV800JQYqmIA8oyxSwOaRNjdXmoouy-prPk1kn_P-3FRv7EnevAx7H2WLGm7Po-mTSsUPlJYsVp82KDJiGnSNL3Oymj1WF0jICMpu_q3zO-eAyUMILR-aaNW3" alt="World Update 시퀀스 다이어그램" loading="lazy">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence 다이어그램 — World::Update() 한 틱</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP9BIoin5CVt-HI7kcd1Bdmjx4AqrSx65mxITMvpsWOpoTnCXg8hHHSkNBWHAupGomKlWek2NUXNCl4x66SKgnHk80avv_S_ZoIhYQ7Qf94WoG6NCTKqWb-qVT3LAfMieOJIqEznWnF-f4UPwdFPXGuLoQI7OOUcmZILDDiqGYXjKT5D9GJAz7YxD9qC-H72tFna0loTecpZcjQgNzGmivYFAT0cx_WfiQuqG_r1B-TZ2hthk-Lj7bDfwZ_Qd6akDHSs6lyHJMRvg8d4NtuejPGMh5RRZnarM0AQGEix41uc1gCzxFB4wCES2FU-8u6cSI_t1DEqXOQG5bHNl1PgK4-vOBcgN27Uukt1fxbSWIgiOuoIxKX_SDT_tRzZU7aQsT40tFEJk_NRrSNBuz3UFRYx0GcWwWEqV800JQYqmIA8oyxSwOaRNjdXmoouy-prPk1kn_P-3FRv7EnevAx7H2WLGm7Po-mTSsUPlJYsVp82KDJiGnSNL3Oymj1WF0jICMpu_q3zO-eAyUMILR-aaNW3" alt="World Update Sequence 다이어그램" loading="lazy">
     </div>
 
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Entity/Component/Node/System은 전부 <code class="mono">Object</code> 하나를 상속하고, 저장은 <code class="mono">Registry&lt;Base&gt;</code> 하나가 담당합니다.</div>
+      <div class="achv"><div><div class="head">Entity/Component/Node/System은 전부 <code class="mono">Object</code> 하나를 상속하고, 저장은 <code class="mono">Registry&lt;Base&gt;</code> 하나가 담당.</div>
         <div class="sub">초기 설계 노트에는 SceneManager/EntityManager/ComponentManager/SystemManager/NodeManager,
-          다섯 개의 전용 Manager가 따로 있었습니다. 지금 코드는 이걸 범용 <code class="mono">Registry&lt;Base&gt;</code>
-          하나로 합쳤습니다 — 타입 해시를 키로 <code class="mono">Container&lt;T, Base&gt;</code>를 담는
+          다섯 개의 전용 Manager가 따로 있었음. 지금 코드는 이걸 범용 <code class="mono">Registry&lt;Base&gt;</code>
+          하나로 합침 — 타입 해시를 키로 <code class="mono">Container&lt;T, Base&gt;</code>를 담는
           <code class="mono">HashMap</code> 하나가 생성(<code class="mono">Create&lt;T&gt;</code>)·조회·삭제를
-          타입 구분 없이 전부 처리합니다. 위 "아쉬운 점"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
-          차이 때문입니다.</div></div></div>
-      <div class="achv"><div><div class="head">GC 도달 가능성은 범용 프로퍼티 순회입니다.</div>
-        <div class="sub">클래스별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 프로퍼티
-          목록을 그대로 따라갑니다. <code class="mono">PROPERTY()</code>로 등록하지 않은
-          <code class="mono">ObjectPtr</code>/<code class="mono">RefPtr</code> 멤버는 이 순회에 보이지 않습니다
-          — 아래 GC 함정이 예외적인 버그가 아니라 이 설계의 직접적인 결과인 이유입니다.</div></div></div>
+          타입 구분 없이 전부 처리. 위 "아쉬운 점"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
+          차이 때문.</div></div></div>
+      <div class="achv"><div><div class="head">GC 도달 가능성은 범용 Property 순회.</div>
+        <div class="sub">Class별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 Property
+          목록을 그대로 따라감. <code class="mono">PROPERTY()</code>로 등록하지 않은
+          <code class="mono">ObjectPtr</code>/<code class="mono">RefPtr</code> 멤버는 이 순회에 보이지 않음
+          — 아래 GC 함정이 예외적인 버그가 아니라 이 설계의 직접적인 결과인 이유.</div></div></div>
     </div>
 
     <div class="callout warn">
-      GC는 <code class="mono">PROPERTY()</code>로 선언된 멤버만 추적합니다. <code class="mono">Registry</code>
-      멤버에 이걸 빠뜨리면 컬렉터가 도달 불가능하다고 판단해서, 다음 <code class="mono">Memory::Collect()</code>
-      때 조용히 해제해버립니다.
+      GC는 <code class="mono">PROPERTY()</code>로 선언된 멤버만 추적함. <code class="mono">Registry</code>
+      멤버에 이걸 빠뜨리면 Collector가 도달 불가능하다고 판단해서, 다음 <code class="mono">Memory::Collect()</code>
+      때 조용히 해제해버림.
     </div>
   </section>
 
@@ -156,14 +156,14 @@
       <table class="spec">
         <thead><tr><th>방식</th><th>문제점</th></tr></thead>
         <tbody>
-          <tr><td class="k">Sparse Set</td><td>빠르지만 Entity ID로 접근 가능한 컴포넌트가 <b>하나</b>뿐 —
-            모든 System이 컴포넌트 하나로 환원되지는 않습니다.</td></tr>
-          <tr><td class="k">Archetype</td><td>컴포넌트 하나만 추가해도 <b>새 archetype</b>이 필요 — 기존
-            데이터를 복제해서 옮기고 원래 자리에서 지워야 합니다. 라이트+렌더 조합 하나 만들려고 해도
-            "Light Render Archetype"을 새로 만들어야 하는 식입니다.</td></tr>
+          <tr><td class="k">Sparse Set</td><td>빠르지만 Entity ID로 접근 가능한 Component가 <b>하나</b>뿐 —
+            모든 System이 Component 하나로 환원되지는 않음.</td></tr>
+          <tr><td class="k">Archetype</td><td>Component 하나만 추가해도 <b>새 archetype</b>이 필요 — 기존
+            데이터를 복제해서 옮기고 원래 자리에서 지워야 함. 라이트+렌더 조합 하나 만들려고 해도
+            "Light Render Archetype"을 새로 만들어야 하는 식.</td></tr>
           <tr><td class="k">Node <span class="mono" style="color:var(--accent-2);">(이 프로젝트)</span></td>
-            <td>Entity의 데이터를 옮기거나 복제하지 않고도 System이 필요한 컴포넌트 조합을 선언합니다.
-              라이트+렌더 = 같은 Entity에 두 Node를 등록하고 Transform을 공유합니다.</td></tr>
+            <td>Entity의 데이터를 옮기거나 복제하지 않고도 System이 필요한 Component 조합을 선언.
+              라이트+렌더 = 같은 Entity에 두 Node를 등록하고 Transform을 공유.</td></tr>
         </tbody>
       </table>
     </div>
@@ -188,10 +188,10 @@
         <div class="issue-body">
           - 원인: <code class="mono">ECS.h</code>가 저장소에 실제로 존재하지 않는 헤더 두 개
           (<code class="mono">Container/DataRegistry.h</code>, <code class="mono">Container/SystemRegistry.h</code>)
-          를 include하고 있습니다 — 데모와 README가 체크아웃된 헤더에는 없는 API(<code class="mono">TypedSystem&lt;T&gt;</code>,
-          전용 <code class="mono">SystemRegistry</code>)를 설명하고 있는 상태입니다.<br>
+          를 include — 데모와 README가 체크아웃된 헤더에는 없는 API(<code class="mono">TypedSystem&lt;T&gt;</code>,
+          전용 <code class="mono">SystemRegistry</code>)를 설명하고 있는 상태.<br>
           - 개선 방향: 같은 역할을 하는 범용 <code class="mono">Registry&lt;Base&gt;</code>가 이미 존재하고 컴파일도
-          됩니다 — 빠진 전용 헤더를 복원하거나, 데모/README를 실제로 있는 범용 API 기준으로 갱신하면 됩니다.
+          됨 — 빠진 전용 헤더를 복원하거나, 데모/README를 실제로 있는 범용 API 기준으로 갱신하면 됨.
         </div>
       </div>
     </div>
@@ -215,10 +215,10 @@
           <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#12">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - 템플릿 래퍼가 <code class="mono">AddNode(nodeType)</code> 대신 <code class="mono">AddComponent(nodeType)</code>를
-          호출합니다. 짝인 <code class="mono">RemoveNode&lt;T&gt;()</code>는 맞게 작성돼 있어서 더 눈에 안 띄는
-          비대칭 버그입니다. 이 경로로 등록한 Node는 <code class="mono">HasNode&lt;T&gt;()</code>가 항상 false를
-          반환합니다.
+          - Template 래퍼가 <code class="mono">AddNode(nodeType)</code> 대신 <code class="mono">AddComponent(nodeType)</code>를
+          호출함. 짝인 <code class="mono">RemoveNode&lt;T&gt;()</code>는 맞게 작성돼 있어서 더 눈에 안 띄는
+          비대칭 버그. 이 경로로 등록한 Node는 <code class="mono">HasNode&lt;T&gt;()</code>가 항상 false를
+          반환함.
         </div>
       </div>
       <div class="issue-card">
@@ -228,16 +228,16 @@
           <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#13">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - <code class="mono">Object::operator=(other)</code>가 lvalue를 받아 베이스 클래스는 복사되고,
+          - <code class="mono">Object::operator=(other)</code>가 lvalue를 받아 베이스 Class는 복사되고,
           <code class="mono">m_name = std::move(m_name)</code>은 <code class="mono">other.m_name</code>이 아니라
-          자기 자신을 self-move — 사실상 no-op입니다. "move" 대입인데 이름은 그대로, UUID만 원본과 같은 값이
-          됩니다.
+          자기 자신을 self-move — 사실상 no-op. "move" 대입인데 이름은 그대로, UUID만 원본과 같은 값이
+          됨.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/14" target="_blank" rel="noopener">#14</a> · include/Graph/Graph.h:105,136,193</span>
-          <span class="issue-title">Graph의 BaseNode 템플릿 인자가 Create()/Add()에서 무시됨</span>
+          <span class="issue-title">Graph의 BaseNode Template 인자가 Create()/Add()에서 무시됨</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#14">버그 · 미수정</span>
         </div>
         <div class="issue-body">
@@ -245,21 +245,21 @@
           받을 수 있게 설계됐고 <code class="mono">m_nodeData</code>도 <code class="mono">HashMap&lt;UUID,
           BaseNode&gt;</code>인데, <code class="mono">Create()</code>와 <code class="mono">Add()</code>는 둘 다
           자기 <code class="mono">BaseNode</code> 대신 <code class="mono">GraphNode&lt;Base&gt; node;</code>를
-          하드코딩합니다. 기본값(<code class="mono">BaseNode = GraphNode&lt;Base&gt;</code>)으로 쓰는 한은
+          하드코딩함. 기본값(<code class="mono">BaseNode = GraphNode&lt;Base&gt;</code>)으로 쓰는 한은
           문제없지만, 실제로 커스텀 <code class="mono">BaseNode</code>를 넘기면 이 대입 자체가 컴파일되지
-          않습니다.
+          않음.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/15" target="_blank" rel="noopener">#15</a> · include/Graph/Graph.h:174-184</span>
-          <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static 싱글턴을 반환</span>
+          <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static Singleton을 반환</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#15">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">static GraphNode&lt;T&gt; null;</code>은 같은 타입 <code class="mono">T</code>의 모든
-          조회 미스가 공유하는 함수-로컬 정적 변수입니다. 호출자가 반환값에 <code class="mono">SetDependency</code>
-          등으로 쓰기를 하면, 그 타입에 대한 이후 모든 미스가 오염된 상태를 보게 됩니다.
+          조회 미스가 공유하는 함수-로컬 정적 변수. 호출자가 반환값에 <code class="mono">SetDependency</code>
+          등으로 쓰기를 하면, 그 타입에 대한 이후 모든 미스가 오염된 상태를 보게 됨.
         </div>
       </div>
       <div class="issue-card">
@@ -269,10 +269,9 @@
           <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#16">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - 기본 멤버 초기화자가 없고 생성자는 <code class="mono">= default</code>입니다.
-          <code class="mono">Graph::GetSorted()</code>는 <code class="mono">Add</code>/<code class="mono">Create</code>가
-          한 번도 호출되지 않은 상태에서도 <code class="mono">IsUpdated()</code>를 읽어서, 첫 호출은 정의되지
-          않은 값을 읽는 셈입니다.
+          - 기본 멤버 초기화자가 없고 생성자는 <code class="mono">= default</code>. <code class="mono">Graph::GetSorted()</code>는
+          <code class="mono">Add</code>/<code class="mono">Create</code>가 한 번도 호출되지 않은 상태에서도
+          <code class="mono">IsUpdated()</code>를 읽어서, 첫 호출은 정의되지 않은 값을 읽는 셈.
         </div>
       </div>
       <div class="issue-card">
@@ -285,10 +284,10 @@
           - <code class="mono">ECS::NodeRegistry</code>, <code class="mono">ECS::ComponentRegistry</code>,
           <code class="mono">ECS::SystemRegistry</code>, <code class="mono">ECS::TypedSystem&lt;Node&gt;</code>,
           <code class="mono">System::DependOn/RemoveOn</code>을 쓰지만 <code class="mono">include/</code> 아래
-          어디에도 없습니다. 체크인된 코드는 범용 <code class="mono">Registry&lt;Base&gt;</code>와, 의존성 그래프
-          API가 없는 추상 <code class="mono">System&lt;Base&gt;</code>뿐입니다. <code class="mono">ECS::Component</code>/
+          어디에도 없음. 체크인된 코드는 범용 <code class="mono">Registry&lt;Base&gt;</code>와, 의존성 Graph
+          API가 없는 추상 <code class="mono">System&lt;Base&gt;</code>뿐. <code class="mono">ECS::Component</code>/
           <code class="mono">ECS::Node</code>도 기본 생성자만 선언하는데 데모는 <code class="mono">ECS::Component(uuid)</code>처럼
-          없는 생성자를 호출해서, 헤더를 복원해도 이 부분은 여전히 컴파일되지 않습니다.
+          없는 생성자를 호출해서, 헤더를 복원해도 이 부분은 여전히 컴파일되지 않음.
         </div>
       </div>
       <div class="issue-card">
@@ -298,7 +297,7 @@
           <span class="issue-state closed mono">죽은 코드</span>
         </div>
         <div class="issue-body">
-          - 유일한 차이는 ID 부여 방식뿐인 복붙 클래스입니다. ECS/데모 어디에서도 참조되지 않습니다.
+          - 유일한 차이는 ID 부여 방식뿐인 복붙 Class. ECS/데모 어디에서도 참조되지 않음.
         </div>
       </div>
     </div>
@@ -314,7 +313,7 @@
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부임. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>

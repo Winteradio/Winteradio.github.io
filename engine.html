@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="커스텀 C++ 게임 엔진 — 4-thread 아키텍처, 디퍼드 렌더링 파이프라인.">
+<meta name="description" content="커스텀 C++ 게임 엔진 — 4-thread 아키텍처, Deferred Rendering 파이프라인.">
 <title>Game Engine — 이원목</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -36,9 +36,9 @@
     <h1 class="title display">커스텀 C++ 게임 엔진</h1>
     <p class="subhead">
       <code class="mono">World</code> · <code class="mono">Render</code> · <code class="mono">RHI</code> ·
-      <code class="mono">Asset</code>, 4개 스레드로 게임 로직과 렌더링을 나눈 Unreal 스타일 구조로 짰습니다.
+      <code class="mono">Asset</code>, 4개 Thread로 게임 로직과 렌더링을 나눈 Unreal 스타일 구조로 짬.
       본업의 OpenGL ES 지도 렌더러 바깥에서 해보고 싶었던 걸 여기 다 담았고, 위 메뉴의 네 시스템이 이 엔진
-      위에 얹혀 있습니다.
+      위에 얹혀 있음.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Game-Engine" target="_blank" rel="noopener">github.com/Winteradio/Game-Engine</a>
@@ -48,8 +48,8 @@
       <div class="toc-title">목차</div>
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
-        <li><span class="n">02</span><a href="#threading">스레딩 &amp; 프레임 동기화</a></li>
-        <li><span class="n">03</span><a href="#modules">네 개의 레이어 (상세 &amp; 다이어그램)</a></li>
+        <li><span class="n">02</span><a href="#threading">Threading &amp; 프레임 동기화</a></li>
+        <li><span class="n">03</span><a href="#modules">네 개의 Layer (상세 &amp; Diagram)</a></li>
         <li><span class="n">04</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
         <li><span class="n">05</span><a href="#status">기능 현황</a></li>
         <li><span class="n">06</span><a href="#issues">해결한 이슈</a></li>
@@ -69,48 +69,48 @@
       </div>
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">World는 렌더 타입을 절대 참조하지 않습니다.</div>
+      <div class="achv"><div><div class="head">World는 렌더 타입을 절대 참조하지 않음.</div>
         <div class="sub">ProxyComponent가 <code class="mono">IsDirty()</code>만 뒤집으면, Scene이 감지해서
-          Commander를 통해 스냅샷을 내보냅니다. World 코드 어디에도 렌더러 타입이 등장하지 않습니다.</div></div></div>
-      <div class="achv"><div><div class="head">RHI만 그래픽스 API를 직접 호출합니다.</div>
-        <div class="sub">OpenGL 컨텍스트는 스레드 종속성이 있어서, 모든 GPU 호출은 커맨드 객체(실측 41개)로
-          감싸고 RHIWorker만 실행합니다.</div></div></div>
-      <div class="achv"><div><div class="head">RenderCommandList는 힙 할당이 거의 없습니다.</div>
-        <div class="sub">두 개의 <code class="mono">LinearArena</code>가 핑퐁 방식으로 동작 — World 스레드가
-          하나에 람다를 쓰는 동안 Render 스레드가 다른 하나를 비웁니다.</div></div></div>
-      <div class="achv"><div><div class="head">100만 인스턴스 최적화의 진짜 병목은 "무조건 실행되는 삽입"이었습니다.</div>
+          Commander를 통해 스냅샷을 내보냄. World 코드 어디에도 렌더러 타입이 등장하지 않음.</div></div></div>
+      <div class="achv"><div><div class="head">RHI만 그래픽스 API를 직접 호출함.</div>
+        <div class="sub">OpenGL Context는 Thread 종속성이 있어서, 모든 GPU 호출은 Command 객체(실측 41개)로
+          감싸고 RHIWorker만 실행함.</div></div></div>
+      <div class="achv"><div><div class="head">RenderCommandList는 힙 할당이 거의 없음.</div>
+        <div class="sub">두 개의 <code class="mono">LinearArena</code>가 핑퐁 방식으로 동작 — World Thread가
+          하나에 람다를 쓰는 동안 Render Thread가 다른 하나를 비움.</div></div></div>
+      <div class="achv"><div><div class="head">100만 Instance 최적화의 진짜 병목은 "무조건 실행되는 삽입"이었음.</div>
         <div class="sub">Dirty 추적용 <code class="mono">HashSet::Insert</code>가 프레임당 200만 번 무조건 호출되던
-          것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS까지 끌어올렸습니다.</div></div></div>
+          것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS까지 끌어올림.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">World-Render 경계가 실제로 지켜집니다.</div>
+      <div class="achv"><div><div class="head">World-Render 경계가 실제로 지켜짐.</div>
         <div class="sub">렌더 타입을 아예 모르는 구조라, 렌더러를 통째로 교체해도(OpenGL→Vulkan) World/ECS
-          코드는 한 줄도 안 건드립니다 — 지금 Vulkan 백엔드를 별도 아키텍처 없이 기존 RHICommand/RHIWorker
-          위에 그대로 얹을 수 있는 것도 이 경계 덕분입니다.</div></div></div>
-      <div class="achv"><div><div class="head">vtable 없이 41개 커맨드를 함수 포인터 하나로 디스패치합니다.</div>
+          코드는 한 줄도 안 건드림 — 지금 Vulkan 백엔드를 별도 아키텍처 없이 기존 RHICommand/RHIWorker
+          위에 그대로 얹을 수 있는 것도 이 경계 덕분임.</div></div></div>
+      <div class="achv"><div><div class="head">vtable 없이 41개 Command를 함수 Pointer 하나로 Dispatch함.</div>
         <div class="sub">CRTP 기반 <code class="mono">RHICommand&lt;T&gt;</code>라 실행 시점에 가상 함수 호출
-          오버헤드가 없고, OpenGL 컨텍스트는 RHIWorker 스레드 하나로만 격리해서 스레드 안전성을 구조적으로
-          확보합니다.</div></div></div>
-      <div class="achv"><div><div class="head">실측 근거가 있습니다.</div>
-        <div class="sub">TransformPass(GPU 컴퓨트)로 50만 인스턴스, Hash Storm 가드로 5.4→22 FPS — 숫자로
-          뒷받침된 최적화 히스토리가 실제 프로파일러 스크린샷과 함께 남아 있습니다.</div></div></div>
+          Overhead가 없고, OpenGL Context는 RHIWorker Thread 하나로만 격리해서 Thread 안전성을 구조적으로
+          확보함.</div></div></div>
+      <div class="achv"><div><div class="head">실측 근거가 있음.</div>
+        <div class="sub">TransformPass(GPU Compute)로 50만 Instance, Hash Storm 가드로 5.4→22 FPS — 숫자로
+          뒷받침된 최적화 히스토리가 실제 Profiler 스크린샷과 함께 남아 있음.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">라이트 하나짜리 데모에서는 안 드러나는 결함이 있습니다.</div>
-        <div class="sub">LightingPass 블렌딩 버그가 대표적 — 실사용 시나리오(여러 라이트 동시)로 테스트하지
-          않으면 놓치는 종류의 문제입니다.</div></div></div>
-      <div class="achv"><div><div class="head">설계 초기 흔적이 여러 군데 남아 있습니다.</div>
+      <div class="achv"><div><div class="head">라이트 하나짜리 데모에서는 안 드러나는 결함이 있음.</div>
+        <div class="sub">LightingPass Blending 버그가 대표적 — 실사용 시나리오(여러 라이트 동시)로 테스트하지
+          않으면 놓치는 종류의 문제임.</div></div></div>
+      <div class="achv"><div><div class="head">설계 초기 흔적이 여러 군데 남아 있음.</div>
         <div class="sub">WorldCommandList(사실상 미사용), CullingPass·OverlayPass(미구현)처럼 구조는
           있는데 내용이 없는 부분이 있어서, 코드만 보고 "이게 지금 쓰이는 경로인지" 판단하기 어려운 지점이
-          있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">GC와 Vulkan, 둘 다 아직 절반입니다.</div>
-        <div class="sub">Memory 라이브러리는 이미 완성됐지만 엔진에 완전히 통합되지는 않았고(기능 현황 "진행
-          중"), Vulkan은 초기화·스왑체인·프레임 루프까지만 동작하고 리소스 생성·드로우 경로는 전부
-          비어있습니다.</div></div></div>
+          있음.</div></div></div>
+      <div class="achv"><div><div class="head">GC와 Vulkan, 둘 다 아직 절반임.</div>
+        <div class="sub">Memory Library는 이미 완성됐지만 엔진에 완전히 통합되지는 않았고(기능 현황 "진행
+          중"), Vulkan은 초기화·Swapchain·프레임 루프까지만 동작하고 Resource 생성·Draw 경로는 전부
+          비어있음.</div></div></div>
     </div>
   </section>
 
@@ -118,19 +118,19 @@
     <div class="section-head">
       <span class="section-num mono">02</span>
       <div>
-        <h2 class="section-title display">스레딩 &amp; 프레임 동기화</h2>
+        <h2 class="section-title display">Threading &amp; 프레임 동기화</h2>
         <span class="section-tag">FrameGate — producer/consumer 조건 변수 쌍</span>
       </div>
     </div>
 
     <div class="uml-card">
-      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — World → Renderer → RHI, 프레임 1회</div>
-      <img src="https://www.plantuml.com/plantuml/svg/XP5DRzim38Rl_XL2Ucc0hKEpxT0SXgPfxHR8XY1UwyikgiKaGlJXojBSxTUFKjHKSRtDW3z4lkH3lhviBJNMIP6rEwuQQgWaZxJUROnsYisrq8PqMsuXoRTRodJ7rOQigMZJ38CrTSBcMjblL08PVQLYunGfjDtoUZIiBFbl8EUJ501F3bGDCsDqjv_Xv5Eu1aGBliPRmPKs34nKNuHhGBt4RNdD6whiLM_Da_np_l5c_f-Yb19dofhNF1bLsWY6ZnsO4Q4jgQhZV8wTeQ0MVgXJrp3yy8TnqER5-R5u1IhWfAIABNXhWsmrNmp94kZg7r0Jn2bqqkjsU_U6YA756rKAnDDnlbZUXmo-iwogoFilQ0MPafjvIUx3tZ6Ass0u4i6SpHXR6YwvvJ-1V8XQ_2Z1Fd3eOXLQXLMbUqJXwJZpHz_B4sRra-C6CBhQ0_pmdlmCjRCQ2Nr1aeQP4D4YCEz8BOC9_LPxmmj3c-rPhFixBWxPQuMs7oymYSMz5NmWwHh-vA5rmWvv5ABVVi33FvnENqGOAt-r5kGuywA3zjhGxWxtUKvjNnfeGTcKxmVxJjlT0FqI_N1I_040" alt="World Renderer RHI 시퀀스 다이어그램" loading="lazy">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence Diagram — World → Renderer → RHI, 프레임 1회</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP5DRzim38Rl_XL2Ucc0hKEpxT0SXgPfxHR8XY1UwyikgiKaGlJXojBSxTUFKjHKSRtDW3z4lkH3lhviBJNMIP6rEwuQQgWaZxJUROnsYisrq8PqMsuXoRTRodJ7rOQigMZJ38CrTSBcMjblL08PVQLYunGfjDtoUZIiBFbl8EUJ501F3bGDCsDqjv_Xv5Eu1aGBliPRmPKs34nKNuHhGBt4RNdD6whiLM_Da_np_l5c_f-Yb19dofhNF1bLsWY6ZnsO4Q4jgQhZV8wTeQ0MVgXJrp3yy8TnqER5-R5u1IhWfAIABNXhWsmrNmp94kZg7r0Jn2bqqkjsU_U6YA756rKAnDDnlbZUXmo-iwogoFilQ0MPafjvIUx3tZ6Ass0u4i6SpHXR6YwvvJ-1V8XQ_2Z1Fd3eOXLQXLMbUqJXwJZpHz_B4sRra-C6CBhQ0_pmdlmCjRCQ2Nr1aeQP4D4YCEz8BOC9_LPxmmj3c-rPhFixBWxPQuMs7oymYSMz5NmWwHh-vA5rmWvv5ABVVi33FvnENqGOAt-r5kGuywA3zjhGxWxtUKvjNnfeGTcKxmVxJjlT0FqI_N1I_040" alt="World Renderer RHI Sequence Diagram" loading="lazy">
     </div>
 
     <div class="uml-card">
-      <div class="cap mono" style="text-align:left;margin-bottom:10px;">시퀀스 다이어그램 — Asset 파이프라인, RHI로 들어가는 또 다른 경로</div>
-      <img src="https://www.plantuml.com/plantuml/svg/XP9DJiCm48NtESMetS2YGXHOW0Hg-WUL2ghQI5qFyIInujZ5TjIMQx1cmH4uLo-1anGQIYGiUM6_R-QzaTqp5hNDC-6PbCiLQipW6SCqrYgNRA24qh1EkAMQRX9aQirb314AKrSOHPWBErRIFc56q7f44USIxfLDUDXg9XVybU2yMpUWbvnaIBxMQbrbQ5-Mgm6QyiXjINsb6UazVLsk1dhcfkKXNw6q_QCns-EhySLey4zHtMMVoLiTT6Zvnf1TR8sbh0Lem5yqw4kbKzALlloj1sZIIeQPKg9aWYDc_Z0fiD66mjoggiyy6Fs1QZR5oVFy1NJkN2IuWQb2Th92cvn21zmli0ItGCKjCSzV5bomT9mRtb0TAI--4UUwx-KGvp5GMOQIJIIt78LxsNuUHMwKtTldxkFTAr8SoghyHVDOLDmGBSAPEmQqcMGOKtVeIUKGpUF4WehAELpfJvev8TjwFP8ipyGN" alt="Asset 파이프라인 시퀀스 다이어그램" loading="lazy">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence Diagram — Asset 파이프라인, RHI로 들어가는 또 다른 경로</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XP9DJiCm48NtESMetS2YGXHOW0Hg-WUL2ghQI5qFyIInujZ5TjIMQx1cmH4uLo-1anGQIYGiUM6_R-QzaTqp5hNDC-6PbCiLQipW6SCqrYgNRA24qh1EkAMQRX9aQirb314AKrSOHPWBErRIFc56q7f44USIxfLDUDXg9XVybU2yMpUWbvnaIBxMQbrbQ5-Mgm6QyiXjINsb6UazVLsk1dhcfkKXNw6q_QCns-EhySLey4zHtMMVoLiTT6Zvnf1TR8sbh0Lem5yqw4kbKzALlloj1sZIIeQPKg9aWYDc_Z0fiD66mjoggiyy6Fs1QZR5oVFy1NJkN2IuWQb2Th92cvn21zmli0ItGCKjCSzV5bomT9mRtb0TAI--4UUwx-KGvp5GMOQIJIIt78LxsNuUHMwKtTldxkFTAr8SoghyHVDOLDmGBSAPEmQqcMGOKtVeIUKGpUF4WehAELpfJvev8TjwFP8ipyGN" alt="Asset 파이프라인 Sequence Diagram" loading="lazy">
     </div>
   </section>
 
@@ -138,62 +138,62 @@
     <div class="section-head">
       <span class="section-num mono">03</span>
       <div>
-        <h2 class="section-title display">네 개의 레이어 — 상세 내용 &amp; 다이어그램</h2>
-        <span class="section-tag">World는 렌더 타입을 모르고 · RHI만 그래픽스 API를 부릅니다</span>
+        <h2 class="section-title display">네 개의 Layer — 상세 내용 &amp; Diagram</h2>
+        <span class="section-tag">World는 렌더 타입을 모르고 · RHI만 그래픽스 API를 부름</span>
       </div>
     </div>
 
     <h3 style="font-size:19px;margin:0 0 8px;">WorldContext</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      엔티티, 컴포넌트, 그리고 밖으로 나가는 단방향 다리입니다. <code class="mono">Scene::Flush()</code>는
+      Entity, Component, 그리고 밖으로 나가는 단방향 다리임. <code class="mono">Scene::Flush()</code>는
       추가/삭제/갱신 3단계를 순서대로 도는데, 각 단계가 끝날 때마다 대상 <code class="mono">HashSet</code>을
-      비웁니다.
+      비움.
     </p>
     <div class="uml-card">
-      <img src="https://www.plantuml.com/plantuml/svg/TL9BSjGm4Dtx5Afauq0b1IImeAPS2MQ6IXNv51DWBSizOp6sUf3QJ1BW1cov0gVWHd08BCbsF1wXXItrU-hN_TIdXhYckYeZiv9gpJMlMCR5QgcnLdcA9MgsAIJ103S5pt4ZrP8jU6c6Y2YvCJDKTCahO2agWqqaH9ZBUs1FZmTG3WjUbzJVthlWvR9Mx0rI8SLUcEdJF1k0RTrQWMOdO-Kp8Yspck1Se79tdmmePrhZnhUy_yAj0PZQ-wzGvw1RoebREvIHUVkpvxFZQHf5hW3s4NNP88hWbjZNYB77xn3fclJ48GdRs9-BmyA6KwmghXhLX8bkQ-7twvmJn2Ghc1Ei3zWNb7dqVIZZyyy5A636VkqnrT3ScogIT1SViAli4mYh_u0rYcjKe2WCNs8EMqYdwOMSvgoiJH6FQkexyPof-bn33R466xlXPjNoRSr07oHiMink-rmyCwIv8F-Wx5hZxLrViSzyfPftvgA0F7PjF-GzDw-bTdrdY6LVsOtcoYnGLtsYhYNY9CK5c6ACl9NBWlvFjoQrnNG-JNPL4aPTR9iQq4rOrHoRahScwD7XeN_htN1ljuTSp3rHDF9iygr10XQ4Q253GhoHFIDZC2mOO8Nq_9mT7IM3YNh9_lxyyUVNx-YqcPYwAly1" alt="WorldContext 클래스 다이어그램" loading="lazy">
+      <img src="https://www.plantuml.com/plantuml/svg/TL9BSjGm4Dtx5Afauq0b1IImeAPS2MQ6IXNv51DWBSizOp6sUf3QJ1BW1cov0gVWHd08BCbsF1wXXItrU-hN_TIdXhYckYeZiv9gpJMlMCR5QgcnLdcA9MgsAIJ103S5pt4ZrP8jU6c6Y2YvCJDKTCahO2agWqqaH9ZBUs1FZmTG3WjUbzJVthlWvR9Mx0rI8SLUcEdJF1k0RTrQWMOdO-Kp8Yspck1Se79tdmmePrhZnhUy_yAj0PZQ-wzGvw1RoebREvIHUVkpvxFZQHf5hW3s4NNP88hWbjZNYB77xn3fclJ48GdRs9-BmyA6KwmghXhLX8bkQ-7twvmJn2Ghc1Ei3zWNb7dqVIZZyyy5A636VkqnrT3ScogIT1SViAli4mYh_u0rYcjKe2WCNs8EMqYdwOMSvgoiJH6FQkexyPof-bn33R466xlXPjNoRSr07oHiMink-rmyCwIv8F-Wx5hZxLrViSzyfPftvgA0F7PjF-GzDw-bTdrdY6LVsOtcoYnGLtsYhYNY9CK5c6ACl9NBWlvFjoQrnNG-JNPL4aPTR9iQq4rOrHoRahScwD7XeN_htN1ljuTSp3rHDF9iygr10XQ4Q253GhoHFIDZC2mOO8Nq_9mT7IM3YNh9_lxyyUVNx-YqcPYwAly1" alt="WorldContext Class Diagram" loading="lazy">
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:10px 0 0;">
-      ProxyComponent는 렌더러와 직접 대화하지 않습니다 — <code class="mono">IsDirty()</code>만 뒤집으면
-      Scene이 알아채고 Commander를 통해 스냅샷을 내보냅니다. 실제로 Commander가 캡처하는 람다는
+      ProxyComponent는 렌더러와 직접 대화하지 않음 — <code class="mono">IsDirty()</code>만 뒤집으면
+      Scene이 알아채고 Commander를 통해 스냅샷을 내보냄. Commander가 캡처하는 람다는
       <code class="mono">[renderView](Renderer*, RefPtr&lt;RHICommandList&gt;){ renderer-&gt;SetView(renderView); }</code>
-      처럼 값 캡처 위주라 실질적으로 힙 할당이 거의 없습니다.
+      처럼 값 캡처 위주라 힙 할당이 거의 없음.
     </p>
 
     <h3 style="font-size:19px;margin:36px 0 8px;">Renderer</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      RenderScene과 RenderGraph를 소유합니다 — 렌더링 쪽 객체는 전부 이 둘 중 하나를 거칩니다.
+      RenderScene과 RenderGraph를 소유함 — 렌더링 쪽 객체는 전부 이 둘 중 하나를 거침.
     </p>
     <div class="uml-card">
-      <img src="https://www.plantuml.com/plantuml/svg/VPFRRjf048Rl_HIhv2PDYTGsQQyGId02ZGGLWghtmtgDLza3cjq5tCExTtsG6S2jBumy_pU7dNzvT1xG1wqIzoRD5X0qMmD_sw0D9akjiiZsXVI2wAw0pEwbsR0SbACAL-3Sn1h_3RHWgJNEnaWVi98_1VjuJwHCv12KxxAlvg0smR2fzONaL_raK-OJ4TkvqGXa3-UTdxn7kGvUl79hwjmF17b2jFlcoDTVweU8QPK_jfW9R967-hb0pfPtFVaykNz9awGUW2s5YHNYRByInjw_70IFqznmdSsay-_Opiei-NF2hhWmei4dAhZYl_0KOLiqy7DfG4iU3mNbi54N4HonRNmBrzD-m5pLQy1sKkoxyh1s7e5xHljKbTes2FkRBBvIgpMOp0sOafl2nzzkqBMrwh9IJDZ6xbMfSwa-XkIrr4I-8nYNMzGabWQbuYqaaQcmMdWiIMXM3NDApOKhnk1vkwXLQVW_bbgHpyUpDVnIv0kFm-NNrt78Su4Z5ebkldx2zyi_17fnc45fWn-n7VaYt1oyG0bgWVPGZfXkF-EGtMMwlRkZjwLFg5UQq5jorEhT46E7lwD4xJdNg3-4QyHJgovawXgfqnQc1bwe9rxIVuUDOkTgSlJtjeqJ3vF7c1Uq-Wi0" alt="Renderer 클래스 다이어그램" loading="lazy">
+      <img src="https://www.plantuml.com/plantuml/svg/VPFRRjf048Rl_HIhv2PDYTGsQQyGId02ZGGLWghtmtgDLza3cjq5tCExTtsG6S2jBumy_pU7dNzvT1xG1wqIzoRD5X0qMmD_sw0D9akjiiZsXVI2wAw0pEwbsR0SbACAL-3Sn1h_3RHWgJNEnaWVi98_1VjuJwHCv12KxxAlvg0smR2fzONaL_raK-OJ4TkvqGXa3-UTdxn7kGvUl79hwjmF17b2jFlcoDTVweU8QPK_jfW9R967-hb0pfPtFVaykNz9awGUW2s5YHNYRByInjw_70IFqznmdSsay-_Opiei-NF2hhWmei4dAhZYl_0KOLiqy7DfG4iU3mNbi54N4HonRNmBrzD-m5pLQy1sKkoxyh1s7e5xHljKbTes2FkRBBvIgpMOp0sOafl2nzzkqBMrwh9IJDZ6xbMfSwa-XkIrr4I-8nYNMzGabWQbuYqaaQcmMdWiIMXM3NDApOKhnk1vkwXLQVW_bbgHpyUpDVnIv0kFm-NNrt78Su4Z5ebkldx2zyi_17fnc45fWn-n7VaYt1oyG0bgWVPGZfXkF-EGtMMwlRkZjwLFg5UQq5jorEhT46E7lwD4xJdNg3-4QyHJgovawXgfqnQc1bwe9rxIVuUDOkTgSlJtjeqJ3vF7c1Uq-Wi0" alt="Renderer Class Diagram" loading="lazy">
     </div>
 
     <div class="achv-list" style="margin-top:16px;">
       <div class="achv"><div><div class="head">(mesh, material) 조합 하나당 MeshDrawCommand 하나 → Draw Call 하나.</div>
         <div class="sub">GeometryPass가 vertex layout + <code class="mono">transform</code> SSBO + 머티리얼을
-          바인딩하고, 배치 안의 모든 인스턴스를 인덱스 Draw 한 번으로 그립니다.</div></div></div>
-      <div class="achv"><div><div class="head">RenderPass는 ComputePass와 GraphicPass, 두 개의 추상 기반으로 나뉩니다.</div>
-        <div class="sub">ComputePass는 컴퓨트 셰이더 디스패치만 담당하고, GraphicPass는 clear/depth/blend/
-          rasterizer 같은 파이프라인 상태 전체를 소유합니다.</div></div></div>
-      <div class="achv"><div><div class="head">RenderGraph는 실제로는 그래프가 아니라 고정된 체인입니다.</div>
+          바인딩하고, Batch 안의 모든 Instance를 인덱스 Draw 한 번으로 그림.</div></div></div>
+      <div class="achv"><div><div class="head">RenderPass는 ComputePass와 GraphicPass, 두 개의 추상 기반으로 나뉨.</div>
+        <div class="sub">ComputePass는 Compute Shader Dispatch만 담당하고, GraphicPass는 clear/depth/blend/
+          rasterizer 같은 Pipeline 상태 전체를 소유함.</div></div></div>
+      <div class="achv"><div><div class="head">RenderGraph는 실제로는 Graph가 아니라 고정된 체인임.</div>
         <div class="sub">Transform→Shadow→Geometry→Lighting→Debug 순서로 <code class="mono">SetDependency</code>가
-          미리 걸려 있어서, "그래프" 구조인데 실제 파이프라인은 분기 없는 직선입니다.</div></div></div>
+          미리 걸려 있어서, "Graph" 구조인데 실제 파이프라인은 분기 없는 직선임.</div></div></div>
     </div>
 
     <div class="achv-list" style="margin-top:16px;">
-      <div class="achv"><div><div class="head">TransformPass 디스패치는 1차원 고정 — 64 인스턴스당 워크그룹 1개.</div>
+      <div class="achv"><div><div class="head">TransformPass Dispatch는 1차원 고정 — 64 Instance당 Workgroup 1개.</div>
         <div class="sub"><code class="mono">groupX = ceil(instanceCount / 64)</code>, Y/Z는 항상 1.
           <code class="mono">transform.cs.glsl</code>의 <code class="mono">local_size_x = 64</code>와 맞물려 있는데,
-          생성자에서 넘기는 <code class="mono">ComputePass(64, 64, 64)</code> 그룹 크기는 실제로는 아무 데서도
-          읽히지 않는 죽은 인자입니다 — 디스패치 시점에 로컬 상수 64를 다시 씁니다.</div></div></div>
-      <div class="achv"><div><div class="head">CullingPass는 스텁이지만 배선은 이미 되어 있습니다.</div>
+          생성자에서 넘기는 <code class="mono">ComputePass(64, 64, 64)</code> 그룹 크기는 아무 데서도
+          읽히지 않는 죽은 인자임 — Dispatch 시점에 로컬 상수 64를 다시 씀.</div></div></div>
+      <div class="achv"><div><div class="head">CullingPass는 Stub이지만 배선은 이미 되어 있음.</div>
         <div class="sub"><code class="mono">Draw()</code>는 상태 체크만 하고 항상 true, <code class="mono">GetResourceState()</code>도
-          항상 eReady로 하드코딩. 다만 카메라/인다이렉트 드로우 버퍼/가시성 버퍼/AABB 버퍼를 바인딩하는
-          <code class="mono">SetCommand()</code>는 이미 존재합니다. 짝을 이루는 <code class="mono">culling.cs.glsl</code>은
-          이름과 달리 실제로는 compute가 아니라 vertex 셰이더 내용이라, 컬링은 셰이더·디스패치·패스 로직 전부
-          미구현 상태입니다.</div></div></div>
-      <div class="achv"><div><div class="head">OverlayPass는 완전히 빈 파일입니다.</div>
+          항상 eReady로 하드코딩. 다만 카메라/Indirect Draw Buffer/가시성 Buffer/AABB Buffer를 바인딩하는
+          <code class="mono">SetCommand()</code>는 이미 존재함. 짝을 이루는 <code class="mono">culling.cs.glsl</code>은
+          이름과 달리 Compute가 아니라 Vertex Shader 내용이라, Culling은 Shader·Dispatch·Pass 로직 전부
+          미구현 상태임.</div></div></div>
+      <div class="achv"><div><div class="head">OverlayPass는 완전히 빈 파일임.</div>
         <div class="sub"><code class="mono">OverlayPass.h</code>/<code class="mono">.cpp</code> 둘 다 0바이트 —
-          클래스 선언조차 없는, 시작조차 안 된 자리표시자입니다.</div></div></div>
+          Class 선언조차 없는, 시작조차 안 된 자리표시자임.</div></div></div>
     </div>
 
     <figure class="gbuffer-row" style="margin-top:20px;">
@@ -204,56 +204,56 @@
 
     <h3 style="font-size:19px;margin:36px 0 8px;">RHI</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      그래픽스 API를 직접 호출할 수 있는 유일한 레이어입니다. 실제 커맨드 클래스는 41개(초기화 11 · 갱신 3 ·
-      리사이즈 2 · 제거 7 · Set 8 · Unset 7 · 프레임/디스패치 3)이고, 전부 CRTP로 만든 <code class="mono">RHICommand&lt;T&gt;</code>
-      라 실행 시점엔 vtable이 아니라 함수 포인터 하나로 디스패치됩니다.
+      그래픽스 API를 직접 호출할 수 있는 유일한 Layer임. Command Class는 41개(초기화 11 · 갱신 3 ·
+      리사이즈 2 · 제거 7 · Set 8 · Unset 7 · 프레임/Dispatch 3)이고, 전부 CRTP로 만든 <code class="mono">RHICommand&lt;T&gt;</code>
+      라 실행 시점엔 vtable이 아니라 함수 Pointer 하나로 Dispatch됨.
     </p>
     <div class="uml-card">
-      <img src="https://www.plantuml.com/plantuml/svg/RL6xRXD15EttAqP9in4a0X8eeYYAlR63fO2iX1-udhbhZpmFPnvnpAD0SeMWeqIKq51HKV17Zl-1yUvYZtSpnKexvt7FFNDc7HZdfKZicAi9691a07GyDDehbccX3PcEkCC8joDWUihLaEGWR8nG0TPsjNAlGIB9jB8wt3n4kEPlaJmzZ226ENZXrkgTLo26Nf4BxKQSxZpCB6sUHM2LsoWqvAW-kUMSuGFli4UrAhHF8ahB63qjLzvzKPm8p5RwjZOCJKKvAaw3KYjlj_kyUzZ9aWG6rXcWhan2hbxshcVMeIJl4a8UPGR1OTldEPgKeQLxv0hplZChiAUuuo12teh0LQuVaq7niqTkDMShshc1QKynlEiRBeFY5WjYHE1s0ewECYqdeOGO_P2KiIukorJ9EcKWIr3iabjNHkse6uyUKohPnhfpXpHOjeH8ruxDZIklDbYil4fPQekXjIn1q0szOaaANHQIyva2oMbuB9YTRESx9I9y-rgB5R55RpmtcCPD_f_NdFG6x7XxK8ExURAJz_lxcwfg9Uc0RU-QD3OvE3YjTtjCbf_-B7xyMdxzJ1Q_vyilVnS_FzQzArqLuvZSVvlVVvydPwYOb-8V" alt="RHI 클래스 다이어그램" loading="lazy">
+      <img src="https://www.plantuml.com/plantuml/svg/RL6xRXD15EttAqP9in4a0X8eeYYAlR63fO2iX1-udhbhZpmFPnvnpAD0SeMWeqIKq51HKV17Zl-1yUvYZtSpnKexvt7FFNDc7HZdfKZicAi9691a07GyDDehbccX3PcEkCC8joDWUihLaEGWR8nG0TPsjNAlGIB9jB8wt3n4kEPlaJmzZ226ENZXrkgTLo26Nf4BxKQSxZpCB6sUHM2LsoWqvAW-kUMSuGFli4UrAhHF8ahB63qjLzvzKPm8p5RwjZOCJKKvAaw3KYjlj_kyUzZ9aWG6rXcWhan2hbxshcVMeIJl4a8UPGR1OTldEPgKeQLxv0hplZChiAUuuo12teh0LQuVaq7niqTkDMShshc1QKynlEiRBeFY5WjYHE1s0ewECYqdeOGO_P2KiIukorJ9EcKWIr3iabjNHkse6uyUKohPnhfpXpHOjeH8ruxDZIklDbYil4fPQekXjIn1q0szOaaANHQIyva2oMbuB9YTRESx9I9y-rgB5R55RpmtcCPD_f_NdFG6x7XxK8ExURAJz_lxcwfg9Uc0RU-QD3OvE3YjTtjCbf_-B7xyMdxzJ1Q_vyilVnS_FzQzArqLuvZSVvlVVvydPwYOb-8V" alt="RHI Class Diagram" loading="lazy">
     </div>
     <div class="callout warn">
-      OpenGL 컨텍스트는 스레드 종속성이 있어서, 다른 스레드에서 호출하면 정의되지 않은 동작이 됩니다.
-      모든 GPU 호출은 커맨드 객체로 감싸고 <code class="mono">RHIWorker</code>만 실행합니다.
+      OpenGL Context는 Thread 종속성이 있어서, 다른 Thread에서 호출하면 정의되지 않은 동작이 됨.
+      모든 GPU 호출은 Command 객체로 감싸고 <code class="mono">RHIWorker</code>만 실행함.
     </div>
 
     <h3 style="font-size:19px;margin:36px 0 8px;">Vulkan 백엔드 <span class="status-chip progress">진행 중</span></h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      기존 <code class="mono">GLSystem</code>과 같은 <code class="mono">RHISystem</code> 인터페이스를 구현하는
-      <code class="mono">VulkanSystem</code>으로 붙습니다 — 별도 아키텍처가 아니라, 지금 있는
-      <code class="mono">RHICommand&lt;T&gt;</code> 커맨드 시스템과 <code class="mono">RHIWorker</code> 스레딩
-      모델 위에 그대로 얹힙니다.
+      기존 <code class="mono">GLSystem</code>과 같은 <code class="mono">RHISystem</code> Interface를 구현하는
+      <code class="mono">VulkanSystem</code>으로 붙음 — 별도 아키텍처가 아니라, 지금 있는
+      <code class="mono">RHICommand&lt;T&gt;</code> Command 시스템과 <code class="mono">RHIWorker</code> Threading
+      모델 위에 그대로 얹힘.
     </p>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">여기까지 실제로 동작합니다: 초기화 + 프레임 루프.</div>
-        <div class="sub">Instance/Device 선택, Surface/Swapchain 생성, Primary/Secondary 커맨드 버퍼 분리
-          (RHI 스레드용 vs 워커별), <code class="mono">BeginFrame</code>/<code class="mono">EndFrame</code>의
-          세마포어 2개 + 펜스 1개 조합 acquire→submit→present, <code class="mono">OUT_OF_DATE</code>/
-          <code class="mono">SUBOPTIMAL</code> 스왑체인 리사이즈 처리까지 구현되어 있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">여기부터는 아직입니다: 실제 리소스 생성 · 드로우 경로.</div>
+      <div class="achv"><div><div class="head">여기까지 동작함: 초기화 + 프레임 루프.</div>
+        <div class="sub">Instance/Device 선택, Surface/Swapchain 생성, Primary/Secondary Command Buffer 분리
+          (RHI Thread용 vs Worker별), <code class="mono">BeginFrame</code>/<code class="mono">EndFrame</code>의
+          Semaphore 2개 + Fence 1개 조합 acquire→submit→present, <code class="mono">OUT_OF_DATE</code>/
+          <code class="mono">SUBOPTIMAL</code> Swapchain 리사이즈 처리까지 구현되어 있음.</div></div></div>
+      <div class="achv"><div><div class="head">여기부터는 아직임: 실제 Resource 생성 · Draw 경로.</div>
         <div class="sub"><code class="mono">InitializeVertexLayout/Texture/Sampler/RenderTarget/RenderPass</code>,
           모든 <code class="mono">Update*</code>/<code class="mono">Set*</code>/<code class="mono">Unset*</code>,
           <code class="mono">DispatchCompute</code>, <code class="mono">DrawIndexPrimitive</code>, <code class="mono">Clear</code>가
-          전부 빈 함수입니다. <code class="mono">InitializeBuffer</code>는 편집 중인 상태 그대로 남아 있어
-          지금 시점에는 컴파일도 되지 않습니다.</div></div></div>
+          전부 빈 함수임. <code class="mono">InitializeBuffer</code>는 편집 중인 상태 그대로 남아 있어
+          지금 시점에는 컴파일도 안 됨.</div></div></div>
       <div class="achv"><div><div class="head">VulkanMemory: 4MB 블록 + 블록 내부는 TLSFArena로 서브 할당.</div>
         <div class="sub">Vulkan 메모리 타입별로 고정 4MB <code class="mono">VkDeviceMemory</code> 블록을 필요할 때
-          만들고 비면 반환하는 구조 — 리소스마다 <code class="mono">VkDeviceMemory</code>를 따로 할당하는
-          흔한 안티패턴을 피했습니다. 블록 내부의 실제 서브 할당은 Container 라이브러리의 TLSF 구현을
-          그대로 재사용합니다.</div></div></div>
+          만들고 비면 반환하는 구조 — Resource마다 <code class="mono">VkDeviceMemory</code>를 따로 할당하는
+          흔한 Anti-pattern을 피함. 블록 내부의 실제 서브 할당은 Container Library의 TLSF 구현을
+          그대로 재사용함.</div></div></div>
     </div>
 
     <h3 style="font-size:19px;margin:36px 0 8px;">Asset</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      3단계, 3개의 서로 다른 스레드 — Parse가 메인 루프를 절대 막지 않고, Upload는 RHIWorker 밖에서 절대 실행되지 않습니다.
+      3단계, 3개의 서로 다른 Thread — Parse가 메인 루프를 절대 막지 않고, Upload는 RHIWorker 밖에서 절대 실행되지 않음.
     </p>
     <div class="uml-card">
-      <img src="https://www.plantuml.com/plantuml/svg/RL7RJXin47tVhnZ12uY2saBxKArMXD2qGKcBsF81a_KaQ-7r87ksQRYyz3Fw1vNwQNn4DzvDOY1-6i-PStnyvjGBEgaha_WRRM_HOGKJB6vcZckh-cpOmRpKGX7kIrGyrtO6KpG-HWg3tW_OoZUi2FfiFJUTRGEvlYDuTnn1YgPO6rcpTyPePhM5BoobBdQsJxOoxoEmy-qiEJXv-N9FnEb9BJGis0RkssYavnpFso_lVWmd0ljB_XaxHQuREGddrSYBy7O77mR7d_j94Wn0ptiIk4y03gwlX-UWLVBOGMFoPGIVBonMkcXCuI9TOZaLejbcuDl2RvWev3IQY4rviwHcHMDMPCB6LfSrwmVzajfHHBgYwQMuzEhhiCCoaBPOay9qll125QGf-4RLaB25B6irHengxnQbt8TMhg7Yn8l3GY3Ik4JdcnK5JgZtSDdUXv_SPB8I2hqtK5HgfFqAN7dvVdRHgdJtN2R32cVKDTkFfG-7XvjedpNZr68W3YRPR8MtSxgF1ER6qIjecxaknwEZx5acd-3fzx-dFt-JKxAghin_" alt="Asset 클래스 다이어그램" loading="lazy">
+      <img src="https://www.plantuml.com/plantuml/svg/RL7RJXin47tVhnZ12uY2saBxKArMXD2qGKcBsF81a_KaQ-7r87ksQRYyz3Fw1vNwQNn4DzvDOY1-6i-PStnyvjGBEgaha_WRRM_HOGKJB6vcZckh-cpOmRpKGX7kIrGyrtO6KpG-HWg3tW_OoZUi2FfiFJUTRGEvlYDuTnn1YgPO6rcpTyPePhM5BoobBdQsJxOoxoEmy-qiEJXv-N9FnEb9BJGis0RkssYavnpFso_lVWmd0ljB_XaxHQuREGddrSYBy7O77mR7d_j94Wn0ptiIk4y03gwlX-UWLVBOGMFoPGIVBonMkcXCuI9TOZaLejbcuDl2RvWev3IQY4rviwHcHMDMPCB6LfSrwmVzajfHHBgYwQMuzEhhiCCoaBPOay9qll125QGf-4RLaB25B6irHengxnQbt8TMhg7Yn8l3GY3Ik4JdcnK5JgZtSDdUXv_SPB8I2hqtK5HgfFqAN7dvVdRHgdJtN2R32cVKDTkFfG-7XvjedpNZr68W3YRPR8MtSxgF1ER6qIjecxaknwEZx5acd-3fzx-dFt-JKxAghin_" alt="Asset Class Diagram" loading="lazy">
     </div>
     <pre class="diagram"><span class="hi">eNone</span> --TaskWorker.Parse()--> <span class="hi2">eLoaded</span> --AssetCommander.Load() GPU 업로드--> <span class="hi">(상태 전이 없음)</span>
-Parse = CPU 바운드, TaskWorker 풀(유휴 워커가 있을 때만 — 없으면 AssetSystem 큐에 다시 넣어 다음 패스로 미룸)
+Parse = CPU 바운드, TaskWorker 풀(유휴 Worker가 있을 때만 — 없으면 AssetSystem Queue에 다시 넣어 다음 패스로 미룸)
 Load  = GPU 업로드(AssetCommander), RHIWorker 전용
-※ eAssetState는 eNone/eError/eLoaded/eExpried(오타)/eDirty뿐 — "완료(eReady)" 상태는 존재하지 않고,
-  준비 여부는 texture/buffer/shader 포인터가 non-null인지로 판단</pre>
+※ eAssetState는 eNone/eError/eLoaded/eExpried(오타)/eDirty뿐 — "완료(eReady)" 상태는 없고,
+  준비 여부는 texture/buffer/shader Pointer가 non-null인지로 판단</pre>
   </section>
 
   <section id="findings">
@@ -266,82 +266,82 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
       이 페이지는 <code class="mono">Docs/Design_*.md</code> 요약이 아니라, 이번에 <code class="mono">Engine/Private</code>
-      과 <code class="mono">Engine/Public</code>의 실제 구현을 다시 읽으면서 확인한 내용입니다. 문서와 다른 부분,
-      그리고 흥미로운 설계 판단 몇 가지를 그대로 남겨둡니다.
+      과 <code class="mono">Engine/Public</code>의 실제 구현을 다시 읽으면서 확인한 내용임. 문서와 다른 부분,
+      그리고 흥미로운 설계 판단 몇 가지를 그대로 남겨둠.
     </p>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">LightingPass는 블렌드를 켜지 않아서, 여러 라이트가 있으면 마지막 라이트만 남습니다.</div>
-        <div class="sub">라이트 하나당 풀스크린 쿼드 Draw 한 번(Directional/Point/Spot 셰이더 분리)인데,
+      <div class="achv"><div><div class="head">LightingPass는 Blend를 켜지 않아서, 라이트가 여럿이면 마지막 라이트만 남음.</div>
+        <div class="sub">라이트 하나당 풀스크린 Quad Draw 한 번(Directional/Point/Spot Shader 분리)인데,
           <code class="mono">GetPipeLine()</code>이 채우는 <code class="mono">RHIPipeLineCreateDesc</code>에
-          <code class="mono">blend</code> 필드가 끝까지 비어 있습니다. 로컬로 <code class="mono">RHIBlendState
+          <code class="mono">blend</code> 필드가 끝까지 비어 있음. 로컬로 <code class="mono">RHIBlendState
           blendState; blendState.enable = false;</code>를 선언은 하지만 어디에도 대입·전달되지 않는 죽은
-          코드입니다 — 이 구조가 성립하려면 blend를 꺼야 하는 게 아니라 라이트별로 누적되도록 additive
-          블렌딩을 켜야 합니다. 라이트가 하나뿐인 데모에서는 드러나지 않는 버그입니다.</div></div></div>
-      <div class="achv"><div><div class="head">RenderGraph::Execute()는 Pass 하나만 준비 안 돼도 그 프레임 전체를 중단합니다.</div>
+          코드임 — 이 구조가 성립하려면 Blend를 꺼야 하는 게 아니라 라이트별로 누적되도록 Additive
+          Blending을 켜야 함. 라이트가 하나뿐인 데모에서는 드러나지 않는 버그임.</div></div></div>
+      <div class="achv"><div><div class="head">RenderGraph::Execute()는 Pass 하나만 준비 안 돼도 프레임 전체를 중단함.</div>
         <div class="sub">정렬된 순서를 돌다가 어떤 Pass의 <code class="mono">GetResourceState() != eReady</code>
           이거나 <code class="mono">Draw()</code>가 false를 반환하면 그 자리에서 루프를 <code class="mono">break</code>
-          — 문제 있는 Pass 하나만 건너뛰는 게 아니라 이후 Pass 전부가 이번 프레임에 안 그려집니다.</div></div></div>
-      <div class="achv"><div><div class="head">WorldCommandList는 사실상 미사용 상태입니다.</div>
+          — 문제 있는 Pass 하나만 건너뛰는 게 아니라 이후 Pass 전부가 이번 프레임에 안 그려짐.</div></div></div>
+      <div class="achv"><div><div class="head">WorldCommandList는 사실상 미사용 상태임.</div>
         <div class="sub"><code class="mono">struct WorldCommand {};</code> 정도만 있고 <code class="mono">WorldContext::Prepare()</code>
           는 그냥 <code class="mono">// TODO</code>. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
-          흐르고 있어서, 이 클래스는 설계 초기 흔적으로 보입니다.</div></div></div>
-      <div class="achv"><div><div class="head">RHICommand 실제 개수는 41개입니다.</div>
-        <div class="sub">기존 설계 문서의 "45개 이상"이라는 서술은 실측과 다릅니다 — 초기화 11 · 갱신 3 · 리사이즈 2 ·
-          제거 7 · Set 8 · Unset 7 · 프레임/디스패치 3.</div></div></div>
-      <div class="achv"><div><div class="head">RenderCommandList::ExecuteAll()에 기술적으로는 UB인 패턴이 하나 있습니다.</div>
-        <div class="sub">태스크를 실행한 뒤 명시적으로 <code class="mono">execute-&gt;~RenderTask()</code>를 호출하고,
-          바로 다음 줄에서 <code class="mono">execute-&gt;next</code>를 읽습니다. <code class="mono">next</code>가
+          흐르고 있어서, 이 Class는 설계 초기 흔적으로 보임.</div></div></div>
+      <div class="achv"><div><div class="head">RHICommand 실제 개수는 41개임.</div>
+        <div class="sub">기존 설계 문서의 "45개 이상"이라는 서술은 실측과 다름 — 초기화 11 · 갱신 3 · 리사이즈 2 ·
+          제거 7 · Set 8 · Unset 7 · 프레임/Dispatch 3.</div></div></div>
+      <div class="achv"><div><div class="head">RenderCommandList::ExecuteAll()에 기술적으로는 UB인 패턴이 하나 있음.</div>
+        <div class="sub">Task를 실행한 뒤 명시적으로 <code class="mono">execute-&gt;~RenderTask()</code>를 호출하고,
+          바로 다음 줄에서 <code class="mono">execute-&gt;next</code>를 읽음. <code class="mono">next</code>가
           trivial한 raw pointer라 실제로는 문제없이 동작하지만, 소멸자 호출 후 멤버를 읽는 건 엄밀히는 정의되지
-          않은 동작입니다.</div></div></div>
-      <div class="achv"><div><div class="head">Asset 파싱은 항상 병렬은 아니고, 기회적(opportunistic)입니다.</div>
-        <div class="sub">유휴 <code class="mono">TaskWorker</code>가 있을 때만 별도 스레드로 넘기고, 없으면
-          <code class="mono">AssetSystem::AddTask()</code>로 다시 큐에 넣어 다음 패스로 미룹니다 — 동기적으로
-          직접 파싱하지 않고, "병렬 파싱"이 항상 보장되는 것도 아닙니다.</div></div></div>
-      <div class="achv"><div><div class="head">Application/Engine 초기화 중 AssetWorker가 두 번 만들어집니다.</div>
+          않은 동작임.</div></div></div>
+      <div class="achv"><div><div class="head">Asset 파싱은 항상 병렬은 아니고, 기회적(opportunistic)임.</div>
+        <div class="sub">유휴 <code class="mono">TaskWorker</code>가 있을 때만 별도 Thread로 넘기고, 없으면
+          <code class="mono">AssetSystem::AddTask()</code>로 다시 Queue에 넣어 다음 패스로 미룸 — 동기적으로
+          직접 파싱하지 않고, "병렬 파싱"이 항상 보장되는 것도 아님.</div></div></div>
+      <div class="achv"><div><div class="head">Application/Engine 초기화 중 AssetWorker가 두 번 만들어짐.</div>
         <div class="sub"><code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
           <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
-          만들어 <code class="mono">m_assetWorker</code>를 덮어씁니다 — 첫 번째 인스턴스는 조용히 버려집니다.
-          WorldCommandList와 같은 종류의 흔적성 코드로 보입니다.</div></div></div>
-      <div class="achv"><div><div class="head">Win32Window의 WM_CLOSE 처리와 실제 종료 경로는 다릅니다.</div>
-        <div class="sub">WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서
-          설정한 <code class="mono">m_status = eClosed</code>가 같은 호출 안에서 곧바로 다시 eActive로 덮어써집니다.
-          실제 종료는 상태 체크가 아니라 close 콜백 → <code class="mono">Engine::Shutdown()</code> →
+          만들어 <code class="mono">m_assetWorker</code>를 덮어씀 — 첫 번째 Instance는 조용히 버려짐.
+          WorldCommandList와 같은 종류의 흔적성 코드로 보임.</div></div></div>
+      <div class="achv"><div><div class="head">Win32Window의 WM_CLOSE 처리와 실제 종료 경로는 다름.</div>
+        <div class="sub">WndProc의 switch 문에 case 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서
+          설정한 <code class="mono">m_status = eClosed</code>가 같은 호출 안에서 곧바로 다시 eActive로 덮어써짐.
+          실제 종료는 상태 체크가 아니라 close Callback → <code class="mono">Engine::Shutdown()</code> →
           <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
-          경로로 이루어집니다.</div></div></div>
-      <div class="achv"><div><div class="head">InputStorage는 더블 버퍼가 아니라 락프리 트리플 버퍼입니다.</div>
-        <div class="sub"><code class="mono">m_InputData[3]</code> — 메인 스레드가 쓰는 <code class="mono">m_CurrData</code>,
+          경로로 이루어짐.</div></div></div>
+      <div class="achv"><div><div class="head">InputStorage는 더블 Buffer가 아니라 Lock-free Triple Buffer임.</div>
+        <div class="sub"><code class="mono">m_InputData[3]</code> — 메인 Thread가 쓰는 <code class="mono">m_CurrData</code>,
           핸드오프용 <code class="mono">atomic&lt;InputData*&gt; m_PrevData</code>, WorldWorker가 읽는
           <code class="mono">m_LogicData</code>. 256개 키코드 전체 상태를 4비트(Down/Press/Release/Repeat)로
-          패킹한 128바이트 배열로 저장합니다.</div></div></div>
-      <div class="achv"><div><div class="head">TaskWorker "풀"은 사실 AssetWorker 전용이고, 로드밸런싱이 없습니다.</div>
-        <div class="sub">TaskWorker 자체는 작업 하나짜리 워커일 뿐 — "풀"은 AssetWorker가 가진
-          <code class="mono">DynamicArray&lt;RefPtr&lt;TaskWorker&gt;&gt;</code>이고, 스레드 개수 4는
-          <code class="mono">Engine.cpp</code>에 하드코딩. 분배는 라운드로빈이 아니라 첫 번째로 유휴 상태인 워커를
-          선형 탐색. <code class="mono">Win32InputHandler</code>의 입력 큐도 backpressure 없이
-          <code class="mono">MAX_QUEUE_SIZE</code>를 넘으면 그냥 통째로 비워 밀린 입력을 버립니다.</div></div></div>
-      <div class="achv"><div><div class="head">제네릭 Task&lt;Args...&gt;가 실제로는 두 가지 다른 방식으로 쓰입니다.</div>
+          패킹한 128바이트 배열로 저장함.</div></div></div>
+      <div class="achv"><div><div class="head">TaskWorker "풀"은 사실 AssetWorker 전용이고, 로드밸런싱이 없음.</div>
+        <div class="sub">TaskWorker 자체는 작업 하나짜리 Worker일 뿐 — "풀"은 AssetWorker가 가진
+          <code class="mono">DynamicArray&lt;RefPtr&lt;TaskWorker&gt;&gt;</code>이고, Thread 개수 4는
+          <code class="mono">Engine.cpp</code>에 하드코딩. 분배는 라운드로빈이 아니라 첫 번째로 유휴 상태인 Worker를
+          선형 탐색. <code class="mono">Win32InputHandler</code>의 입력 Queue도 Backpressure 없이
+          <code class="mono">MAX_QUEUE_SIZE</code>를 넘으면 그냥 통째로 비워 밀린 입력을 버림.</div></div></div>
+      <div class="achv"><div><div class="head">제네릭 Task&lt;Args...&gt;가 실제로는 두 가지 다른 방식으로 쓰임.</div>
         <div class="sub"><code class="mono">Task&lt;Args...&gt;</code>는 <code class="mono">std::function&lt;void(Args...)&gt;</code>
-          얇은 래퍼일 뿐인데, Asset/TaskWorker 쪽은 <code class="mono">DefaultTask = Task&lt;&gt;</code>로 인자 없이
-          클로저에 전부 캡처해서 쓰고, <code class="mono">RenderTask : Task&lt;Renderer*, RefPtr&lt;RHICommandList&gt;&gt;</code>
-          는 실제 인자를 받으며 커스텀 할당기 위에 인트루시브 리스트 노드로 placement-new됩니다 — "제네릭" 템플릿이
-          사실상 한쪽 전용 소비자를 위해 존재하는 셈입니다.</div></div></div>
-      <div class="achv"><div><div class="head">Asset 상태 머신에는 "완료(eReady)" 상태가 없습니다.</div>
+          얇은 Wrapper일 뿐인데, Asset/TaskWorker 쪽은 <code class="mono">DefaultTask = Task&lt;&gt;</code>로 인자 없이
+          Closure에 전부 캡처해서 쓰고, <code class="mono">RenderTask : Task&lt;Renderer*, RefPtr&lt;RHICommandList&gt;&gt;</code>
+          는 실제 인자를 받으며 커스텀 Allocator 위에 Intrusive List Node로 placement-new됨 — "제네릭" Template이
+          사실상 한쪽 전용 소비자를 위해 존재하는 셈임.</div></div></div>
+      <div class="achv"><div><div class="head">Asset 상태 머신에는 "완료(eReady)" 상태가 없음.</div>
         <div class="sub">실제 <code class="mono">eAssetState</code>는 <code class="mono">eNone / eError / eLoaded /
-          eExpried(오타) / eDirty</code> 뿐입니다. GPU 업로드(<code class="mono">AssetCommander::Load</code>) 이후
-          별도 상태 전이가 없어서, 준비 여부는 상태값이 아니라 texture/buffer/shader 포인터가 non-null인지로
-          다른 코드가 추론합니다.</div></div></div>
-      <div class="achv"><div><div class="head">RHIDrawIndexDesc / RHIDispatchDesc가 자기 태그 대신 남의 태그를 씁니다.</div>
+          eExpried(오타) / eDirty</code> 뿐임. GPU 업로드(<code class="mono">AssetCommander::Load</code>) 이후
+          별도 상태 전이가 없어서, 준비 여부는 상태값이 아니라 texture/buffer/shader Pointer가 non-null인지로
+          다른 코드가 추론함.</div></div></div>
+      <div class="achv"><div><div class="head">RHIDrawIndexDesc / RHIDispatchDesc가 자기 태그 대신 남의 태그를 씀.</div>
         <div class="sub"><code class="mono">eResourceType</code>은 9개 값(Buffer/Texture/Sampler/Shader/PipeLine/
           Layout/Target/Const/Pass)이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
           <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
-          <code class="mono">ePipeLine</code>을 그대로 재사용합니다 — Draw 커맨드와 VertexLayout이
-          <code class="mono">desc.type</code> 값만으로는 구분되지 않습니다.</div></div></div>
-      <div class="achv"><div><div class="head">PNGParser에는 실제로 타입이 어긋나는 버그가 있습니다.</div>
+          <code class="mono">ePipeLine</code>을 그대로 재사용함 — Draw Command와 VertexLayout이
+          <code class="mono">desc.type</code> 값만으로는 구분되지 않음.</div></div></div>
+      <div class="achv"><div><div class="head">PNGParser에는 타입이 어긋나는 버그가 있음.</div>
         <div class="sub"><code class="mono">stbi_load_from_memory</code>는 항상 8비트 데이터를 반환하는데,
           <code class="mono">componentType</code>은 소스에 따라 <code class="mono">eFloat</code>/
-          <code class="mono">eUInt</code>로 설정됩니다 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지
-          않습니다. sRGB 판별도 IHDR 바로 다음 청크 하나만 검사해서(스펙상 IDAT 전 어디든 올 수 있음) 코드 안
-          TODO로 부정확함이 남아 있습니다.</div></div></div>
+          <code class="mono">eUInt</code>로 설정됨 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지
+          않음. sRGB 판별도 IHDR 바로 다음 청크 하나만 검사해서(스펙상 IDAT 전 어디든 올 수 있음) 코드 안
+          TODO로 부정확함이 남아 있음.</div></div></div>
     </div>
   </section>
 
@@ -359,18 +359,18 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <tbody>
           <tr><td class="k">ECS / Memory(GC) / Reflection / Containers</td><td><span class="status-chip done">완료</span></td></tr>
           <tr><td class="k">World · Commander · Scene · 4-thread Worker 시스템</td><td><span class="status-chip done">완료</span></td></tr>
-          <tr><td class="k">RHI 레이어(OpenGL) · Command List · 트리플 버퍼링</td><td><span class="status-chip done">완료</span></td></tr>
-          <tr><td class="k">Proxy · MeshBatch 인스턴싱 · RenderGraph</td><td><span class="status-chip done">완료</span></td></tr>
-          <tr><td class="k">TransformPass(GPU 컴퓨트 TRS)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">RHI Layer(OpenGL) · Command List · 트리플 버퍼링</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">Proxy · MeshBatch Instancing · RenderGraph</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">TransformPass(GPU Compute TRS)</td><td><span class="status-chip done">완료</span></td></tr>
           <tr><td class="k">GeometryPass · LightingPass(Directional / Point / Spot)</td><td><span class="status-chip done">완료</span></td></tr>
-          <tr><td class="k">GBuffer Phong(UInt 텍스처 지원)</td><td><span class="status-chip done">완료</span></td></tr>
+          <tr><td class="k">GBuffer Phong(UInt Texture 지원)</td><td><span class="status-chip done">완료</span></td></tr>
           <tr><td class="k">Asset 시스템(3단계 비동기 파이프라인)</td><td><span class="status-chip done">완료</span></td></tr>
           <tr><td class="k">Directional 섀도우 매핑</td><td><span class="status-chip done">완료</span></td></tr>
-          <tr><td class="k">CullingPass</td><td><span class="status-chip progress">스텁 — pass-through</span></td></tr>
+          <tr><td class="k">CullingPass</td><td><span class="status-chip progress">Stub — pass-through</span></td></tr>
           <tr><td class="k">GC 전체 통합</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">Cascade 섀도우 맵</td><td><span class="status-chip progress">예정</span></td></tr>
           <tr><td class="k">Spot / Point 라이트 섀도우</td><td><span class="status-chip progress">예정</span></td></tr>
-          <tr><td class="k">Vulkan 백엔드(초기화 · 스왑체인 · 프레임 루프)</td><td><span class="status-chip progress">진행 중</span></td></tr>
+          <tr><td class="k">Vulkan 백엔드(초기화 · Swapchain · 프레임 루프)</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">물리 엔진</td><td><span class="status-chip progress">예정</span></td></tr>
         </tbody>
       </table>
@@ -408,7 +408,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     <h3 style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty flag race <span class="status-chip done">해결</span></h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">증상</div>
-        <div class="sub">같은 Transform을 공유하는 라이트와 메시를 가진 엔티티가, 첫 프레임 이후 둘 중 하나의
+        <div class="sub">같은 Transform을 공유하는 라이트와 메시를 가진 Entity가, 첫 프레임 이후 둘 중 하나의
           업데이트를 조용히 멈춤.</div></div></div>
       <div class="achv"><div><div class="head">원인</div>
         <div class="sub">Hash Storm 최적화의 <code class="mono">if (!IsDirty()) OnUpdate()</code> 가드가 공유
@@ -448,11 +448,11 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - 왜: 1920×1080에서 Position GBuffer(RGBA32F)만 프레임당 <b>~31MB</b>. Frostbite/UE4/5/CryEngine 전부
-          Position 채널을 버리고 Depth에서 역산합니다.<br>
+          Position 채널을 버리고 Depth에서 역산함.<br>
           - 어떻게: World → View → Clip → (÷w) → NDC → Depth 순서를 거꾸로 밟아 복원. 핵심은 Position이
           동차좌표에서 항상 <code class="mono">w=1</code>이라는 불변식.<br>
           - 사이트 GBuffer 스크린샷의 "Position" 채널도 실제로 저장되는 렌더 타깃이 아니라, 디버그 시각화
-          패스가 Depth로부터 그 자리에서 재구성한 것입니다.
+          Pass가 Depth로부터 그 자리에서 재구성한 것임.
         </div>
       </div>
       <div class="issue-card">
@@ -462,9 +462,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - 쿼터니언 샌드위치 곱 <code class="mono">q·v·q*</code>이 3×3 회전 행렬과 같다는 걸 직접 손으로 증명
-          — 곱 전개 → Rodrigues 형태 변환 → 벡터 연산을 행렬로 변환 → 쿼터니언 성분 대입, 4단계로 진행.<br>
-          - 라이브러리(GLM 등)가 이미 해주는 변환을 그대로 쓰지 않고, 왜 그 공식이 맞는지 끝까지 손으로
-          따라간 기록입니다.
+          — 곱 전개 → Rodrigues 형태 변환 → Vector 연산을 행렬로 변환 → 쿼터니언 성분 대입, 4단계로 진행.<br>
+          - Library(GLM 등)가 이미 해주는 변환을 그대로 쓰지 않고, 왜 그 공식이 맞는지 끝까지 손으로
+          따라간 기록임.
         </div>
       </div>
       <div class="issue-card">
@@ -474,12 +474,12 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - GLSL <code class="mono">reflect(I,N) = I - 2·dot(N,I)·N</code>가 교과서 공식과 부호만 다르다는 것,
-          그리고 <code class="mono">faceforward</code>로 normal을 뒤집어도 반사 벡터 자체는 바뀌지 않는다는 걸
+          그리고 <code class="mono">faceforward</code>로 normal을 뒤집어도 반사 Vector 자체는 바뀌지 않는다는 걸
           정리(NdotL 부호에만 영향).<br>
           - 라이트가 표면 안쪽에 있는 two-sided 케이스 3가지 방법을 비교: <code class="mono">abs(NdotL)</code>(specular
           방향이 틀어짐) → <code class="mono">faceforward</code>(diffuse만 고침) →
           <code class="mono">incidentDir</code> 보정(권장 — 입사 방향 자체를 표면 앞쪽으로 재계산). 이 세 번째
-          방법이 실제로 채택된 방향이고, engine.html의 "Point Light 입사 방향 아티팩트" 이슈와 이어집니다.<br>
+          방법이 실제로 채택된 방향이고, engine.html의 "Point Light 입사 방향 아티팩트" 이슈와 이어짐.<br>
           - 감쇠식은 <code class="mono">1/(d²+1)</code>로 <code class="mono">d→0</code> 발산을 막고,
           range 기반 falloff를 곱해 range 밖에서 매끄럽게 0이 되도록 함.
         </div>
@@ -490,11 +490,11 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <span class="issue-title"><a href="https://github.com/Winteradio/Game-Engine/issues/48" target="_blank" rel="noopener">Directional Light Shadow Mapping — 종합 정리</a></span>
         </div>
         <div class="issue-body">
-          - 2단계 섀도우 매핑(라이트 시점 Depth 렌더 → 라이팅 패스에서 비교) 기본기부터, 텍셀 스냅으로
+          - 2단계 섀도우 매핑(라이트 시점 Depth 렌더 → 라이팅 Pass에서 비교) 기본기부터, 텍셀 스냅으로
           시머링을 잡는 방법, depth bias가 Slope Bias에서 RPDB + Normal Offset으로 진화한 과정까지
           한 이슈에 정리.<br>
           - 여기서 정리한 NaN/acne/grazing 원인 분석이 실제로 site의 "섀도우 acne / NaN / 깜빡임" 이슈
-          해결로 이어졌습니다.
+          해결로 이어짐.
         </div>
       </div>
     </div>
@@ -505,57 +505,57 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <span class="section-num mono">08</span>
       <div>
         <h2 class="section-title display">결과물</h2>
-        <span class="section-tag">섀도우 매핑 · 디퍼드 렌더링 · 100만 인스턴스 최적화</span>
+        <span class="section-tag">섀도우 매핑 · Deferred Rendering · 100만 Instance 최적화</span>
       </div>
     </div>
 
-    <h3 style="font-size:16px;margin:0 0 10px;">성능 최적화 여정 — 100만 인스턴스 병목 추적기</h3>
+    <h3 style="font-size:16px;margin:0 0 10px;">성능 최적화 여정 — 100만 Instance 병목 추적기</h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 16px;">
       <a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>
-      한 건에서 한 달(2026-04-22 ~ 2026-05-23)에 걸쳐 실제로 있었던 일입니다 — 프로파일러로 병목을 찾고,
+      한 건에서 한 달(2026-04-22 ~ 2026-05-23)에 걸쳐 실제로 있었던 일임 — Profiler로 병목을 찾고,
       고치고, 중간에 리팩토링으로 오히려 성능이 떨어지기도 하고, 다시 고치고, 다음 병목을 찾는 과정을 그대로
-      옮겼습니다.
+      옮김.
     </p>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">1) 3만 인스턴스 회전 — Render Thread가 scalar GLM 행렬 곱에 발목잡힘.</div>
-        <div class="sub">플레임그래프에서 <code class="mono">SceneProxy::UpdateRotation → UpdateTransform →
+      <div class="achv"><div><div class="head">1) 3만 Instance 회전 — Render Thread가 scalar GLM 행렬 곱에 발목잡힘.</div>
+        <div class="sub">Flame Graph에서 <code class="mono">SceneProxy::UpdateRotation → UpdateTransform →
           glm::detail::mul4x4</code>가 압도적 1위. GLM이 SIMD 없이 컴파일돼서 mat4×mat4가 전부 스칼라 루프로
-          도는 게 원인이었습니다.</div></div></div>
+          도는 게 원인이었음.</div></div></div>
     </div>
     <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/216b6f9b-b7e4-4f54-960e-c5ae26cae5d2" alt="플레임그래프 — glm::detail::mul4x4 병목" loading="lazy">
-      <figcaption class="mono"><span><b>플레임그래프</b> — glm::detail::mul4x4가 Render Thread 예산을 대부분 잡아먹음</span></figcaption>
+      <img src="https://github.com/user-attachments/assets/216b6f9b-b7e4-4f54-960e-c5ae26cae5d2" alt="Flame Graph — glm::detail::mul4x4 병목" loading="lazy">
+      <figcaption class="mono"><span><b>Flame Graph</b> — glm::detail::mul4x4가 Render Thread 예산을 대부분 잡아먹음</span></figcaption>
     </figure>
     <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/f82b5884-7186-4799-b5f2-c91505c53fe0" alt="RHI 워커는 병목이 아님을 확인한 프로파일 스크린샷" loading="lazy">
+      <img src="https://github.com/user-attachments/assets/f82b5884-7186-4799-b5f2-c91505c53fe0" alt="RHI Worker는 병목이 아님을 확인한 프로파일 스크린샷" loading="lazy">
       <figcaption class="mono"><span><b>프로파일링으로 배제</b> — RHIWorker 자체는 원인이 아니었음을 확인</span></figcaption>
     </figure>
     <div class="achv-list">
       <div class="achv"><div><div class="head">2) 리팩토링 중 오히려 후퇴 — ISM 도입 과정에서 성능이 10배 나빠짐.</div>
         <div class="sub">Unreal의 <code class="mono">FInstancedStaticMeshSceneProxy</code>를 참고해 InstancedStaticMeshProxy
           개념을 도입하던 중, 이전 엔진이 <b>100만 개 @ 20 FPS</b>(Release)를 버텼던 반면 리팩토링 직후 버전은
-          <b>10만 개에서야 20 FPS</b>로 오히려 후퇴했습니다 — 리팩토링이 항상 개선을 보장하지 않는다는 걸 프로파일러가
-          바로 알려준 사례입니다.</div></div></div>
+          <b>10만 개에서야 20 FPS</b>로 오히려 후퇴함 — 리팩토링이 항상 개선을 보장하지 않는다는 걸 Profiler가
+          바로 알려준 사례임.</div></div></div>
     </div>
     <figure class="gif-embed">
       <img src="https://github.com/user-attachments/assets/07db348b-e48a-4199-af2b-be8fc3e90cfe" alt="ISM 리팩토링 직후, 10만 큐브에서 20fps로 후퇴한 프로파일 스크린샷" loading="lazy">
       <figcaption class="mono"><span><b>회귀 확인</b> — ISM 리팩토링 직후, 10만 개에서 이미 20 FPS까지 하락</span></figcaption>
     </figure>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">3) TransformPass로 회복 + 그 이상 — TRS 행렬 계산을 GPU 컴퓨트 셰이더로 완전히 이전.</div>
-        <div class="sub">기존에는 MeshBatch 안에서 인스턴스마다 CPU로 Translation×Rotation×Scale 행렬을 만들었는데,
-          이제 <code class="mono">local_size_x = 64</code> 컴퓨트 셰이더가 RawTransform SSBO(위치·쿼터니언·스케일)를
-          읽어 Transform SSBO(mat4)로 계산합니다. 결과: <b>Debug 10만 개 안정 20 FPS</b>(리팩토링 전에는 3만 개에서도
+      <div class="achv"><div><div class="head">3) TransformPass로 회복 + 그 이상 — TRS 행렬 계산을 GPU Compute Shader로 완전히 이전.</div>
+        <div class="sub">기존에는 MeshBatch 안에서 Instance마다 CPU로 Translation×Rotation×Scale 행렬을 만들었는데,
+          이제 <code class="mono">local_size_x = 64</code> Compute Shader가 RawTransform SSBO(위치·쿼터니언·스케일)를
+          읽어 Transform SSBO(mat4)로 계산함. 결과: <b>Debug 10만 개 안정 20 FPS</b>(리팩토링 전에는 3만 개에서도
           10 FPS 밑으로 떨어졌음), <b>Release 50만 개 ~15 FPS</b>.</div></div></div>
-      <div class="achv"><div><div class="head">4) 다음 병목까지 찾아둠 — HashTable::Rehash의 임시 배열이 프록시 등록 시 힙 할당을 유발.</div>
-        <div class="sub">행렬 계산 병목이 풀리자 프로파일러가 다음으로 <code class="mono">HashTable::Rehash</code> 내부의
-          임시 <code class="mono">DynamicArray</code> 생성을 새 할당 핫스팟으로 지목했습니다. 다음 단계로 대량 삽입 전에
-          예상 용량만큼 <code class="mono">Reserve</code>를 미리 호출해서 핫 패스에서 Rehash 자체를 없애는 방향을
-          이슈에 남겨뒀습니다.</div></div></div>
+      <div class="achv"><div><div class="head">4) 다음 병목까지 찾아둠 — HashTable::Rehash의 임시 배열이 Proxy 등록 시 힙 할당을 유발.</div>
+        <div class="sub">행렬 계산 병목이 풀리자 Profiler가 다음으로 <code class="mono">HashTable::Rehash</code> 내부의
+          임시 <code class="mono">DynamicArray</code> 생성을 새 할당 Hotspot으로 지목함. 다음 단계로 대량 삽입 전에
+          예상 용량만큼 <code class="mono">Reserve</code>를 미리 호출해서 Hot Path에서 Rehash 자체를 없애는 방향을
+          이슈에 남겨둠.</div></div></div>
     </div>
     <figure class="gif-embed">
       <img src="https://github.com/user-attachments/assets/14fff8b7-0171-4dc6-a8f6-07c3c6357134" alt="TransformPass 도입 이후 HashTable::Rehash가 새 병목으로 나타난 프로파일 스크린샷" loading="lazy">
-      <figcaption class="mono"><span><b>다음 타겟</b> — HashTable::Rehash가 새로운 할당 핫스팟으로 떠오름</span></figcaption>
+      <figcaption class="mono"><span><b>다음 타겟</b> — HashTable::Rehash가 새로운 할당 Hotspot으로 떠오름</span></figcaption>
     </figure>
 
     <figure class="gif-embed">
@@ -564,8 +564,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">100만 큐브 원본(112MB) →</a></figcaption>
     </figure>
     <figure class="gif-embed">
-      <img src="assets/deferred-rendering.gif" alt="디퍼드 렌더링 파이프라인 데모" loading="lazy">
-      <figcaption class="mono"><span><b>디퍼드 렌더링</b> — Geometry → Lighting, 전체 파이프라인</span></figcaption>
+      <img src="assets/deferred-rendering.gif" alt="Deferred Rendering 파이프라인 데모" loading="lazy">
+      <figcaption class="mono"><span><b>Deferred Rendering</b> — Geometry → Lighting, 전체 파이프라인</span></figcaption>
     </figure>
     <figure class="gif-embed">
       <img src="assets/fixed_shadow_shimmering.gif" alt="섀도우 시머링 수정, 텍셀 스냅, 카메라 이동 중" loading="lazy">
@@ -573,8 +573,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     </figure>
 
     <div class="achv-list" style="margin-top:20px;">
-      <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었습니다.</div>
-        <div class="sub">100만 인스턴스에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
+      <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었음.</div>
+        <div class="sub">100만 Instance에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
           <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
     </div>
   </section>
@@ -594,17 +594,17 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/52" target="_blank" rel="noopener">#52</a> · Renderer/LightingPass.cpp:64-65, 160-185</span>
-          <span class="issue-title">라이트가 여러 개면 마지막 라이트만 남는 블렌딩 버그</span>
+          <span class="issue-title">라이트가 여러 개면 마지막 라이트만 남는 Blending 버그</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#52">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - 증상: 라이트 하나당 풀스크린 쿼드를 한 번씩 그리는 구조라, 라이트가 여러 개면 화면엔 가장
-          마지막에 그려진 라이트만 남습니다(누적이 안 됨).<br>
+          - 증상: 라이트 하나당 풀스크린 Quad를 한 번씩 그리는 구조라, 라이트가 여러 개면 화면엔 가장
+          마지막에 그려진 라이트만 남음(누적이 안 됨).<br>
           - 원인: <code class="mono">GetPipeLine()</code>이 채우는 <code class="mono">RHIPipeLineCreateDesc</code>의
-          <code class="mono">blend</code> 필드가 끝까지 비어 있습니다. 로컬로 <code class="mono">RHIBlendState
-          blendState; blendState.enable = false;</code>를 선언은 하지만 어디에도 대입·전달되지 않는 죽은 코드입니다.<br>
-          - 개선 방향: additive 블렌딩(<code class="mono">ONE, ONE</code>)을 <code class="mono">desc.blend</code>에
-          연결해야 합니다. 라이트가 하나뿐인 데모/스크린샷에서는 드러나지 않아서 지금까지 남아있었던 것 같습니다.
+          <code class="mono">blend</code> 필드가 끝까지 비어 있음. 로컬로 <code class="mono">RHIBlendState
+          blendState; blendState.enable = false;</code>를 선언은 하지만 어디에도 대입·전달되지 않는 죽은 코드임.<br>
+          - 개선 방향: Additive Blending(<code class="mono">ONE, ONE</code>)을 <code class="mono">desc.blend</code>에
+          연결해야 함. 라이트가 하나뿐인 데모/스크린샷에서는 드러나지 않아서 지금까지 남아있었던 것으로 보임.
         </div>
       </div>
       <div class="issue-card">
@@ -616,8 +616,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <div class="issue-body">
           - <code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
           <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
-          만들어 <code class="mono">m_assetWorker</code>를 덮어씁니다. 두 번째 인스턴스가 정상 동작해서 당장 문제는
-          없지만, 첫 번째가 만든 스레드/리소스가 조용히 새는 초기화 순서 버그입니다.
+          만들어 <code class="mono">m_assetWorker</code>를 덮어씀. 두 번째 Instance가 정상 동작해서 당장 문제는
+          없지만, 첫 번째가 만든 Thread/Resource가 조용히 새는 초기화 순서 버그임.
         </div>
       </div>
       <div class="issue-card">
@@ -627,12 +627,12 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#54">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서 설정한
-          <code class="mono">m_status = eClosed</code>가 곧바로 eActive로 되돌아갑니다.<br>
-          - 실제 종료는 이 상태값이 아니라 close 콜백 → <code class="mono">Engine::Shutdown()</code> →
+          - WndProc의 switch 문에 case 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서 설정한
+          <code class="mono">m_status = eClosed</code>가 곧바로 eActive로 되돌아감.<br>
+          - 실제 종료는 이 상태값이 아니라 close Callback → <code class="mono">Engine::Shutdown()</code> →
           <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
-          별개 경로로 이루어집니다. 종료 자체는 되지만, <code class="mono">GetStatus()</code>를 신뢰하는 코드가
-          있다면 오작동합니다.
+          별개 경로로 이루어짐. 종료 자체는 되지만, <code class="mono">GetStatus()</code>를 신뢰하는 코드가
+          있다면 오작동함.
         </div>
       </div>
       <div class="issue-card">
@@ -644,8 +644,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <div class="issue-body">
           - <code class="mono">eResourceType</code>은 9개 값이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
           자기 것 대신 <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
-          <code class="mono">ePipeLine</code>을 그대로 재사용합니다. 지금은 이 필드로 타입을 분기하는 코드가 없어서
-          조용히 묻혀 있습니다.
+          <code class="mono">ePipeLine</code>을 그대로 재사용함. 지금은 이 필드로 타입을 분기하는 코드가 없어서
+          조용히 묻혀 있음.
         </div>
       </div>
       <div class="issue-card">
@@ -657,8 +657,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <div class="issue-body">
           - <code class="mono">stbi_load_from_memory</code>는 항상 8비트를 반환하는데,
           <code class="mono">componentType</code>은 <code class="mono">eFloat</code>/<code class="mono">eUInt</code>로
-          설정됩니다 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지 않습니다. sRGB 판별도 IHDR 바로 다음
-          청크 하나만 검사해서 오탐/누락 여지가 있습니다(코드 안에 TODO로 남아 있음).
+          설정됨 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지 않음. sRGB 판별도 IHDR 바로 다음
+          청크 하나만 검사해서 오탐/누락 여지가 있음(코드 안에 TODO로 남아 있음).
         </div>
       </div>
       <div class="issue-card">
@@ -668,10 +668,10 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#57">버그(경미) · 미수정</span>
         </div>
         <div class="issue-body">
-          - 태스크를 실행한 뒤 <code class="mono">execute->~RenderTask()</code>를 호출하고 바로 다음 줄에서
-          <code class="mono">execute->next</code>를 읽습니다. <code class="mono">next</code>가 trivial한 raw
+          - Task를 실행한 뒤 <code class="mono">execute->~RenderTask()</code>를 호출하고 바로 다음 줄에서
+          <code class="mono">execute->next</code>를 읽음. <code class="mono">next</code>가 trivial한 raw
           pointer라 지금은 문제없이 동작하지만, 엄밀히는 정의되지 않은 동작이라 공격적인 최적화나 sanitizer
-          환경에서 깨질 수 있습니다.
+          환경에서 깨질 수 있음.
         </div>
       </div>
       <div class="issue-card">
@@ -682,10 +682,10 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - <code class="mono">vkCreateBuffer()</code>를 인자 없이 호출하고, 끝에 매달린
-          <code class="mono">VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;</code> 구문이 그대로 남아 있습니다.<br>
+          <code class="mono">VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;</code> 구문이 그대로 남아 있음.<br>
           - <code class="mono">VulkanMemory::CreateBlock</code>도 <code class="mono">memoryType</code>과
-          <code class="mono">blockSize</code> 인자가 호출부에서 뒤바뀐 것으로 보입니다 — Vulkan 백엔드가
-          한창 작업 중이라 당연히 있을 수 있는 상태입니다.
+          <code class="mono">blockSize</code> 인자가 호출부에서 뒤바뀐 것으로 보임 — Vulkan 백엔드가
+          한창 작업 중이라 당연히 있을 수 있는 상태임.
         </div>
       </div>
       <div class="issue-card">
@@ -696,25 +696,25 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - <code class="mono">if (!glPipeLine || glPipeLine-&gt;GetID() == GL_NONE)</code> 분기 안에서
-          <code class="mono">glPipeLine-&gt;GetID()</code>를 바로 호출합니다 — <code class="mono">glPipeLine</code>이
-          null이면 그 자리에서 크래시입니다.<br>
-          - 조건 자체도 다른 모든 <code class="mono">Flush*</code> 함수와 반대입니다: ID가 이미
+          <code class="mono">glPipeLine-&gt;GetID()</code>를 바로 호출함 — <code class="mono">glPipeLine</code>이
+          null이면 그 자리에서 크래시임.<br>
+          - 조건 자체도 다른 모든 <code class="mono">Flush*</code> 함수와 반대임: ID가 이미
           <code class="mono">GL_NONE</code>인(할 게 없는) 경우에만 <code class="mono">glDeleteProgram</code>을
-          부르고, 실제로 지워야 할 유효한 프로그램은 절대 안 지워집니다 — 파이프라인을 만들 때마다 GL 프로그램
-          객체가 영구적으로 leak됩니다.
+          부르고, 실제로 지워야 할 유효한 프로그램은 절대 안 지워짐 — 파이프라인을 만들 때마다 GL 프로그램
+          객체가 영구적으로 leak됨.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/59" target="_blank" rel="noopener">#59</a> · RHI/OpenGL/GLSystem.cpp:639-650</span>
-          <span class="issue-title">InitializeTexture 실패 후 return이 없어서 삭제된 텍스처가 "준비됨"으로 표시됨</span>
+          <span class="issue-title">InitializeTexture 실패 후 return이 없어서 삭제된 Texture가 "준비됨"으로 표시됨</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#59">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - 실패 시 텍스처를 삭제하고 <code class="mono">eError</code> 상태를 설정한 뒤에도
+          - 실패 시 Texture를 삭제하고 <code class="mono">eError</code> 상태를 설정한 뒤에도
           <code class="mono">return</code>이 없어서, 바로 다음 줄의
           <code class="mono">glTexture-&gt;SetID(textureID)</code>/<code class="mono">SetState(eReady)</code>가
-          그대로 실행됩니다 — 방금 삭제한(더 이상 유효하지 않은) GL 텍스처 이름을 "준비됨" 상태로 표시해버립니다.
+          그대로 실행됨 — 방금 삭제한(더 이상 유효하지 않은) GL Texture 이름을 "준비됨" 상태로 표시해버림.
         </div>
       </div>
       <div class="issue-card">
@@ -725,10 +725,10 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - <code class="mono">InitializeRenderPass</code>/<code class="mono">SetRenderPass</code>/<code class="mono">UnsetRenderPass</code>가
-          전부 빈 함수이고, <code class="mono">GLRenderPass</code>엔 GL 오브젝트 자체가 없습니다.
+          전부 빈 함수이고, <code class="mono">GLRenderPass</code>엔 GL 오브젝트 자체가 없음.
           <code class="mono">FlushRenderPass</code>/<code class="mono">RemoveRenderPass</code>도 없어서
-          <code class="mono">m_pendingRenderPasses</code>가 선언만 되어 있고 아무도 채우거나 비우지 않습니다 —
-          RenderPass RefPtr이 있다면 그것도 영구 leak입니다.
+          <code class="mono">m_pendingRenderPasses</code>가 선언만 되어 있고 아무도 채우거나 비우지 않음 —
+          RenderPass RefPtr이 있다면 그것도 영구 leak임.
         </div>
       </div>
       <div class="issue-card">
@@ -741,10 +741,10 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           - 새로 들어온 <code class="mono">rotation</code> 인자와 현재 값을 비교하려고
           <code class="mono">eulerAngles</code>를 뽑아놓고는, 실제 대입은
           <code class="mono">transform.rotation = glm::quat(eulerAngles)</code> — 새 값이 아니라 방금 분해한
-          <b>기존 값</b>으로 다시 씁니다. 복붙하다 인자를 놓친 것으로 보이는 명백한 버그로, 같은 파일의
+          <b>기존 값</b>으로 다시 씀. 복붙하다 인자를 놓친 것으로 보이는 명백한 버그로, 같은 파일의
           <code class="mono">TransformComponent::UpdateRotation</code>과
-          <code class="mono">SceneProxy::UpdateRotation</code>은 둘 다 맞게 새 값을 대입합니다. 이 오버로드는
-          지금 Camera 경로에서는 안 쓰이지만, 인스턴싱 메시의 개별 회전 갱신 경로에서 조용히 no-op이 됩니다.
+          <code class="mono">SceneProxy::UpdateRotation</code>은 둘 다 맞게 새 값을 대입함. 이 오버로드는
+          지금 Camera 경로에서는 안 쓰이지만, Instancing 메시의 개별 회전 갱신 경로에서 조용히 no-op이 됨.
         </div>
       </div>
     </div>
@@ -756,15 +756,15 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">Renderer/RenderPass/CullingPass.cpp, culling.cs.glsl</span>
-          <span class="issue-title">CullingPass는 리소스 배선만 되어 있는 스텁</span>
+          <span class="issue-title">CullingPass는 Resource 배선만 되어 있는 Stub</span>
           <span class="issue-state closed mono">미구현</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Draw()</code>는 상태 체크만 하고 항상 true 반환,
-          <code class="mono">GetResourceState()</code>도 항상 eReady로 하드코딩. 카메라/인다이렉트 드로우
-          버퍼/가시성 버퍼/AABB 버퍼를 바인딩하는 <code class="mono">SetCommand()</code>는 이미 있어서, 나중에
-          실제 컬링 로직만 끼워넣으면 됩니다. <code class="mono">culling.cs.glsl</code>은 이름과 달리 실제로는
-          compute가 아니라 vertex 셰이더 내용입니다.
+          <code class="mono">GetResourceState()</code>도 항상 eReady로 하드코딩. 카메라/Indirect Draw Buffer/
+          가시성 Buffer/AABB Buffer를 바인딩하는 <code class="mono">SetCommand()</code>는 이미 있어서, 나중에
+          실제 Culling 로직만 끼워넣으면 됨. <code class="mono">culling.cs.glsl</code>은 이름과 달리 실제로는
+          Compute가 아니라 Vertex Shader 내용임.
         </div>
       </div>
       <div class="issue-card">
@@ -774,7 +774,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <span class="issue-state closed mono">미구현</span>
         </div>
         <div class="issue-body">
-          - 두 파일 다 0바이트, 클래스 선언조차 없습니다. 시작조차 안 한 자리표시자입니다.
+          - 두 파일 다 0바이트, Class 선언조차 없음. 시작조차 안 한 자리표시자임.
         </div>
       </div>
       <div class="issue-card">
@@ -785,8 +785,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - <code class="mono">struct WorldCommand {};</code> 정도만 있고 <code class="mono">WorldContext::Prepare()</code>는
-          그냥 <code class="mono">// TODO</code>입니다. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
-          흐르고 있어서, 설계 초기의 흔적으로 보입니다.
+          그냥 <code class="mono">// TODO</code>임. World→Renderer 트래픽은 전부 Commander/RenderCommandList로만
+          흐르고 있어서, 설계 초기의 흔적으로 보임.
         </div>
       </div>
       <div class="issue-card">
@@ -797,8 +797,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         </div>
         <div class="issue-body">
           - 실제 <code class="mono">eAssetState</code>는 <code class="mono">eNone / eError / eLoaded /
-          eExpried(오타, Expired가 맞음) / eDirty</code>뿐입니다. GPU 업로드 이후 별도 상태 전이가 없어서,
-          준비 여부는 상태값이 아니라 texture/buffer/shader 포인터가 non-null인지로 판단합니다.
+          eExpried(오타, Expired가 맞음) / eDirty</code>뿐임. GPU 업로드 이후 별도 상태 전이가 없어서,
+          준비 여부는 상태값이 아니라 texture/buffer/shader Pointer가 non-null인지로 판단함.
         </div>
       </div>
     </div>
@@ -814,7 +814,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부임. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>

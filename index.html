@@ -32,11 +32,11 @@
 
   <section class="hero">
     <span class="eyebrow"><span class="dot"></span>그래픽스 / 렌더링 엔지니어</span>
-    <h1 class="title display">구조 짜는 걸<br>좋아하는 <span class="accent">엔지니어</span>입니다</h1>
+    <h1 class="title display">구조 짜는 걸<br>좋아하는 <span class="accent">엔지니어</span></h1>
     <p class="subhead">
-      본업인 그래픽스 엔지니어 일과 병행해서, 몇 년째 혼자 C++ 엔진을 만들고 있습니다. 엔티티-컴포넌트,
-      메모리 풀, 리플렉션, 컨테이너까지 전부 밑바닥부터 짰고, 각각 따로 저장소를 두고 이슈까지 공개로
-      관리합니다. 뭐가 어떻게 왜 그렇게 동작하는지 끝까지 알고 싶어서 하는 일입니다.
+      본업인 그래픽스 엔지니어 일과 병행해서, 몇 년째 혼자 C++ 엔진을 만드는 중. Entity-Component,
+      Memory Pool, Reflection, Container까지 전부 밑바닥부터 짰고, 각각 따로 저장소를 두고 이슈까지 공개로
+      관리함. 뭐가 어떻게 왜 그렇게 동작하는지 끝까지 알고 싶어서 하는 일.
     </p>
     <div class="contact-strip mono">
       <span>📍 서울 광진구</span>
@@ -58,11 +58,11 @@
       <table class="spec">
         <tbody>
           <tr><td class="k" style="width:170px;">엔진 아키텍처</td>
-            <td>멀티스레드 렌더링(4-thread) · RHI 추상화 · Descriptor 기반 API · RenderPass + Proxy /
+            <td>Multi-thread 렌더링(4-thread) · RHI 추상화 · Descriptor 기반 API · RenderPass + Proxy /
               MeshDrawCommand · ECS(Node · System · Graph)</td></tr>
           <tr><td class="k">C++ 시스템</td>
-            <td>C++17/20 · 커스텀 할당자(Pool · Array · LinearArena) · Mark-and-Sweep GC · 런타임 리플렉션
-              (TMP/SFINAE) · STL-free 컨테이너(Robin Hood HashMap)</td></tr>
+            <td>C++17/20 · 커스텀 Allocator(Pool · Array · LinearArena) · Mark-and-Sweep GC · 런타임 Reflection
+              (TMP/SFINAE) · STL-free Container(Robin Hood HashMap)</td></tr>
           <tr><td class="k">그래픽스 API</td>
             <td>OpenGL ES · GLSL · RenderDoc · NSight Graphics</td></tr>
         </tbody>
@@ -86,10 +86,10 @@
             <div class="org">현대오토에버</div>
             <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">MVT Rendering Architecture — Paint/Layout 로직 분리, 레이어 타입별(Fill·Line·Fill-Extrusion·Symbol) 파이프라인 구축.</div></div></div>
+              <div class="achv"><div><div class="head">MVT Rendering Architecture — Paint/Layout 로직 분리, Layer 타입별(Fill·Line·Fill-Extrusion·Symbol) Pipeline 구축.</div></div></div>
               <div class="achv"><div><div class="head">Style 타입별 VBO 통합 → Draw Call 90%+ 감소 / Ear Clipping 동적 할당 → Static Memory Pool 교체 → Frame-time Spike 제거.</div></div></div>
-              <div class="achv"><div><div class="head">glTF·KTX 파이프라인 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑ / GPU 기반 Skinning Shader 개발.</div></div></div>
-              <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 레이어 구현.</div></div></div>
+              <div class="achv"><div><div class="head">glTF·KTX Pipeline 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑ / GPU 기반 Skinning Shader 개발.</div></div></div>
+              <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 Layer 구현.</div></div></div>
             </div>
           </div>
         </div>
@@ -122,18 +122,18 @@
       <span class="section-num mono">03</span>
       <div>
         <h2 class="section-title display">사이드 프로젝트</h2>
-        <span class="section-tag">직접 만든 C++ 엔진, 시스템 하나당 페이지 하나로 나눴습니다</span>
+        <span class="section-tag">직접 만든 C++ 엔진, 시스템 하나당 페이지 하나로 나눔</span>
       </div>
     </div>
     <div class="project-grid">
       <a class="project-card" href="engine.html">
         <span class="tag mono">01 · 개발 중</span>
-        <span><span class="name">Game Engine</span><br><span class="desc">4-thread 아키텍처, 디퍼드 렌더링 — GPU 컴퓨트로 100만 인스턴스, 최적화로 5.4→22 FPS.</span></span>
+        <span><span class="name">Game Engine</span><br><span class="desc">4-thread 아키텍처, Deferred Rendering — GPU 컴퓨트로 100만 Instance, 최적화로 5.4→22 FPS.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="ecs.html">
         <span class="tag mono">02</span>
-        <span><span class="name">ECS</span><br><span class="desc">Node 기반 필터링과 의존성 그래프로 실행 순서를 정하는 엔티티 컴포넌트 시스템.</span></span>
+        <span><span class="name">ECS</span><br><span class="desc">Node 기반 필터링과 의존성 Graph로 실행 순서를 정하는 Entity Component 시스템.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="memory.html">
@@ -148,14 +148,14 @@
       </a>
       <a class="project-card" href="container.html">
         <span class="tag mono">05</span>
-        <span><span class="name">Container</span><br><span class="desc">STL-free DynamicArray, Robin Hood HashMap(std::unordered_map 대비 삽입 1.72배), TLSF 서브 할당자.</span></span>
+        <span><span class="name">Container</span><br><span class="desc">STL-free DynamicArray, Robin Hood HashMap(std::unordered_map 대비 삽입 1.72배), TLSF 서브 Allocator.</span></span>
         <span class="go">→</span>
       </a>
     </div>
     <p class="foot-line" style="margin-top:18px;">
-      이 포트폴리오를 쓰면서 다섯 프로젝트의 소스를 처음부터 다시 읽었습니다. 각 페이지에는 핵심 내용
+      이 포트폴리오를 쓰면서 다섯 프로젝트의 소스를 처음부터 다시 읽음. 각 페이지에는 핵심 내용
       다음에 장점/아쉬운 점을 먼저 정리해뒀고, 그 과정에서 찾은 버그는 GitHub 이슈와 따로 "버그" 섹션에
-      펼쳐보기 형태로 모아뒀습니다.
+      펼쳐보기 형태로 모아둠.
     </p>
   </section>
 
@@ -200,7 +200,7 @@
 <footer id="contact">
   <div class="wrap foot-grid">
     <p class="foot-line">
-      그래픽스/렌더링 엔지니어 포지션을 찾고 있습니다. 위 저장소는 전부 공개되어 있고, 이슈까지 그대로 볼 수 있습니다.
+      그래픽스/렌더링 엔지니어 포지션을 찾는 중. 위 저장소는 전부 공개되어 있고, 이슈까지 그대로 볼 수 있음.
     </p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>

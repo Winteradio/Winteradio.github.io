@@ -35,8 +35,8 @@
     <span class="eyebrow"><span class="dot"></span>프로젝트 03 · 독립 저장소</span>
     <h1 class="title display">Memory <span class="accent">Pool &amp; GC</span></h1>
     <p class="subhead">
-      Unreal Engine의 가비지 컬렉터를 참고한 Mark-and-Sweep 방식이며, 사이클이 중간에 멈췄다가 이어서
-      재개될 수 있도록 시간 예산을 두고 있습니다.
+      Unreal Engine의 Garbage Collector를 참고한 Mark-and-Sweep 방식 — Cycle이 중간에 멈췄다가 이어서
+      재개될 수 있도록 시간 예산을 둠.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/MemoryPool" target="_blank" rel="noopener">github.com/Winteradio/MemoryPool</a>
@@ -60,47 +60,47 @@
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">상태 하나가 전체 사이클을 이끕니다.</div>
-        <div class="sub"><code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code> 하나의
-          <code class="mono">eStatus</code>가 전부 결정합니다. 각 단계가 빨리 끝나면 <code class="mono">Collect()</code>
-          한 번 호출로 여러 단계를 연속으로 통과할 수 있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">시간 예산은 정확히 Purge 단계에만 적용됩니다.</div>
-        <div class="sub">Mark와 Sweep은 항상 한 번에 끝까지 돕니다. 죽은 객체를 파괴하고 슬롯을 반환하는
-          <code class="mono">Purge()</code>만 객체 단위로 시간을 체크하고, 부족하면 중간에 멈췄다가 다음
-          <code class="mono">Collect()</code>에서 그 지점부터 이어갑니다.</div></div></div>
-      <div class="achv"><div><div class="head">Compaction은 실수로 빠진 게 아니라 의도적으로 뺐습니다.</div>
-        <div class="sub">Accessor(객체 메타데이터)가 별도 핸들 테이블이 아니라 각 인스턴스 자신의 헤더 바로
-          앞에 있어서, 객체를 옮기면 그 객체를 가리키는 모든 포인터를 찾아 다시 써야 합니다. 대신 버킷 점유율
-          기반 할당 정책으로 단편화를 관리합니다.</div></div></div>
+      <div class="achv"><div><div class="head">상태 하나가 전체 Cycle을 이끎.</div>
+        <div class="sub"><code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code>, <code class="mono">eStatus</code>
+          하나가 전부 결정. 각 단계가 빨리 끝나면 <code class="mono">Collect()</code>
+          한 번 호출로 여러 단계를 연속으로 통과할 수 있음.</div></div></div>
+      <div class="achv"><div><div class="head">시간 예산은 정확히 Purge 단계에만 적용됨.</div>
+        <div class="sub">Mark와 Sweep은 항상 한 번에 끝까지 돎. 죽은 객체를 파괴하고 슬롯을 반환하는
+          <code class="mono">Purge()</code>만 객체 단위로 시간을 체크 — 부족하면 중간에 멈췄다가 다음
+          <code class="mono">Collect()</code>에서 그 지점부터 이어감.</div></div></div>
+      <div class="achv"><div><div class="head">Compaction은 실수로 빠진 게 아니라 의도적으로 뺌.</div>
+        <div class="sub">Accessor(객체 메타데이터)가 별도 Handle Table이 아니라 각 Instance 자신의 헤더 바로
+          앞에 있음 — 객체를 옮기면 그 객체를 가리키는 모든 Pointer를 찾아 다시 써야 함. 대신 버킷 점유율
+          기반 할당 정책으로 단편화를 관리.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">시간 예산 안에서 멈췄다 재개할 수 있습니다.</div>
-        <div class="sub">Purge가 객체 단위로 시간을 체크해서, 큰 GC 사이클이 한 프레임에 몰려 스파이크를
-          만드는 걸 구조적으로 막습니다.</div></div></div>
-      <div class="achv"><div><div class="head">Compaction 없이도 단편화를 관리하는 근거가 있습니다.</div>
-        <div class="sub">Accessor가 인라인이라 포인터 하나로 메타데이터에 접근하는 대신 이동이 불가능한데,
+      <div class="achv"><div><div class="head">시간 예산 안에서 멈췄다 재개할 수 있음.</div>
+        <div class="sub">Purge가 객체 단위로 시간을 체크 — 큰 GC Cycle이 한 프레임에 몰려 Spike를
+          만드는 걸 구조적으로 막음.</div></div></div>
+      <div class="achv"><div><div class="head">Compaction 없이도 단편화를 관리하는 근거가 있음.</div>
+        <div class="sub">Accessor가 인라인이라 Pointer 하나로 메타데이터에 접근하는 대신 이동이 불가능 —
           그 트레이드오프를 버킷 점유율 기반 할당 정책(eSparse~eFull)으로 보완한다는 설계 근거가 문서화되어
-          있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">Root set은 스레드 안전합니다.</div>
-        <div class="sub"><code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 뮤텍스로
-          보호되어 있어서, 최소한 "이 객체가 GC 대상에서 제외됐는지"는 여러 스레드에서 안전하게 확인할 수
-          있습니다.</div></div></div>
+          있음.</div></div></div>
+      <div class="achv"><div><div class="head">Root set은 Thread 안전함.</div>
+        <div class="sub"><code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 Mutex로
+          보호되어 있음 — 최소한 "이 객체가 GC 대상에서 제외됐는지"는 여러 Thread에서 안전하게 확인
+          가능.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">스레드 안전성이 root set에서 멈춰 있습니다.</div>
-        <div class="sub">Accessor의 마킹 상태와 각 Pool의 리스트는 뮤텍스 보호 밖이라(이슈 #16), 컬렉터
-          스레드와 mutator 스레드가 실제로 경합하면 크래시로 이어질 수 있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">종료 시점 정리가 조건부로 스킵됩니다.</div>
+      <div class="achv"><div><div class="head">Thread 안전성이 root set에서 멈춰 있음.</div>
+        <div class="sub">Accessor의 마킹 상태와 각 Pool의 List는 Mutex 보호 밖(이슈 #16) — Collector
+          Thread와 mutator Thread가 경합하면 Crash로 이어질 수 있음.</div></div></div>
+      <div class="achv"><div><div class="head">종료 시점 정리가 조건부로 스킵됨.</div>
         <div class="sub"><code class="mono">PoolBudget::~PoolBudget()</code>이 버킷 하나만 비어 있어도
-          <code class="mono">Release()</code> 전체를 건너뛰어서, 실제로는 대부분의 종료 상황에서 살아있는
-          Pool과 arena가 그냥 새어나갑니다.</div></div></div>
-      <div class="achv"><div><div class="head">write barrier가 없습니다.</div>
-        <div class="sub">새 객체가 "흰색"으로 태어나는데 이미 마킹을 마친 부모 그래프에 연결됐을 때 강제로
-          살아있다고 표시할 장치가 없어서, 이론상 생성된 바로 그 사이클에 수거될 수 있는 경로가 존재합니다.</div></div></div>
+          <code class="mono">Release()</code> 전체를 건너뜀 — 대부분의 종료 상황에서 살아있는
+          Pool과 arena가 그냥 새어나감.</div></div></div>
+      <div class="achv"><div><div class="head">write barrier가 없음.</div>
+        <div class="sub">새 객체가 "흰색"으로 태어나는데 이미 마킹을 마친 부모 Graph에 연결됐을 때 강제로
+          살아있다고 표시할 장치가 없음 — 이론상 생성된 바로 그 Cycle에 수거될 수 있는 경로가 존재함.</div></div></div>
     </div>
   </section>
 
@@ -125,13 +125,13 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">ObjectPtr vs. RootPtr</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Root set은 "포인터를 가리키는 포인터"를 담습니다.</div>
+      <div class="achv"><div><div class="head">Root set은 "Pointer를 가리키는 Pointer"를 담음.</div>
         <div class="sub"><code class="mono">RootPtr</code>의 생성자는 <code class="mono">AddRoot(this)</code>를
-          호출해서 관리 대상 객체의 주소가 아니라 <code class="mono">RootPtr</code> 래퍼 자신의 주소를 root
-          set에 넣습니다. <code class="mono">Mark()</code>는 이 래퍼를 거쳐 실제 인스턴스에 도달합니다.</div></div></div>
-      <div class="achv"><div><div class="head">ObjectPtr은 비활성입니다.</div>
-        <div class="sub">레이아웃은 같지만 생성자/소멸자 어디서도 컬렉터와 대화하지 않는 평범한 핸들입니다.
-          <code class="mono">RootPtr</code>로 감싸야만 GC root가 됩니다.</div></div></div>
+          호출 — 관리 대상 객체의 주소가 아니라 <code class="mono">RootPtr</code> Wrapper 자신의 주소를 root
+          set에 넣음. <code class="mono">Mark()</code>는 이 Wrapper를 거쳐 실제 Instance에 도달함.</div></div></div>
+      <div class="achv"><div><div class="head">ObjectPtr은 비활성임.</div>
+        <div class="sub">레이아웃은 같지만 생성자/소멸자 어디서도 Collector와 대화하지 않는 평범한 Handle임.
+          <code class="mono">RootPtr</code>로 감싸야만 GC root가 됨.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">사용 예시</h3>
@@ -147,9 +147,9 @@ public:
 
 int main()
 {
-    Init(1024 * 1024, 1000000); // 풀 크기 1MB, Sweep 시간 예산 1ms
+    Init(1024 * 1024, 1000000); // Pool 크기 1MB, Sweep 시간 예산 1ms
 
-    ObjectPtr&lt;MyClass&gt; obj  = MakePtr&lt;MyClass&gt;();      // 비활성 핸들 — GC root 아님
+    ObjectPtr&lt;MyClass&gt; obj  = MakePtr&lt;MyClass&gt;();      // 비활성 Handle — GC root 아님
     RootPtr&lt;MyClass&gt;   root = MakePtr&lt;MyClass&gt;();      // 생성자가 AddRoot(this) 호출 -> GC root
     RootPtr&lt;int[]&gt;     arr  = MakeArray&lt;int&gt;(5);
 
@@ -169,16 +169,16 @@ int main()
     </div>
 
     <div class="callout warn">
-      <b>Compaction을 배제한 이유:</b> <code class="mono">Accessor</code>는 별도의 안정된 핸들 테이블이 아니라
-      각 인스턴스 헤더에 인라인으로 존재합니다. Compaction 중 객체를 옮기면 그 <code class="mono">Accessor</code>도
-      함께 옮겨지므로, 이미 그 인스턴스를 가리키고 있던 모든 <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code>
-      을 찾아서 다시 써야 합니다. 참조자를 추적하는 목록이 따로 없다면, 이건 사실상 GC를 한 번 더 도는 것과 같은 비용입니다.
+      <b>Compaction을 배제한 이유:</b> <code class="mono">Accessor</code>는 별도의 안정된 Handle Table이 아니라
+      각 Instance 헤더에 인라인으로 존재함. Compaction 중 객체를 옮기면 그 <code class="mono">Accessor</code>도
+      함께 옮겨지므로, 이미 그 Instance를 가리키고 있던 모든 <code class="mono">ObjectPtr</code>/<code class="mono">RootPtr</code>
+      을 찾아서 다시 써야 함. 참조자를 추적하는 목록이 따로 없다면, 이건 사실상 GC를 한 번 더 도는 것과 같은 비용임.
     </div>
     <div class="callout">
-      <b>대신 할당 시점에서 단편화를 관리합니다:</b> 각 <code class="mono">PoolBudget</code>은 버킷을 점유율로
+      <b>대신 할당 시점에서 단편화를 관리함:</b> 각 <code class="mono">PoolBudget</code>은 버킷을 점유율로
       분류하고(<code class="mono">eSparse / eModerate / eDense / eFull</code>), 새 할당은 <em>가장 꽉 찬</em>
-      비어있지 않은 버킷부터 찾습니다 — 어느 한 버킷이 <code class="mono">eFull</code>까지 차서 새 백킹 할당을
-      강제하는 상황을 줄이고, sparse 버킷은 완전히 비워져 회수될 여지를 남겨둡니다.
+      비어있지 않은 버킷부터 찾음 — 어느 한 버킷이 <code class="mono">eFull</code>까지 차서 새 백킹 할당을
+      강제하는 상황을 줄이고, sparse 버킷은 완전히 비워져 회수될 여지를 남겨둠.
     </div>
   </section>
 
@@ -196,11 +196,11 @@ int main()
           <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#16">미해결</span>
         </div>
         <div class="issue-body">
-          - 원인: <code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 뮤텍스로 보호되지만,
-          Accessor의 마킹 상태와 각 Pool의 used/free/dead 리스트는 그렇지 않습니다 — mutator 스레드가
-          <code class="mono">ObjectPtr</code>을 통해 Accessor 상태를 읽는 동안 컬렉터 스레드가 같은 Accessor를
-          건드리면 경합이 발생할 수 있습니다.<br>
-          - 개선 방향: 기존 root set 뮤텍스 범위를 Accessor 상태와 pool 리스트 변경까지 확장하거나, 상태 필드를
+          - 원인: <code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 Mutex로 보호되지만,
+          Accessor의 마킹 상태와 각 Pool의 used/free/dead List는 그렇지 않음 — mutator Thread가
+          <code class="mono">ObjectPtr</code>을 통해 Accessor 상태를 읽는 동안 Collector Thread가 같은 Accessor를
+          건드리면 경합이 발생할 수 있음.<br>
+          - 개선 방향: 기존 root set Mutex 범위를 Accessor 상태와 pool List 변경까지 확장하거나, 상태 필드를
           atomic으로 바꾸는 방향.
         </div>
       </div>
@@ -221,14 +221,14 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/17" target="_blank" rel="noopener">#17</a> · src/Storage/PoolBudget.cpp:52-72</span>
-          <span class="issue-title">소멸자가 버킷 하나만 비어 있어도 Release()를 건너뛰어 대부분 그냥 샙니다</span>
+          <span class="issue-title">소멸자가 버킷 하나만 비어 있어도 Release()를 건너뛰어 대부분 그냥 샘</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#17">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">eSparse..eFull</code> 네 버킷을 순회하다 하나라도 비면 <code class="mono">empty = true;
           break;</code>로 즉시 탈출하고, <code class="mono">Release()</code>는 <b>모든</b> 버킷이 비어있지 않을
-          때만 호출됩니다. 종료 시점에 버킷 하나(특히 eSparse)가 비어있는 게 흔한 상황이라, 살아있는
-          <code class="mono">Pool&lt;T&gt;</code>와 그 arena가 대부분의 경우 그냥 새어나갑니다.
+          때만 호출됨. 종료 시점에 버킷 하나(특히 eSparse)가 비어있는 게 흔한 상황이라, 살아있는
+          <code class="mono">Pool&lt;T&gt;</code>와 그 arena가 대부분의 경우 그냥 새어나감.
         </div>
       </div>
       <div class="issue-card">
@@ -238,10 +238,10 @@ int main()
           <span class="issue-state open mono">성능</span>
         </div>
         <div class="issue-body">
-          - <code class="mono">m_usedList</code>가 인트루시브 리스트가 아니라 평범한
+          - <code class="mono">m_usedList</code>가 Intrusive List가 아니라 평범한
           <code class="mono">DynamicArray&lt;uint8_t*&gt;</code>라서, <code class="mono">Sweep()</code>이 죽은
-          객체마다 부르는 <code class="mono">Erase(itr)</code>가 매번 뒤 원소를 전부 당기는 O(n) 연산입니다.
-          한 사이클에 여럿이 동시에 죽으면 비용이 누적됩니다.
+          객체마다 부르는 <code class="mono">Erase(itr)</code>가 매번 뒤 원소를 전부 당기는 O(n) 연산임.
+          한 Cycle에 여럿이 동시에 죽으면 비용이 누적됨.
         </div>
       </div>
       <div class="issue-card">
@@ -251,15 +251,15 @@ int main()
           <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#19">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - <code class="mono">Acquire()</code>는 실제로 사용하기 전에 <code class="mono">m_used</code>를
-          확인한 뒤 <code class="mono">Accessor&lt;T&gt;</code>를 placement-new합니다. 그런데
+          - <code class="mono">Acquire()</code>는 사용하기 전에 <code class="mono">m_used</code>를
+          확인한 뒤 <code class="mono">Accessor&lt;T&gt;</code>를 placement-new함. 그런데
           <code class="mono">Clear()</code>/<code class="mono">Sweep()</code>은 이 체크 없이
           <code class="mono">m_memory</code>를 곧바로 <code class="mono">static_cast&lt;IAccessor*&gt;</code>해서
-          가상 함수(<code class="mono">Destruct()</code>, <code class="mono">GetStatus()</code>)를 호출합니다.<br>
+          가상 함수(<code class="mono">Destruct()</code>, <code class="mono">GetStatus()</code>)를 호출함.<br>
           - 영향: <code class="mono">Init()</code>만 되고 <code class="mono">Acquire()</code>는 한 번도 안 된
           <code class="mono">Array&lt;T&gt;</code>(즉 vtable이 아직 안 만들어진 날 것의 메모리)에 대해
           <code class="mono">Clear()</code>/<code class="mono">Sweep()</code>이 불리면, 초기화되지 않은
-          메모리를 살아있는 다형성 객체처럼 다루는 정의되지 않은 동작입니다.
+          메모리를 살아있는 다형성 객체처럼 다루는 정의되지 않은 동작임.
         </div>
       </div>
       <div class="issue-card">
@@ -269,10 +269,10 @@ int main()
           <span class="issue-state open mono">설계 노트</span>
         </div>
         <div class="issue-body">
-          - <code class="mono">Accessor</code>의 기본 상태는 <code class="mono">eUnreachable</code>입니다. Mark는
+          - <code class="mono">Accessor</code>의 기본 상태는 <code class="mono">eUnreachable</code>임. Mark는
           <code class="mono">Collect()</code> 한 번 안에서 동기적으로 끝까지 도는데, 이미 마킹을 마친 부모
-          그래프에 그 이후 연결된 객체를 강제로 살아있다고 표시할 장치(write barrier)가 없어서, 생성된 바로 그
-          사이클에 수거될 수 있는 경로가 이론상 존재합니다(#16의 스레드 경합과는 별개 문제).
+          Graph에 그 이후 연결된 객체를 강제로 살아있다고 표시할 장치(write barrier)가 없음 — 생성된 바로 그
+          Cycle에 수거될 수 있는 경로가 이론상 존재함(#16의 Thread 경합과는 별개 문제).
         </div>
       </div>
       <div class="issue-card">
@@ -283,22 +283,22 @@ int main()
         </div>
         <div class="issue-body">
           - <code class="mono">GetArray()</code>는 free 목록을 확인하는 <code class="mono">Pool&lt;T&gt;</code>과
-          달리 항상 <code class="mono">CreateArray()</code>로 새 인스턴스를 만듭니다. <code class="mono">Array&lt;T&gt;</code>
-          자체도 <code class="mono">bool m_used</code> 하나로 지키는 슬롯 1개짜리 구조라, 배열 스토리지는
-          커지기만 하고 <code class="mono">Remove()</code>가 빈 항목을 목록에서 걷어내는 것에만 의존합니다.
+          달리 항상 <code class="mono">CreateArray()</code>로 새 Instance를 만듦. <code class="mono">Array&lt;T&gt;</code>
+          자체도 <code class="mono">bool m_used</code> 하나로 지키는 슬롯 1개짜리 구조라, 배열 Storage는
+          커지기만 하고 <code class="mono">Remove()</code>가 빈 항목을 목록에서 걷어내는 것에만 의존함.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/20" target="_blank" rel="noopener">#20</a> · include/Pointer/RefPtr.h:22-33</span>
-          <span class="issue-title">RefPtr 참조 카운트에 acquire 펜스가 없음</span>
+          <span class="issue-title">RefPtr 참조 카운트에 acquire Fence가 없음</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#20">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">AddRef</code>/<code class="mono">Release</code> 모두 <code class="mono">memory_order_release</code>로만
           증감하고, 마지막 <code class="mono">Release()</code>가 <code class="mono">delete this</code>를 호출하기
-          전에 acquire 펜스가 없습니다. 약한 메모리 모델 하드웨어에서는 다른 스레드가 막판에 쓴 내용이 소멸자
-          실행 시점에 보이지 않을 수 있습니다.
+          전에 acquire Fence가 없음. 약한 메모리 모델 하드웨어에서는 다른 Thread가 막판에 쓴 내용이 소멸자
+          실행 시점에 보이지 않을 수 있음.
         </div>
       </div>
       <div class="issue-card">
@@ -310,22 +310,22 @@ int main()
         <div class="issue-body">
           - <code class="mono">TimeLimit::HasTime()</code>은 <code class="mono">m_interval</code>번마다 한 번씩만
           시계를 샘플링하는데, <code class="mono">Purge()</code>는 <code class="mono">SetInterval(10)</code>으로
-          설정해서, 최대 9번의 destruction만큼 예산을 초과할 수 있습니다.
+          설정해서, 최대 9번의 destruction만큼 예산을 초과할 수 있음.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/18" target="_blank" rel="noopener">#18</a> · src/Storage/StorageManager.cpp:65-96</span>
-          <span class="issue-title">Purge()가 풀 버킷 하나만 시간 초과해도 배열 버킷 전체와 Clear()를 건너뜀</span>
+          <span class="issue-title">Purge()가 Pool 버킷 하나만 시간 초과해도 배열 버킷 전체와 Clear()를 건너뜀</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#18">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">m_poolMap</code>을 순회하다 어떤 버킷의 <code class="mono">Purge(timeLimit)</code>이
           false를 반환하면 그 자리에서 <code class="mono">return false</code> — 이후 배열 버킷 루프와
-          <code class="mono">Clear()</code>가 통째로 스킵됩니다. 게다가 배열 버킷 루프는
+          <code class="mono">Clear()</code>가 통째로 스킵됨. 게다가 배열 버킷 루프는
           <code class="mono">timeLimit</code>을 아예 체크하지 않아서(<code class="mono">ArrayBudget</code>에는
-          시간 제한을 받는 <code class="mono">Purge</code> 오버로드 자체가 없음), 도달하면 항상 전체를 끝까지
-          처리합니다 — 시간 예산 시스템이 배열 쪽에는 사실상 적용되지 않습니다.
+          시간 제한을 받는 <code class="mono">Purge</code> Overload 자체가 없음), 도달하면 항상 전체를 끝까지
+          처리함 — 시간 예산 시스템이 배열 쪽에는 사실상 적용되지 않음.
         </div>
       </div>
     </div>
@@ -341,7 +341,7 @@ int main()
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부임. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>

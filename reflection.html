@@ -37,8 +37,8 @@
     <p class="subhead">
       <code class="mono">GENERATE</code> / <code class="mono">PROPERTY</code> / <code class="mono">METHOD</code>
       — Unreal의 <code class="mono">UCLASS</code>/<code class="mono">UPROPERTY</code>/<code class="mono">UFUNCTION</code>
-      을 참고했습니다. C++17 <code class="mono">inline static</code>로 타입/멤버/메서드를 컴파일 타임에
-      등록하며, 헤더만으로 완결되고 링커 에러가 없습니다.
+      참고함. C++17 <code class="mono">inline static</code>로 타입/멤버/Method를 컴파일 타임에
+      등록 — 헤더만으로 완결되고 링커 에러 없음.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Reflection" target="_blank" rel="noopener">github.com/Winteradio/Reflection</a>
@@ -62,47 +62,47 @@
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">단일 상속 체인만 지원하고, 그래서 Cast&lt;T&gt;가 안전합니다.</div>
-        <div class="sub"><code class="mono">TypeInfo</code>는 클래스당 <code class="mono">SuperType</code>
-          하나만 모델링합니다. 위로 올라가는 경로가 하나뿐이라 <code class="mono">Cast&lt;T&gt;</code>는
-          DAG 탐색이 아니라 그냥 체인을 걷는 것으로 끝납니다 — <code class="mono">dynamic_cast</code>가 전혀
-          필요 없습니다.</div></div></div>
-      <div class="achv"><div><div class="head">컨테이너 순회는 힙 할당이 0입니다.</div>
-        <div class="sub">Iterator가 64바이트 고정 버퍼에 실제 STL/wtr 반복자를 placement-new로 생성하고,
-          vtable 대신 함수 포인터 6개로 디스패치합니다.</div></div></div>
-      <div class="achv"><div><div class="head">같은 시그니처의 함수 두 개도 서로 다른 static 객체를 가집니다.</div>
-        <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가 함수 포인터 "값"을 비타입
-          템플릿 파라미터로 받기 때문에, 시그니처가 같아도 함수마다 별도 템플릿 인스턴스 → 별도 static이
-          생깁니다.</div></div></div>
+      <div class="achv"><div><div class="head">단일 상속 체인만 지원 — 그래서 Cast&lt;T&gt; 안전함.</div>
+        <div class="sub"><code class="mono">TypeInfo</code>는 Class당 <code class="mono">SuperType</code>
+          하나만 모델링함. 위로 올라가는 경로가 하나뿐이라 <code class="mono">Cast&lt;T&gt;</code>는
+          DAG 탐색이 아니라 체인을 걷는 것으로 끝남 — <code class="mono">dynamic_cast</code>가 전혀
+          필요 없음.</div></div></div>
+      <div class="achv"><div><div class="head">Container 순회는 힙 할당 0임.</div>
+        <div class="sub">Iterator가 64바이트 고정 버퍼에 실제 STL/wtr 반복자를 placement-new로 생성 —
+          vtable 대신 함수 Pointer 6개로 디스패치함.</div></div></div>
+      <div class="achv"><div><div class="head">같은 시그니처의 함수 두 개도 서로 다른 static 객체를 가짐.</div>
+        <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가 함수 Pointer "값"을 비타입
+          Template 파라미터로 받음 — 시그니처가 같아도 함수마다 별도 Template Instance → 별도 static이
+          생김.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">장점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">매크로 하나로 보일러플레이트를 거의 다 없앱니다.</div>
+      <div class="achv"><div><div class="head">Macro 하나로 보일러플레이트를 거의 다 없앰.</div>
         <div class="sub"><code class="mono">GENERATE</code>/<code class="mono">PROPERTY</code>/<code class="mono">METHOD</code>만
-          붙이면 등록 코드를 손으로 안 써도 되고, 컴파일 타임 빠른 경로와 런타임 SuperType 워크를 나눠서
-          평소엔 <code class="mono">dynamic_cast</code>보다 빠릅니다.</div></div></div>
-      <div class="achv"><div><div class="head">런타임 오버헤드를 설계 단계에서부터 줄이려 한 흔적이 뚜렷합니다.</div>
-        <div class="sub">64바이트 SBO Iterator(힙 할당 0), 비타입 템플릿 파라미터로 <code class="mono">new</code>
-          없는 정적 MethodCall 등 — "리플렉션은 느리다"는 통념을 구조적으로 반박하려는 선택들입니다.</div></div></div>
-      <div class="achv"><div><div class="head">Get/Set의 타입 안전성 기준이 명확합니다.</div>
-        <div class="sub">Get은 상속 관계를 허용하고 Set은 완전히 같은 타입만 허용하는 식으로, object slicing이나
-          의도치 않은 다형성 허용 같은 위험을 원천 차단하는 규칙이 문서에 남아 있습니다.</div></div></div>
+          붙이면 등록 코드를 손으로 안 써도 됨 — 컴파일 타임 빠른 경로와 런타임 SuperType 워크를 나눠서
+          평소엔 <code class="mono">dynamic_cast</code>보다 빠름.</div></div></div>
+      <div class="achv"><div><div class="head">런타임 오버헤드를 설계 단계에서부터 줄이려 한 흔적이 뚜렷함.</div>
+        <div class="sub">64바이트 SBO Iterator(힙 할당 0), 비타입 Template 파라미터로 <code class="mono">new</code>
+          없는 정적 MethodCall 등 — "Reflection은 느리다"는 통념을 구조적으로 반박하려는 선택들임.</div></div></div>
+      <div class="achv"><div><div class="head">Get/Set의 타입 안전성 기준이 명확함.</div>
+        <div class="sub">Get은 상속 관계를 허용하고 Set은 완전히 같은 타입만 허용 — object slicing이나
+          의도치 않은 다형성 허용 같은 위험을 원천 차단하는 규칙이 문서에 남아 있음.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">아쉬운 점</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었습니다.</div>
+      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었음.</div>
         <div class="sub"><code class="mono">Utils.cpp</code>가 Windows 아닐 때 <code class="mono">GetName</code>
-          대신 이름이 다른 <code class="mono">GetClassName</code>을 정의해서, GCC/Clang 빌드는
-          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크가 실패합니다 — 실제로 리눅스/맥에서
-          한 번도 안 돌려봤다는 뜻입니다.</div></div></div>
-      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않습니다.</div>
-        <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 클래스를 검증하지 않아서, 시그니처만
-          같으면 서로 무관한 클래스끼리도 조용히 타입 펀될 수 있습니다.</div></div></div>
-      <div class="achv"><div><div class="head">템플릿 클래스 조합에서 매크로가 깨질 수 있습니다.</div>
-        <div class="sub">템플릿 클래스 내부의 <code class="mono">PROPERTY()</code>가 GCC/Clang의 공격적인
-          dead-code elimination에 스트리핑되는 문제가 아직 완전히 해결되지 않았습니다(이슈 #25).</div></div></div>
+          대신 이름이 다른 <code class="mono">GetClassName</code>을 정의 — GCC/Clang 빌드는
+          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크 실패함. Linux/Mac에서
+          한 번도 안 돌려봤다는 뜻.</div></div></div>
+      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않음.</div>
+        <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 Class를 검증하지 않음 — 시그니처만
+          같으면 서로 무관한 Class끼리도 조용히 타입 펀될 수 있음.</div></div></div>
+      <div class="achv"><div><div class="head">Template Class 조합에서 Macro가 깨질 수 있음.</div>
+        <div class="sub">Template Class 내부의 <code class="mono">PROPERTY()</code>가 GCC/Clang의 공격적인
+          dead-code elimination에 스트리핑되는 문제가 아직 완전히 해결되지 않음(이슈 #25).</div></div></div>
     </div>
   </section>
 
@@ -111,7 +111,7 @@
       <span class="section-num mono">02</span>
       <div>
         <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
-        <span class="section-tag">단일 상속만 지원 — 그래서 Cast&lt;T&gt;가 안전합니다</span>
+        <span class="section-tag">단일 상속만 지원 — 그래서 Cast&lt;T&gt; 안전함</span>
       </div>
     </div>
 
@@ -134,19 +134,19 @@ public:
     int m_intValue = 0;
 
     PROPERTY(m_array);
-    wtr::DynamicArray&lt;int&gt; m_array; // 컨테이너도 자동 감지
+    wtr::DynamicArray&lt;int&gt; m_array; // Container도 자동 감지
 
     METHOD(Add);
     int Add(int a, int b) const { return a + b; }
 };
 
-// 런타임 조회 — 이름 문자열로 프로퍼티/메서드에 접근
+// 런타임 조회 — 이름 문자열로 Property/Method에 접근
 const auto* type = obj-&gt;GetTypeInfo();
 const auto* prop = type-&gt;GetProperty("m_intValue");
 prop-&gt;Set(obj, 42);            // 컴파일 타임 오프셋으로 직접 메모리 접근, dynamic_cast 없음
 
 const auto* method = type-&gt;GetMethod("Add");
-int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함수 포인터별 static 생성</pre>
+int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함수 Pointer별 static 생성</pre>
   </section>
 
   <section id="mechanics">
@@ -160,52 +160,52 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
     <h3 style="font-size:16px;margin:0 0 8px;">GENERATE(ClassName)</h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">SuperType 탐지</div>
-        <div class="sub"><code class="mono">Utils::TypeDetector</code>의 SFINAE로 베이스의 리플렉션 태그를
-          찾아 <code class="mono">SuperType</code>으로 alias합니다. <code class="mono">ThisType</code>은
-          클래스 자신을 가리킵니다.</div></div></div>
-      <div class="achv"><div><div class="head">GetTypeInfo() 오버라이드</div>
-        <div class="sub">함수 지역 <code class="mono">static const TypeInfo*</code>("magic static", 스레드
-          안전, 최초 1회만 초기화)를 오버라이드된 virtual이 반환합니다 — 베이스 포인터가 런타임에 실제 파생
-          타입을 복원하는 방법입니다.</div></div></div>
+        <div class="sub"><code class="mono">Utils::TypeDetector</code>의 SFINAE로 베이스의 Reflection 태그를
+          찾아 <code class="mono">SuperType</code>으로 alias함. <code class="mono">ThisType</code>은
+          Class 자신을 가리킴.</div></div></div>
+      <div class="achv"><div><div class="head">GetTypeInfo() Override</div>
+        <div class="sub">함수 지역 <code class="mono">static const TypeInfo*</code>("magic static", Thread
+          안전, 최초 1회만 초기화)를 Override된 virtual이 반환함 — 베이스 Pointer가 런타임에 실제 파생
+          타입을 복원하는 방법.</div></div></div>
       <div class="achv"><div><div class="head">자체 등록</div>
         <div class="sub"><code class="mono">inline static const TypeInfo* s_typeInfo = GetStaticTypeInfo();</code>
           — 정적 초기화 시점에 동적 초기자가 실행되고, <code class="mono">TypeInfo</code> 생성자 마지막에서
           <code class="mono">TypeManager::Regist(this)</code>를 호출해 <code class="mono">unordered_map</code>
-          에 등록합니다. <code class="mono">TypeManager::GetHandle()</code>이 Meyer's singleton이라 TU 간
-          정적 초기화 순서 문제에서 자유롭습니다.</div></div></div>
+          에 등록함. <code class="mono">TypeManager::GetHandle()</code>이 Meyer's Singleton이라 TU 간
+          정적 초기화 순서 문제에서 자유로움.</div></div></div>
       <div class="achv"><div><div class="head">이름 붙은 링커 위험 요소</div>
         <div class="sub"><code class="mono">__STATIC_USED__</code>(GCC/Clang의 <code class="mono">__attribute__((used))</code>)
-          가 "참조되지 않는" static이 스트리핑되는 걸 막으려고 존재하는데, 늘 이기는 건 아닙니다(아래 이슈 참고).</div></div></div>
+          가 "참조되지 않는" static이 스트리핑되는 걸 막으려고 존재 — 늘 이기는 건 아님(아래 이슈 참고).</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">PROPERTY(member)</h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">오프셋 캡처</div>
         <div class="sub"><code class="mono">offset = reinterpret_cast&lt;size_t&gt;(&amp;(static_cast&lt;Class*&gt;(nullptr)-&gt;*pointer))</code>
-          — null 베이스 포인터를 통해 멤버 포인터를 역참조합니다. vtable이 있는(non-standard-layout) 클래스에서는
-          <code class="mono">offsetof</code>가 지원되지 않아 필요한 방식입니다.</div></div></div>
+          — null 베이스 Pointer를 통해 멤버 Pointer를 역참조함. vtable이 있는(non-standard-layout) Class에서는
+          <code class="mono">offsetof</code>가 지원되지 않아 필요한 방식.</div></div></div>
       <div class="achv"><div><div class="head">Get/Set</div>
         <div class="sub">둘 다 <code class="mono">reinterpret_cast&lt;char*&gt;(instance) + m_propertyOffset</code>
-          으로 해석됩니다. 대입은 캡처 없는 람다가 <code class="mono">void(*)(void*, const void*)</code>
-          썽크로 decay되어 <code class="mono">*(Property*)dest = *(const Property*)src</code>를 수행합니다.</div></div></div>
+          으로 해석됨. 대입은 캡처 없는 람다가 <code class="mono">void(*)(void*, const void*)</code>
+          썽크로 decay되어 <code class="mono">*(Property*)dest = *(const Property*)src</code>를 수행.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">Zero-allocation 컨테이너 Iterator</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">Zero-allocation Container Iterator</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">vtable도 베이스 클래스도 없음</div>
-        <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code>에 함수 포인터 6개
-          (Next/Prev/Destroy/Element/Copy/Compare) — 컨테이너 타입별로 고정된 이 함수 포인터 묶음 자체가
-          수동으로 만든 vtable입니다.</div></div></div>
+      <div class="achv"><div><div class="head">vtable도 베이스 Class도 없음</div>
+        <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code>에 함수 Pointer 6개
+          (Next/Prev/Destroy/Element/Copy/Compare) — Container 타입별로 고정된 이 함수 Pointer 묶음 자체가
+          수동으로 만든 vtable임.</div></div></div>
       <div class="achv"><div><div class="head">생성</div>
         <div class="sub"><code class="mono">begin()</code>이 실제 STL/wtr const_iterator를 64바이트 버퍼에
-          placement-new로 직접 생성합니다.</div></div></div>
-      <div class="achv"><div><div class="head">복사는 진짜 깊은 복사입니다</div>
-        <div class="sub">버퍼를 그냥 <code class="mono">memcpy</code>하면 내부 포인터(해시 버킷, 리스트 노드)를
-          들고 있는 반복자가 깨집니다. <code class="mono">CopyFunc</code>가 원본에서 새로 placement-new합니다.</div></div></div>
-      <div class="achv"><div><div class="head">소멸은 명시적입니다</div>
-        <div class="sub"><code class="mono">uint8_t[]</code>는 소멸자를 자동으로 안 불러줍니다 —
+          placement-new로 직접 생성함.</div></div></div>
+      <div class="achv"><div><div class="head">복사는 진짜 깊은 복사임</div>
+        <div class="sub">버퍼를 그냥 <code class="mono">memcpy</code>하면 내부 Pointer(해시 버킷, 리스트 Node)를
+          들고 있는 반복자가 깨짐. <code class="mono">CopyFunc</code>가 원본에서 새로 placement-new함.</div></div></div>
+      <div class="achv"><div><div class="head">소멸은 명시적</div>
+        <div class="sub"><code class="mono">uint8_t[]</code>는 소멸자를 자동으로 안 불러줌 —
           <code class="mono">~Iterator()</code>가 <code class="mono">DestroyFunc</code>를 호출해 그 자리에서
-          실제 반복자의 소멸자를 실행합니다.</div></div></div>
+          실제 반복자의 소멸자를 실행함.</div></div></div>
     </div>
   </section>
 
@@ -224,12 +224,12 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
           <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#25">미해결</span>
         </div>
         <div class="issue-body">
-          - 원인: <code class="mono">PROPERTY()</code>가 템플릿 클래스 내부에 만드는 static 객체가, 템플릿이
+          - 원인: <code class="mono">PROPERTY()</code>가 Template Class 내부에 만드는 static 객체가, Template이
           겉보기에 안 쓰이는 것처럼 보이면 GCC/Clang의 공격적인 dead-code elimination에 의해 조용히
-          스트리핑되어 프로퍼티/GC 등록이 깨집니다.<br>
+          스트리핑되어 Property/GC 등록이 깨짐.<br>
           - 개선 방향: 컴파일러 <code class="mono">used</code>/<code class="mono">retain</code> 속성으로
           강제 보존 — <code class="mono">__STATIC_USED__</code>가 노리는 것과 같은 종류의 해법이지만 아직
-          템플릿까지는 완전히 커버하지 못했습니다.
+          Template까지는 완전히 커버하지 못함.
         </div>
       </div>
       <div class="issue-card">
@@ -239,8 +239,8 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Reflection#29">해결</span>
         </div>
         <div class="issue-body">
-          - 원인: <code class="mono">TypeInfo&lt;T&gt;</code>는 메타데이터 추출을 위해 컴파일 타임에 완전한
-          타입의 크기/정렬 정보가 필요한데, 전방 선언만으로는 이걸 제공할 수 없습니다.
+          - 원인: <code class="mono">TypeInfo&lt;T&gt;</code>는 Metadata 추출을 위해 컴파일 타임에 완전한
+          타입의 크기/정렬 정보가 필요한데, 전방 선언만으로는 이걸 제공할 수 없음.
         </div>
       </div>
     </div>
@@ -267,36 +267,36 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
           - <code class="mono">TypeInfo.h:93</code>은 플랫폼 무관하게 <code class="mono">Utils::GetName(...)</code>을
           호출하는데, <code class="mono">Utils.cpp</code>는 <code class="mono">#if defined(_WIN32)</code>일 때만
           <code class="mono">GetName</code>을 정의하고 <code class="mono">#else</code> 분기는 이름이 다른
-          <code class="mono">GetClassName</code>을 정의합니다. GCC/Clang 빌드는
-          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 인스턴스화하는 순간 "undefined reference"로
-          링크에 실패합니다 — #25/#29와는 별개인, 아직 등록되지 않은 빌드 차단 버그입니다.
+          <code class="mono">GetClassName</code>을 정의함. GCC/Clang 빌드는
+          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 Instance화하는 순간 "undefined reference"로
+          링크 실패 — #25/#29와는 별개인, 아직 등록되지 않은 빌드 차단 버그.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/32" target="_blank" rel="noopener">#32</a> · include/Method/MethodInfo.h:77, MethodCall.h:117</span>
-          <span class="issue-title">MethodInfo::Invoke가 소유 클래스를 검증하지 않음</span>
+          <span class="issue-title">MethodInfo::Invoke가 소유 Class를 검증하지 않음</span>
           <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#32">버그 · 미수정</span>
         </div>
         <div class="issue-body">
-          - 시그니처(Return/Args)가 같으면 서로 무관한 두 클래스의 메서드가 같은
+          - 시그니처(Return/Args)가 같으면 서로 무관한 두 Class의 Method가 같은
           <code class="mono">MethodCall&lt;Return,Args...&gt;</code> TypeInfo로 묶여 <code class="mono">Cast</code>를
-          통과합니다. <code class="mono">MemberMethodCall::Invoke</code>는 전달받은 포인터를 그냥
+          통과함. <code class="mono">MemberMethodCall::Invoke</code>는 전달받은 Pointer를 그냥
           <code class="mono">static_cast&lt;ClassType*&gt;</code>해서 호출 — <code class="mono">PropertyInfo</code>와
-          달리 런타임 타입 체크가 없어서, 잘못된 클래스의 인스턴스를 넘기면 조용히 타입 펀됩니다.
+          달리 런타임 타입 체크가 없어서, 잘못된 Class의 Instance를 넘기면 조용히 타입 펀됨.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/Type/TypeInfo.h:110, src/Type/TypeManager.cpp:34-37</span>
-          <span class="issue-title">TypeManager의 map 키가 사실상 포인터 자기 자신 + 락 없는 조회</span>
+          <span class="issue-title">TypeManager의 map 키가 사실상 Pointer 자기 자신 + 락 없는 조회</span>
           <span class="issue-state closed mono">설계 노트</span>
         </div>
         <div class="issue-body">
           - <code class="mono">m_typeHash</code>는 <code class="mono">reinterpret_cast&lt;size_t&gt;(this)</code> —
-          이름 기반 해시가 아니라 TypeInfo 객체 자신의 메모리 주소입니다. ASLR 때문에 프로세스마다 값이 달라져
-          직렬화/프로세스 간 식별에는 못 씁니다. <code class="mono">GetTypeMap()</code>도 락 없이 원본 map을
-          그대로 반환해서, <code class="mono">Regist()</code>가 거는 뮤텍스와 별개로 순회 중 경합이 가능합니다.
+          이름 기반 해시가 아니라 TypeInfo 객체 자신의 메모리 주소임. ASLR 때문에 프로세스마다 값이 달라져
+          직렬화/프로세스 간 식별에는 못 씀. <code class="mono">GetTypeMap()</code>도 락 없이 원본 map을
+          그대로 반환해서, <code class="mono">Regist()</code>가 거는 뮤텍스와 별개로 순회 중 경합이 가능함.
         </div>
       </div>
     </div>
@@ -312,7 +312,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 
 <footer id="contact">
   <div class="wrap foot-grid">
-    <p class="foot-line">더 큰 포트폴리오의 일부입니다. <a href="index.html">전체 보기 →</a></p>
+    <p class="foot-line">더 큰 포트폴리오의 일부임. <a href="index.html">전체 보기 →</a></p>
     <div class="contact mono">
       <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
       <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
