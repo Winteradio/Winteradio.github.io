@@ -244,6 +244,24 @@ int main()
       </div>
       <div class="issue-card">
         <div class="issue-head">
+          <span class="issue-num mono">include/Storage/Array.h — Clear() / Sweep()</span>
+          <span class="issue-title">m_used 체크 없이 초기화 안 된 메모리를 IAccessor로 취급</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">Acquire()</code>는 실제로 사용하기 전에 <code class="mono">m_used</code>를
+          확인한 뒤 <code class="mono">Accessor&lt;T&gt;</code>를 placement-new합니다. 그런데
+          <code class="mono">Clear()</code>/<code class="mono">Sweep()</code>은 이 체크 없이
+          <code class="mono">m_memory</code>를 곧바로 <code class="mono">static_cast&lt;IAccessor*&gt;</code>해서
+          가상 함수(<code class="mono">Destruct()</code>, <code class="mono">GetStatus()</code>)를 호출합니다.<br>
+          - 영향: <code class="mono">Init()</code>만 되고 <code class="mono">Acquire()</code>는 한 번도 안 된
+          <code class="mono">Array&lt;T&gt;</code>(즉 vtable이 아직 안 만들어진 날 것의 메모리)에 대해
+          <code class="mono">Clear()</code>/<code class="mono">Sweep()</code>이 불리면, 초기화되지 않은
+          메모리를 살아있는 다형성 객체처럼 다루는 정의되지 않은 동작입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
           <span class="issue-num mono">include/Accessor/Accessor.h:19, src/Collector/GarbageCollector.cpp:82-126</span>
           <span class="issue-title">새 객체가 "흰색"으로 태어나고 write barrier가 없음</span>
           <span class="issue-state open mono">설계 노트</span>

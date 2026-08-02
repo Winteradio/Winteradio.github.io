@@ -686,6 +686,65 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           한창 작업 중이라 당연히 있을 수 있는 상태입니다.
         </div>
       </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/OpenGL/GLSystem.cpp:3519-3526</span>
+          <span class="issue-title">FlushPipeLine의 조건이 뒤집혀 있어 GL 프로그램이 영구 leak</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">if (!glPipeLine || glPipeLine-&gt;GetID() == GL_NONE)</code> 분기 안에서
+          <code class="mono">glPipeLine-&gt;GetID()</code>를 바로 호출합니다 — <code class="mono">glPipeLine</code>이
+          null이면 그 자리에서 크래시입니다.<br>
+          - 조건 자체도 다른 모든 <code class="mono">Flush*</code> 함수와 반대입니다: ID가 이미
+          <code class="mono">GL_NONE</code>인(할 게 없는) 경우에만 <code class="mono">glDeleteProgram</code>을
+          부르고, 실제로 지워야 할 유효한 프로그램은 절대 안 지워집니다 — 파이프라인을 만들 때마다 GL 프로그램
+          객체가 영구적으로 leak됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/OpenGL/GLSystem.cpp:639-650</span>
+          <span class="issue-title">InitializeTexture 실패 후 return이 없어서 삭제된 텍스처가 "준비됨"으로 표시됨</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 실패 시 텍스처를 삭제하고 <code class="mono">eError</code> 상태를 설정한 뒤에도
+          <code class="mono">return</code>이 없어서, 바로 다음 줄의
+          <code class="mono">glTexture-&gt;SetID(textureID)</code>/<code class="mono">SetState(eReady)</code>가
+          그대로 실행됩니다 — 방금 삭제한(더 이상 유효하지 않은) GL 텍스처 이름을 "준비됨" 상태로 표시해버립니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">RHI/OpenGL/GLSystem.cpp — RenderPass 전체</span>
+          <span class="issue-title">GL 백엔드에서 RenderPass가 통째로 미구현</span>
+          <span class="issue-state closed mono">미구현</span>
+        </div>
+        <div class="issue-body">
+          - <code class="mono">InitializeRenderPass</code>/<code class="mono">SetRenderPass</code>/<code class="mono">UnsetRenderPass</code>가
+          전부 빈 함수이고, <code class="mono">GLRenderPass</code>엔 GL 오브젝트 자체가 없습니다.
+          <code class="mono">FlushRenderPass</code>/<code class="mono">RemoveRenderPass</code>도 없어서
+          <code class="mono">m_pendingRenderPasses</code>가 선언만 되어 있고 아무도 채우거나 비우지 않습니다 —
+          RenderPass RefPtr이 있다면 그것도 영구 leak입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">World/Component.cpp:192-201</span>
+          <span class="issue-title">InstancedTransformComponent::UpdateRotation이 실제로는 회전을 반영하지 않음</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 새로 들어온 <code class="mono">rotation</code> 인자와 현재 값을 비교하려고
+          <code class="mono">eulerAngles</code>를 뽑아놓고는, 실제 대입은
+          <code class="mono">transform.rotation = glm::quat(eulerAngles)</code> — 새 값이 아니라 방금 분해한
+          <b>기존 값</b>으로 다시 씁니다. 복붙하다 인자를 놓친 것으로 보이는 명백한 버그로, 같은 파일의
+          <code class="mono">TransformComponent::UpdateRotation</code>과
+          <code class="mono">SceneProxy::UpdateRotation</code>은 둘 다 맞게 새 값을 대입합니다. 이 오버로드는
+          지금 Camera 경로에서는 안 쓰이지만, 인스턴싱 메시의 개별 회전 갱신 경로에서 조용히 no-op이 됩니다.
+        </div>
+      </div>
     </div>
 
     <h3 style="font-size:16px;margin:30px 0 8px;">버그는 아니지만 — 미구현 / 죽은 코드</h3>

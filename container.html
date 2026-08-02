@@ -430,6 +430,27 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
+          <span class="issue-num mono">include/Variant.h — Copy() / Move() / AlignedStorage::valid</span>
+          <span class="issue-title">valid 플래그가 영원히 false라서, 대입할 때마다 기존 값의 소멸자를 건너뜀</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">AlignedStorage::valid</code>는 생성자와
+          <code class="mono">Destroy()</code>에서 <code class="mono">false</code>로만 설정되고, 파일 전체 어디서도
+          <code class="mono">true</code>로 바뀌지 않습니다(<code class="mono">Set&lt;T&gt;()</code>조차 안 함).
+          그래서 <code class="mono">TypeMatcher::Copy/Move</code>의 "이미 유효하면 대입, 아니면 placement-new"
+          분기에서 <b>항상</b> placement-new 쪽만 타게 됩니다.<br>
+          - 영향: <code class="mono">Variant::Copy()</code>/<code class="mono">Move()</code>(대입 연산자가
+          호출)는 대상이 이미 값을 들고 있어도 <code class="mono">Destroy()</code>를 먼저 부르지 않습니다 —
+          이미 살아있는 객체의 원본 바이트 위에 그냥 새 객체를 placement-new해버려서, 이전 값이
+          <code class="mono">std::string</code>/<code class="mono">std::vector</code>처럼 힙을 소유한
+          타입이었다면 그 소멸자가 절대 호출되지 않고 내부 포인터까지 덮어써져서 나중에 정리할 방법도
+          없습니다 — 이미 값이 있는 <code class="mono">Variant</code>에 다른 <code class="mono">Variant</code>를
+          대입할 때마다 발생하는 실제 메모리 누수입니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
           <span class="issue-num mono">include/TLSFArena.h — Free() / Merge() / Remove()</span>
           <span class="issue-title">병합된 Free()마다 m_remainedSize가 실제보다 더 깎임 — 진짜 누수는 아님</span>
           <span class="issue-state open mono">버그 · 미수정</span>
