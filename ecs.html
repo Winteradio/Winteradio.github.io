@@ -152,7 +152,8 @@
           <tr><td class="k">Sparse Set</td><td>빠르지만 Entity ID로 접근 가능한 컴포넌트가 <b>하나</b>뿐 —
             모든 System이 컴포넌트 하나로 환원되지는 않습니다.</td></tr>
           <tr><td class="k">Archetype</td><td>컴포넌트 하나만 추가해도 <b>새 archetype</b>이 필요 — 기존
-            데이터를 복제해서 옮기고 원래 자리에서 지워야 합니다.</td></tr>
+            데이터를 복제해서 옮기고 원래 자리에서 지워야 합니다. 라이트+렌더 조합 하나 만들려고 해도
+            "Light Render Archetype"을 새로 만들어야 하는 식입니다.</td></tr>
           <tr><td class="k">Node <span class="mono" style="color:var(--accent-2);">(이 프로젝트)</span></td>
             <td>Entity의 데이터를 옮기거나 복제하지 않고도 System이 필요한 컴포넌트 조합을 선언합니다.
               라이트+렌더 = 같은 Entity에 두 Node를 등록하고 Transform을 공유합니다.</td></tr>
