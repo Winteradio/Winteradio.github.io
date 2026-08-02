@@ -152,6 +152,42 @@ prop-&gt;Set(obj, 42);            // 컴파일 타임 오프셋으로 직접 메
 
 const auto* method = type-&gt;GetMethod("Add");
 int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함수 Pointer별 static 생성</pre>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
+      2024-01 첫 커밋부터 지금까지 실제 커밋 로그 기준 — 회고가 아니라 커밋 메시지·diff에서 그대로 확인한
+      순서.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">2024-01 ~ 04 — TypeCast부터 먼저 완성.</div>
+        <div class="sub">첫 커밋(오타로 "Reflectin System")부터 <code class="mono">TypeCast</code> 하나를
+          완성하는 데 약 3개월 — Reflection의 다른 기능보다 "안전하게 다운캐스트하는 것" 자체를 먼저
+          풀어야 할 문제로 봤다는 뜻.</div></div></div>
+      <div class="achv"><div><div class="head">2025-02 — C++11 호환을 위해 표준 기능을 직접 재구현.</div>
+        <div class="sub"><code class="mono">std::void_t</code>/<code class="mono">std::remove_pointer_t</code>
+          같은 C++14/17 기능을 Template으로 손수 다시 짜서 C++11에서도 돌아가게 함(커밋 68743b1). 이
+          시점에 코드도 <code class="mono">TypeReflection</code>/<code class="mono">MethodReflection</code>/
+          <code class="mono">PropertyReflection</code> 세 폴더로 처음 나뉨.</div></div></div>
+      <div class="achv"><div><div class="head">2025-11-01 — "Property Set, Get Error Fix"라는 이름의 대규모 재정리.</div>
+        <div class="sub">커밋 메시지는 버그 수정 하나지만 실제 diff는 13개 파일, 수백 줄 — 폴더 구조가
+          <code class="mono">TypeReflection/...</code>에서 지금의 <code class="mono">include/Type,
+          Property, Method/...</code>로 바뀐 것도 이 커밋. Property Get/Set 버그를 고치면서 구조 자체를
+          다시 정리한 것으로 보임.</div></div></div>
+      <div class="achv"><div><div class="head">2025-11-26 ~ 30 — 타입 안전성 우회 경로와 그 판별 기준을 뒤늦게 분리.</div>
+        <div class="sub">raw getter/setter(타입 체크를 건너뛰는 접근)를 추가한 지 나흘 뒤에
+          <code class="mono">IsBase</code> Template 함수를 별도로 도입(커밋 6e34708) — 지금 페이지에 있는
+          "Get은 상속 허용, Set은 완전 동일 타입만" 규칙이 이 두 커밋 사이에서 갈라져 나온 것.</div></div></div>
+      <div class="achv"><div><div class="head">2025-12-10 — 독립적으로 만들던 Container 프로젝트를 서브모듈로 결합.</div>
+        <div class="sub"><code class="mono">external/Container</code>를 git submodule로 추가하고
+          <code class="mono">ContainerPropertyInfo</code>를 새로 만듦 — Container 라이브러리를 따로
+          만들다가, 어느 정도 완성된 뒤에야 Reflection에 연결한 순서. 64바이트 SBO Iterator도 이 커밋
+          이후에 자리 잡음.</div></div></div>
+      <div class="achv"><div><div class="head">2025-12-11 — GCC 경고 수정은 시도했지만 범위가 좁았음.</div>
+        <div class="sub">"Edit the gcc compiler warning and error" 커밋은 실제로는
+          <code class="mono">ContainerPropertyInfo.h</code> 한 곳만 건드림 — <code class="mono">Utils.cpp</code>의
+          <code class="mono">GetName</code>/<code class="mono">GetClassName</code> 플랫폼 분기 문제는
+          이때도 그대로 남았고, 지금 "주요 내용"의 크로스플랫폼 버그로 이어짐.</div></div></div>
+    </div>
   </section>
 
   <section id="mechanics">
@@ -193,6 +229,28 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
         <div class="sub">둘 다 <code class="mono">reinterpret_cast&lt;char*&gt;(instance) + m_propertyOffset</code>
           으로 해석됨. 대입은 캡처 없는 람다가 <code class="mono">void(*)(void*, const void*)</code>
           썽크로 decay되어 <code class="mono">*(Property*)dest = *(const Property*)src</code>를 수행.</div></div></div>
+    </div>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence 다이어그램 — Set()의 타입 안전성 분기(Pointer는 상속 허용, 값 타입은 완전 일치만)</div>
+      <img src="https://www.plantuml.com/plantuml/svg/bLJlIzj06FwUl-AbWhIWW_twi394BLCAsoYc7mToQwxjONh9BfSLXnywx4etErPaNQkqNGM76mWJxSGD_vfzx5t-XrtIP5Odo089TtcVUvxdVP-GUOSZnjsIgJbhXDg8eH8yHxcr0hDSQgGiqs9GBXAE9-fE4HbMcT02v97fJ5OCd4UkoPSiof-Y4eRO4sGMN0hB5Y-INEnwf4vUORXzPr80lt0npU45ngposCFKlU2w1lIOvDLDyQB53Cn2z8FWkWQTKTsI7B4HvOjNsfnQkhzqzr7gXaEJAg4dpRweGyphdCdJhkmtOu0SI5qkPfXbOyRNqpHl9PCwvW-pSm5ElupBhjlOnmIrRFe6aXLK3e0hcfQ2sJdG8GdgTPnGbQxoFmClaUdYXARxrMnQbIE1P78vC15Fm2p8_Xin-0BUPaMjGEuTURiD3PaSigEZ2cGiGZbc6e0UYQGTNSKSjqD3FkaCgEcvt5ycdj6D3OL95ObfN0BTohXi4Xdi4ugPMXm38uKYL-noyxMilOVHi38wgOBNhilTRu7BfjpgHIv3L-A3GjH-Z4xEDQo-oR7ZqT5s2FiFq_-usAdAGTNhrnNTZknLGaPnqFWhI8rWIg4ZSLgNlNFvipCMLQefHSCmTndrxRUgud082k9xbgqwUAslSTbkYi-78DirsMianZr4EKoGpS7AE5iLUNpw8j_fC61GzH1KMeqwN70SKg2OnGtiy1bmM4ub8xVsvQ0hzhhYtKUGl_RaSSTNztUYtn1R-_2xjWtPealNhauayZLeYPDXSBmt5D_FG1nNnM1V7ZHLbmm7iTYgxTKSShWI0j681YVh7U_Jss1my-hX_tx-0000" alt="Property Set 타입 안전성 시퀀스 다이어그램" loading="lazy">
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">METHOD(name)</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">호출 대상은 Type Erasure로 지워짐.</div>
+        <div class="sub"><code class="mono">MethodBase</code>(빈 껍데기) → <code class="mono">MethodCall&lt;Return,
+          Args...&gt;</code>(순수 가상 <code class="mono">Invoke</code>) → <code class="mono">MemberMethodCall</code>/
+          <code class="mono">StaticMethodCall</code>(실제 함수 Pointer 보관) 3단 상속으로, 호출부는
+          Return/Args만 알면 됨.</div></div></div>
+      <div class="achv"><div><div class="head"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가
+        함수 Pointer "값"을 Template 파라미터로 받음.</div>
+        <div class="sub">같은 시그니처의 함수라도 <code class="mono">func</code>이 다른 값이면 서로 다른
+          Template Instance — 함수마다 자기 <code class="mono">static MemberMethodCall</code>을 따로
+          가짐(부분 특수화 3개: 멤버/const 멤버/정적 함수).</div></div></div>
+    </div>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Class 다이어그램 — MethodBase 상속 구조와 MethodCreator</div>
+      <img src="https://www.plantuml.com/plantuml/svg/fLJTQXD16BtVf_ZOtgGr2Mgh5oM4jekHNDGB-m0osPqaItPdoioi0Mias5G22IX58M8Y2ABU6OrY1S5tyJAxUGTd_v9f4gZWNCr-F-VxpZd3xd61cF1SH-CDcnmZXboe8BDHOzGZba4Tog1PjmLMyhoEBDgqIGsgoE5gndGGvoLAn3taOZ0euLH6rXKSsOymtDXMKXQk8iyHysxz43arZy1TAkgsgQ-lZ65kAibaRqOmWvtboVj2CBlY2LmsAObwhoib-upHPanvutPqbAGHzXzGPc6MbEn4PwLaIRoDqgtIzXr3qr252uPC4My2XrZKgNM0E8OJ3U3QIPflmPD5BhEfjTPt6iXn2lUny1Z9oirhF9_F5rUWokGXRU3CCRM9m2mBI1PkmYx4ZH8xXNGhcAq1ZYXb8oV5qfXSoIEci2a1zq4rkORJ_t7aaK32Dg_Yyfz3z0IVOIGeAuHWMGXnYZeW3aaS2WNmVtPcf-tWxHdCpeQpbtt_ms-OzVl-w9V_-MBM6KCn5PT7YxVYPccGdBhmQqkHD8oLIPN6H9GQoSMTVotO90eKCxOK6n4Jhw6bl9h2urnEUGlQufgcBdkwKh3iW9RA4Og_t2sNY8c3Fsa7tG7CNWtyfmF_tH22qr7G-NAfUndwwcv5BZhd5V7S1GDnKL1VIZPz8rl54CAVV0_UlD085HYONQiBeDNKMoblwFTqt5QCrQVZSpqOVPFkolnq_3eOjI7e3QS_BlnUD_Ww26r_tf5RVfBB-X-xVk-zBFGddJ1QJko1Fy_EqrZCJiF4Wd0DRK_Umf_gNm00" alt="Method 디스패치 클래스 다이어그램" loading="lazy">
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">Zero-allocation Container Iterator</h3>

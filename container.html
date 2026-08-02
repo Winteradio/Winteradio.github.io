@@ -184,6 +184,11 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
           종료 규칙(탐사 거리가 Slot의 PSL을 넘으면 중단)이 영원히 유효함.</div></div></div>
     </div>
 
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence 다이어그램 — Robin Hood Hashing Insert/Delete</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XLHTRn9157tVNt53Om81JAaQemcD5birKME4Dzk7AJl0fiiCxWuIVQ8jacfff4QKLb2gjHy99bHfR9F-6X-PuJyuionsQPkuoIQxS-yzvzvpp-ujco6BvREcPYyO98Sib8Lvb5n8MpHFz1WrgGM5ZC6m9svda4uB1ab32fcsDwBZ5CgRR8OIzWXbCVWU8ZET9t2NieoHz5sS6JTUOeXCU0dmipmcINpRicXXqCFOLUUw8Ec1aP8tmLFKqh7bPjzmhWko7yjfZQIHGuHDdHbpRERQp9Nfs7-Al2nkJrhkD0w-639DRFa0sH0RZTn3TYQ1vati11EZmRX9sLDZpWd5DIqQXVl4nXQ3Q5IBGNWI4d3JFV8lu1SXU8xCF0veYM6Cu8B2k9opJOZ2U0ZworMnr0QnsX2VrpMJqXpmunLGIS3hLVxcFVGEg-9d5tYbA9ONWUzM-58BUAtIEww8tQ86uA379RhR7lGtQg9v92F8PCF30MKKmX7m3na2CiLJxZOdcYNe_JwIV7oh0RpJ4STrcOYbYqRwdno1zlluckorK-HBZNvjptS6sowWdD-j3WqB0n26tb57R7L1VAgASeL_Fv64HV6XovTB3W2X38Dbf3CCQCgHKCPvQrkok3MIyhHpALErBijdYIjixrT9bDVygiF18uYTfYm9k1ETTgcmZM0mv9qn65HfHDVK_I_Bf4YNNrMIINjDmlNnIto_2qzmHZh7BpRt-PVNC25b2pW6kODDB4Vm6cJQGZPM_d2DeVIPCOZk74b9XgqVTFXEMuttJt9Ugel6YQ8JMnsf78Ylh_YtYdRM0Qw_rAv5go61eB_Ua1uBk0vRtHRD2WmagyDWcUFICi3VReZQodbF1IDpoXOklFA5-lyKaAM7xOoHOjuAkGK9qwyD5pIa24SXuWXvVgUCPkTjHWa6yR6ijjWxRFFzDKN9soTI1T5QL8DBti4yi-HF-Tr0j8327v73UJleAfn-xOVwQ4IZrT_Sq_u2" alt="Robin Hood Hashing Insert/Delete 시퀀스 다이어그램" loading="lazy">
+    </div>
+
     <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena — FL/SL Bitmap 탐색</h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">2단계 분류</div>
@@ -217,6 +222,30 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
         <div class="sub">할당은 공유 Page 안에서 offset을 밀기만 함(넘치면 새 Page 추가). 어떤 Page를
           누가 쓰고 있는지 기록이 없어서 하나만 골라 해제할 방법 없고, Page 전체 offset을 한 번에 초기화하는
           <code class="mono">Reset()</code>만 존재함.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정 — 실제 커밋 히스토리 기준</h3>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">시작은 Variant 하나 — 해시값이 항상 0으로 나오는 버그를 나흘 연속 고침.</div>
+        <div class="sub">2025-03-30 첫 커밋은 헤더 하나짜리 Variant뿐이었음. 나흘 뒤(04-06~04-07) 같은 날
+          "Fix the hash code" 커밋을 세 번 반복 — 마지막 커밋 메시지에 원인이 그대로 남아있음: "hash value가
+          값이 이미 사라진 뒤에 계산돼서 항상 0으로 나옴". Copy/Move 시 소멸자 스킵을 막으려던
+          <code class="mono">valid</code> 플래그도 이때 처음 추가됐는데, 지금 <a href="#bugs">버그</a>
+          섹션의 이슈 #32(valid가 영원히 false)·#33(<code class="mono">Move()</code>가 실제로는 copy 호출)이
+          바로 이 근본 원인의 흔적임 — 1년 넘게 완전히 고쳐지지 않은 문제.</div></div></div>
+      <div class="achv"><div><div class="head">8개월 공백 후 재개 — Variant 하나였던 저장소가 실사용 Container로 확장됨.</div>
+        <div class="sub">2025-04 이후 커밋이 끊겼다가 2025-12-09 "Add some container"로 재개. 12-11~12-16
+          사이 HashMap의 타입 정리, 그리고 Hash Table의 erase 길이 계산 버그(길이가 max size의 배수일 때
+          0으로 잘못 나오던 것)를 고치는 등, 실제로 쓸 수 있는 Container로 다듬는 작업이 이 기간에 몰림.</div></div></div>
+      <div class="achv"><div><div class="head">Allocator 계층은 한 번에 완성되지 않고 순서대로 쌓임.</div>
+        <div class="sub">Arena를 먼저 만들고 2주 뒤 LinearArena를 추가(2025-12-31~2026-01-01), 이후 2026-02에
+          "가장 최근 Page를 재사용 안 하는" 버그를 다시 고침 — 계층을 한 번에 설계·완성한 게 아니라, 하나
+          쌓을 때마다 실사용하며 버그를 그때그때 잡아나간 흔적.</div></div></div>
+      <div class="achv"><div><div class="head">TLSFArena는 이 페이지의 다른 기능보다 훨씬 최근에 들어옴.</div>
+        <div class="sub">2026-07-21, 이 Repository에서 가장 최근 커밋이 "Add the TLSF Arena". HashMap과
+          Arena 계열이 반년 넘게 실사용하며 다듬어진 것과 달리 TLSF는 아직 그 시간을 못 거쳤고,
+          <a href="#bugs">버그</a> 섹션 이슈 #31(m_remainedSize 부정확)이 아직 남아있는 것도 이 때문으로
+          보임.</div></div></div>
     </div>
   </section>
 

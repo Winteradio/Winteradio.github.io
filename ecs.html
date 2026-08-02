@@ -146,6 +146,47 @@
       멤버에 이걸 빠뜨리면 Collector가 도달 불가능하다고 판단해서, 다음 <code class="mono">Memory::Collect()</code>
       때 조용히 해제해버림.
     </div>
+
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Class 다이어그램 — Registry&lt;Base&gt;/Container&lt;T, Base&gt; 실제 통합 구조</div>
+      <img src="https://www.plantuml.com/plantuml/svg/VLLTQzj857tNhxYu3tLQctms3yM497QI3QKVrCbp6KjZMrjfHep63Uu7fAqBeIdKXOIQa2p9m-vIo4FQcjA5_JNxc57-mzwH56diP5Slbkuzzzvppjp1Yw4aGdPypmgVkYmWWlZG8FRJbk0TvbIvnmLijLr9ZNpO9WxVSbaBciGBpOpjaJ1SvKm-83w5AcSXnyXrWBhxdCBqh95oQ9DqF9bL5-uJhzLXiCPbsxKBroEJDZD6CkKj61KmDpvvIKhXDZgIhjkSnRLJ1cH92BwLIBun7pz6ighhbxbmg4WXS_5p1J9ctetLEwkpArNBYWd0myQlr9RmmW8eRswkry1_qkcu3dxUNgDolLQS01ssNgNu5IPTsOtnjvSSxEa7d54cYx8Rq0bunfDQJ3tW3XsB_aB2yO86vrxMl53lXfBwbMKIqeK2a12IWFvEHhuWZL0AOijNi1auHE84rwTrIOCIe8MIkEXpFj20enhDQ0EdeYRziywQF1kjHrGl6roPjI8mNTJ6_5VlvHoGMFf8YbnNrhcoKO9SNHRUI0wWHYIfIov8YrOs5l0emkH3Zrln0u_OjEWw9I2Y5Hfp49kUrpW3dSb8FAOj5nbt3NilGvd1PJoYzdqIL49SnYUoPBGQSMX1iyiCrxmrWwgWU2GuzFzP6cui54r4xaSCVKnz_YnkPpYVoLaJ96Zh8qL0B2OB96vYUJCP2qxAhqvbZGQKEPJPtIBUusnNHhiQ3iNVL-tHTw9aJDHsC7n9dIWlTrpFAQRhdQYkSo6fZjMwZFYkZRURT76mbLx1oijoERrU8w7y2bYZInfdSykiaSFac2lSAfWhTXSktcv7lxs3Y_rXj7keJWuXEZcxEFXWvI9lfMMvCejnIK6uhRO4tXpP61IMy9tCRlMahfbCA6CwEkwf7ziG7GrXTFkGmq2z6I2768MqVeT_jlTIXkfxJvT61r-oClL-3v4pKpFpvQdPyinSANsVAq_FW_hK1_Lj9_hSHypvrv_Hzpv4dq_FVvvfaHT79z7EGFK7wiiPH6zErT7VqPzz2zS0jBP4O8DBoNsjC3C3UoL2aFyWEXb6lQzmFjnMVvmY6K2EwcClmrpoF3z3kVizjRk3OxGsbAw-xMafncffbDeTgjs_45AyHzhiPWXBNeiBLxPntc4lUliwEjvNnwSJET55VDF_ZFy2" alt="Registry Base Container 클래스 다이어그램" loading="lazy">
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:0 0 14px;">
+      GitHub 커밋 히스토리 기준 — 지어낸 이야기가 아니라 실제 diff에서 확인한 변화만 정리.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">2023.06 첫 버전 → 2년 넘게 방치 후 2025.11 재개.</div>
+        <div class="sub">2023년 6~9월에 초기 버전을 만들고 커밋이 끊김. 2025.11.30
+          "<code class="mono">Set the developping</code>" 커밋으로 2년 넘는 공백 이후 다시 시작함 —
+          지금 코드는 사실상 이때부터의 완전 재작성.</div></div></div>
+      <div class="achv"><div><div class="head">2025.12.16, 통짜 재작성 — Manager 5개 + Interface 6개를 걷어냄.</div>
+        <div class="sub">커밋 <code class="mono">2b2b069</code> "Edit the ECS" 하나에서
+          <code class="mono">SceneManager/EntityManager/ComponentManager/SystemManager/NodeManager</code>(5개)와
+          <code class="mono">IObject/IComponent/INode/ISystem/Entity/Scene</code>(Interface 6개)를 전부 삭제 —
+          대신 <code class="mono">Object</code> 공통 베이스와 타입별 Registry 4개
+          (<code class="mono">Component/Node/System/ContainerRegistry</code>), 그리고 신규
+          <code class="mono">Graph.h</code>로 교체함. 지금 구조의 첫 뼈대.</div></div></div>
+      <div class="achv"><div><div class="head">2026.03.24, Container 4개 → Container.h 하나로 통합.</div>
+        <div class="sub">커밋 <code class="mono">1801487</code> "edit the container" — 타입별로 따로 있던
+          <code class="mono">BaseContainer/ComponentContainer/EntityContainer/NodeContainer</code> 4개 파일을
+          지우고 제네릭 <code class="mono">Container&lt;T, Base&gt;</code> 하나로 교체. 같은 커밋에서
+          <code class="mono">ComponentRegistry/NodeRegistry/ContainerRegistry</code> 3개도
+          <code class="mono">Registry&lt;Base&gt;</code> 하나로 합침 — 단,
+          <code class="mono">SystemRegistry</code>만 이때는 살아남음(이름만 변경).</div></div></div>
+      <div class="achv"><div><div class="head">2026.04.16, 마지막 남은 SystemRegistry 제거 — 의존성 관리를 Graph&lt;Base&gt;로 흡수.</div>
+        <div class="sub">커밋 <code class="mono">5e41709</code> "Edit the system registry and graph" —
+          <code class="mono">SystemRegistry.h/.cpp</code>를 완전히 삭제하고
+          <code class="mono">Graph.h</code>를 337줄 고쳐서(위상정렬 로직 흡수) System 전용이던 의존성 관리를
+          범용 <code class="mono">Graph&lt;Base&gt;</code> 하나로 넘김. 지금 위 클래스 다이어그램의 최종
+          형태가 여기서 완성됨.</div></div></div>
+      <div class="achv"><div><div class="head">데모(<code class="mono">demofile/main.cpp</code>)는 이 세 번의 리팩토링을 하나도 못 따라감.</div>
+        <div class="sub">지금도 <code class="mono">ECS::NodeRegistry</code>/<code class="mono">ComponentRegistry</code>/
+          <code class="mono">SystemRegistry</code>를 그대로 참조 — 헤더에는 더 이상 존재하지 않는 타입들.
+          위 "주요 내용"에 있는 데모 불일치 버그가 정확히 이 세 단계 중 어디까지 반영됐는지도 모른 채 방치된
+          결과.</div></div></div>
+    </div>
   </section>
 
   <section id="design-choice">

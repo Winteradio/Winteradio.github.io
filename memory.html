@@ -161,6 +161,39 @@ int main()
     Collect();                    // obj가 가리키던 메모리는 회수 대상, root/arr는 보호됨
     Release();
 }</pre>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
+      GitHub 커밋 히스토리 기준 — 2023년 5월에 시작해 그해 10월까지 진행하다 멈췄고, 2025년 11월에 다시
+      잡아서 지금까지 이어가는 중.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">1) 2년 넘는 공백 뒤, 구조를 갈아엎으며 재시작.</div>
+        <div class="sub">2023-10-02 이후 커밋이 끊겼다가 2025-11-29 "Edit the Memory Project" 커밋에서 재개.
+          이때 옛 구조(<code class="mono">MemoryManager/</code>, <code class="mono">OnlyMemoryPool/</code>,
+          <code class="mono">MemoryPtr/</code>, <code class="mono">ExternalProject_Add</code> 기반 빌드)를
+          전부 걷어내고 지금의 <code class="mono">Accessor/Collector/Pointer/Storage</code> 구조와 git
+          submodule 기반 빌드로 다시 짬 — 그 사이 다른 프로젝트(Reflection, Container)를 만들면서 익힌 설계를
+          Memory에도 그대로 가져온 것으로 보임.</div></div></div>
+      <div class="achv"><div><div class="head">2) Container 라이브러리를 붙이고, GC가 진짜로 도는지부터 확인함.</div>
+        <div class="sub">2025-12-12 커밋에서 Container를 submodule로 새로 연결하고, 데모에
+          <code class="mono">GCExample()</code>을 추가 — <code class="mono">DynamicArray</code>/<code class="mono">HashMap</code>에
+          담긴 <code class="mono">ObjectPtr</code>까지 <code class="mono">Collect()</code>가 실제로 훑고
+          회수하는지를 직접 돌려서 확인하는 코드.</div></div></div>
+      <div class="achv"><div><div class="head">3) 이틀 뒤, 순환 참조가 마킹을 무한 루프에 빠뜨리는 걸 직접 겪음.</div>
+        <div class="sub">2025-12-14 커밋 메시지 원문: "서로 연결된 값들을 GC에 등록하면 순환 연결이 생겨서
+          마킹 로직이 무한 루프에 빠진다 — 그래서 값이 이미 마킹됐는지 확인하는 로직을 추가했다." 그래프를
+          스택으로 순회하며 마킹하는 <code class="mono">GarbageCollector.cpp</code> 루프에
+          <code class="mono">IsMarked()</code> 가드를 넣어, 이미 마킹된 노드를 다시 스택에 안 쌓게 고침 —
+          사이클 있는 그래프를 방문 표시 없이 순회하면 흔히 나는 문제를 실제로 만나고 고친 사례.</div></div></div>
+      <div class="achv"><div><div class="head">4) RefPtr을 침투적(intrusive) 설계에서 비침투적(non-intrusive) 설계로 바꿈.</div>
+        <div class="sub">2025-12-15 커밋 메시지 원문: "기존 RefPtr은 관리 대상이 RefCounted를 상속해야 했는데,
+          이 방식이 (Accessor 기반인) ObjectPtr의 구조와 너무 다르다." 그래서 대상 타입을 그대로 감싸는
+          <code class="mono">RefData&lt;T&gt;</code> Wrapper를 두는 방식으로 바꿔서, 임의 타입을
+          <code class="mono">RefCounted</code> 상속 없이 <code class="mono">RefPtr</code>로 관리할 수 있게 함
+          — 같은 커밋에서 <code class="mono">ObjectPtr</code>의 기본 생성자가 Instance Pointer를
+          <code class="mono">nullptr</code>로 초기화하지 않아 나던 런타임 에러도 같이 잡음.</div></div></div>
+    </div>
   </section>
 
   <section id="compaction">
@@ -184,6 +217,17 @@ int main()
       비어있지 않은 버킷부터 찾음 — 어느 한 버킷이 <code class="mono">eFull</code>까지 차서 새 백킹 할당을
       강제하는 상황을 줄이고, sparse 버킷은 완전히 비워져 회수될 여지를 남겨둠.
     </div>
+
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence 다이어그램 — PoolBudget의 버킷 탐색과 밀도 재분류</div>
+      <img src="https://www.plantuml.com/plantuml/svg/ZLHTQnD157tVNt59Nr8m0RyUz45gDYO8ZHH3Vy2uEqcMJ7RYxYn1dvPq7o8jj69hKzn8X8f5V8WrL0l-eipaFtZt8xe90Rkm8PbpphtdtBkRBLSGHtWTfhbjo-uIXtJW1J7QJOTxjgbpnXtejIn1CxZR8YRlMNOJ6eIvMSIa3U8nKU6sU4Ow578rmfgU3LKkMfQHMy-iMwyftBwJRK1VUjGsw6F7uRt4myQz-5f3shOQUDkqn1sJEYdxGNojOUzWMikmkiGMfPMO6vNxbRjFzF-8ibrIJrht7muvdJ16dHmG5_HbP8TpLlBC9XKnMbf6ozHsAMnRReAMbz4QnxP4P0YrPK8TVsNrTKtJeV08Il0GgbH4lVER6c42aaRoCfZtVwhJ8r2dtrGuXeW1wkD0ZGuqG1bgowYjEBWYL5BSDFnrSHDrRLMTMho9jhwgLUD0NlaWhmFrVffm8Kyh7cEBUYCVrCbOJGTHvTcbh_RUuC40vYSNcukoqJ1qXsA2P1wWzWPf-xsH2hx7hMENiRshuzd4rwXj9gFKKIqdm_dPK1w5iGnPAWZXgOrl4Juds6iizwyrhLWiolvGdR-z1LKTwZrAkw16q_c7097COdQx9dh1Z8ppRXf4VXd8_NEGNo_aksGsMVUuobsNci-9i3Zwd_q8L7yIcsjHensjrXAlyb7WQDLouil304FWjsFfXtYSgPLqJoTHACJF3iPdba7bfn3GXVpyQp7Uy7TqXY7auHcMYOOItLlu4Vrx_040" alt="PoolBudget 버킷 탐색 Sequence 다이어그램" loading="lazy">
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:10px 0 0;">
+      <code class="mono">GetPool()</code>은 Dense부터 Sparse 순으로 역순 탐색해서 첫 번째로 여유 있는 버킷을
+      바로 씀 — eFull 버킷은 애초에 탐색 대상에서 빠짐. <code class="mono">Update()</code>는 Pool마다
+      <code class="mono">GetUsedRatio()</code>를 다시 재서 밀도가 바뀌었으면 <code class="mono">List::Splice</code>로
+      해당 버킷으로 옮김(포인터/Iterator 재계산 없이 노드만 다른 리스트로 이동).
+    </p>
   </section>
 
   <section id="issues">

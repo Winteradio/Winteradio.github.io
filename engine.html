@@ -219,6 +219,20 @@
       모든 GPU 호출은 Command 객체로 감싸고 <code class="mono">RHIWorker</code>만 실행함.
     </div>
 
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:18px 0 4px;">
+      리소스 삭제는 <code class="mono">RHISystem</code>이 즉시 지우지 않고, 7종 <code class="mono">HashSet</code>에
+      모아뒀다가 <code class="mono">GLSystem::FlushPending()</code>이 Flush 시점에 한 번에 처리함 — Thread 경계를
+      넘나드는 <code class="mono">glDelete*</code> 호출을 구조적으로 막는 장치.
+    </p>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Class 다이어그램 — GLSystem이 RHISystem을 구현하는 방식</div>
+      <img src="https://www.plantuml.com/plantuml/svg/ZPHHQnD14CVVxrCipKjIJT2sAfHGsgGc3LG9ZU1ZsTpDvPRUxORTkQQr5Wgs8EYhK2GH5H_K9y4YVgTSleERkyjrUpt5UmYty__DtEn_PxEfa4eC0zzI1umFgQG1wLFxO215o9scy8Ka8uyX6Bhog2D6Z0-8ItrbAhPFbMe9Zazf0AGfk18wKWJqs0iWzrSDoG6NXZvcsKjFg3y8EMaBz9YzL4mcPLOCCUrRSf1aBV_bBKJ9-Y52nnOyphrd85jIYb6ovTB3-374vZo_8QG3CaNMukSMaZElr7hGMdtSj2pQLoYfZKadP6-dqpjM204viGWfxL3bzG3hU-1sKTQrsWXT5-J61WdsXy0TRNSIKSNuCpZ2K8B9fw6_9FJqATwidqHkuBLQpG3qgXnTJSYZwFD5HMDtJXQREYLD2HGXQR7iWB8h9FbMZkjmXepwslkKPTmLTqa_NbJ8eM1EBgFbXyhh9XsK2ubjIKSTxi1HLx90bp-4k6enozIGekqrHJ3KWt0JB1bW6x3Xww-sGcwNNVrJ8I7ZkBgoZxV9UJKgeOWzjP83R-yQvrrztjxLrmFr2MbxxUHj7jS74yzD3xMRiRHOfEes3D5Rg4wsIDMuuuNQpnPp3ufjhCRXz2XoqNH-yk5aJ8pelvsg_fyzruPOrrUZ_h9QpOopCWUNTTJWkT3RbMpW8H5kXg-lcplMZMHbeycLdir07C9okJBzD2RJxr-ZoPb6iacFHvoajo2Qd6jjzkei-d0n_NcU36IQ6hqUpzw_dRsxd7xxeQ7epPVeuvWC_6tm0M6Pp2v_Hx_6bgvAvcrQc_fj_c_x1m00" alt="GLSystem RHISystem Class 다이어그램" loading="lazy">
+    </div>
+    <div class="uml-card">
+      <div class="cap mono" style="text-align:left;margin-bottom:10px;">Sequence 다이어그램 — 지연 삭제(FlushPending)</div>
+      <img src="https://www.plantuml.com/plantuml/svg/XLFlQzD06FwUl-Ab-v88g_WBSHzajhDrKBMi6_rIa5jpIOucT_LoMQUVvkp4sOe3cHR9XifqduGDX-Y_r5p-1wz9tDgru44uSi_plC_pliaj-W9n4NYkvhS8RIEEF5X7pPRDMK3D8dCPXuv311x3VGUPh4Ee3HPo_N74n1OAN55YL3n27eRSG-JQ0OKo4mvfvcOpQ-GvXclNnmtmqm3J9hx7EUka6UPk9ci6gK8izL1SODp4F6FVITOCTbLrIvgaZQWeN6fphdIhTED-yJ-YSPSiazQ-m26tyc2vpdWBynmW7-fJOEsPBx3NeBhtf8sfgSPO22mBSn-YzwT68YeWDTK9NRcIoXAuN9a47wiwvGeiSRAHkPQhQvfMX_cxIIbOW1NiiGsS6kdhoMPe2NR1kPmdlqnzpCKvdJA1WHFR4S2iVoBvVLVsGf3RF-JdCDuVoECjaFjlv46_GQFUaTgXv0Q-KqrB3__qHupevrdqRP0cLCaN9ZYweQcp2IGBRcWkO-sfe21VX_6dlWQGwQfhIcYxIzZ58clQrubfQ4esLNiLRug0Ozs0g-b1JVtU8pFrdi_dqxRLy7YgkJqy2I5-kIKFT-H15uOdB-JXNYgyeXlHbp1Bqw3dFmAiEXmZKtxSazqmEkw3x1t57tPXlZ7wREde81xybh_2w5qNYkfEg4oP2kJN7VdghUoUZkpKyEBjCsrHDJAwity1" alt="FlushPending Sequence 다이어그램" loading="lazy">
+    </div>
+
     <h3 style="font-size:19px;margin:36px 0 8px;">Vulkan 백엔드 <span class="status-chip progress">진행 중</span></h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
       기존 <code class="mono">GLSystem</code>과 같은 <code class="mono">RHISystem</code> Interface를 구현하는
@@ -257,6 +271,30 @@ Parse = CPU 바운드, TaskWorker 풀(유휴 Worker가 있을 때만 — 없으�
 Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 ※ eAssetState는 eNone/eError/eLoaded/eExpried(오타)/eDirty뿐 — "완료(eReady)" 상태는 없고,
   준비 여부는 texture/buffer/shader Pointer가 non-null인지로 판단</pre>
+
+    <h3 style="font-size:19px;margin:36px 0 8px;">개발 여정 — 설계가 바뀌어온 과정</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
+      실제 커밋 히스토리 기준(2025.12 시작). 100만 Instance 성능 최적화 여정은 <a href="#results">결과물
+      섹션</a>에 따로 있음 — 여기는 그 바깥의 구조적 결정들.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">RHI/Proxy 기반 아키텍처 확립 (2026-01-26).</div>
+        <div class="sub">45개 파일이 한 번에 바뀐 <code class="mono">736602c</code> 커밋에서 지금 엔진의 기반이
+          되는 RHI/Proxy 구조를 세움 — World가 렌더 타입을 직접 안 건드리는 지금의 경계가 이 시점부터
+          시작됨.</div></div></div>
+      <div class="achv"><div><div class="head">FrameGate 도입 — 동기화와 데이터 보관 역할을 분리 (2026-04-03).</div>
+        <div class="sub">이전엔 <code class="mono">FrameContext</code> 하나가 Thread 동기화와 프레임 데이터
+          보관을 동시에 맡음 — 커밋 메시지에 남긴 표현 그대로 "the frame context is removed"로 정리하고,
+          동기화는 FrameGate로, 데이터는 RenderCommand/Proxy로 역할을 쪼갬. 지금 위의 producer/consumer
+          구조가 이때 정리됨.</div></div></div>
+      <div class="achv"><div><div class="head">PipeLine 체제 → RenderPass 아키텍처로 전면 교체 (2026-05-19~21, 3개 커밋).</div>
+        <div class="sub"><code class="mono">GlobalResource</code>/<code class="mono">GlobalSampler</code>/
+          <code class="mono">GlobalPipeLine</code> 세 개의 전역 싱글턴을 <code class="mono">GlobalRenderer</code>
+          하나로 합치고, <code class="mono">eTextureSlot</code>을 <code class="mono">eResourceSlot</code>으로
+          확장해 Shader 바인딩 이름 규칙(u/t/o 접두사)을 이때 처음 세움. 그 위에서 임시방편이던 "PipeLine"
+          개념을 걷어내고 CullingPass/GeometryPass/LightingPass로 나뉜 지금의 RenderPass 구조로 교체 — 위에서
+          설명한 Renderer 구조가 이 3개 커밋으로 만들어짐.</div></div></div>
+    </div>
   </section>
 
   <section id="findings">
