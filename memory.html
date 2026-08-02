@@ -59,6 +59,10 @@
       <span class="section-num mono">01</span>
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
+    <div class="callout">
+      <b>왜 이 방식:</b> GC가 한 프레임 안에 통째로 끝나면 Frame-time Spike로 이어짐 — Mark/Sweep은 그대로 두고,
+      객체 단위 편차가 가장 큰 Purge 단계만 시간 예산을 둬서 여러 프레임에 나눠 실행하도록 설계.
+    </div>
     <div class="achv-list">
       <div class="achv"><div><div class="head">상태 하나가 전체 Cycle을 이끎.</div>
         <div class="sub"><code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code>, <code class="mono">eStatus</code>

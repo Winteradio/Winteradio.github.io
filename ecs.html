@@ -59,6 +59,11 @@
       <span class="section-num mono">01</span>
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
+    <div class="callout">
+      <b>왜 Node:</b> Sparse Set은 Entity ID로 Component 하나만 접근 가능해서 여러 System이 걸치는 조합을 못 씀,
+      Archetype은 조합이 하나 늘 때마다 새 Archetype과 데이터 복제가 필요함 — 데이터를 옮기거나 복제하지 않고
+      System별로 필요한 Component 조합만 선언하는 절충안으로 Node를 도입.
+    </div>
     <div class="achv-list">
       <div class="achv"><div><div class="head">Node 멤버십은 자동으로 검증되지 않음.</div>
         <div class="sub">Node는 <code class="mono">ObjectPtr&lt;T&gt;</code> 필드로 구성된 평범한 struct — 생성

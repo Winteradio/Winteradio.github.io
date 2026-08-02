@@ -59,6 +59,11 @@
       <span class="section-num mono">01</span>
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
+    <div class="callout">
+      <b>왜 STL을 안 쓰는지:</b> 커스텀 Arena/Pool Allocator와 맞물려 동작해야 하는데, std::allocator 기반 STL
+      Container로는 Allocator를 자료구조와 독립적으로 교체하기 어려움 — Allocator를 Template 인자로 분리해서
+      전략을 바꿀 수 있게 직접 구현.
+    </div>
 
     <div class="tbl-wrap">
       <table class="spec">

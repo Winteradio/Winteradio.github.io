@@ -68,6 +68,10 @@
         <span class="section-tag">이 엔진이 실제로 하는 일</span>
       </div>
     </div>
+    <div class="callout">
+      <b>왜 이 구조:</b> OpenGL Context는 Thread 종속적이라 GPU 호출을 한 Thread에 몰아야 함 — World 시뮬레이션이
+      그 GPU 대기에 발목 잡히지 않도록, Unreal 스타일로 World/Render/RHI/Asset을 4개 Thread로 분리.
+    </div>
     <div class="achv-list">
       <div class="achv"><div><div class="head">World는 렌더 타입을 절대 참조하지 않음.</div>
         <div class="sub">ProxyComponent가 <code class="mono">IsDirty()</code>만 뒤집으면, Scene이 감지해서

@@ -86,10 +86,23 @@
             <div class="org">현대오토에버</div>
             <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">MVT Rendering Architecture — Paint/Layout 로직 분리, Layer 타입별(Fill·Line·Fill-Extrusion·Symbol) Pipeline 구축.</div></div></div>
-              <div class="achv"><div><div class="head">Style 타입별 VBO 통합 → Draw Call 90%+ 감소 / Ear Clipping 동적 할당 → Static Memory Pool 교체 → Frame-time Spike 제거.</div></div></div>
-              <div class="achv"><div><div class="head">glTF·KTX Pipeline 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑ / GPU 기반 Skinning Shader 개발.</div></div></div>
-              <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 Layer 구현.</div></div></div>
+              <div class="achv"><div><div class="head">MVT Rendering Architecture 설계 — Paint/Layout 로직 분리.</div>
+                <div class="sub">지도 벡터 타일(MVT)마다 Layer 타입이 제각각이라 단일 Pipeline으로는 확장이 어려움
+                  → Paint(스타일)와 Layout(지오메트리)을 분리하고 Layer 타입별(Fill·Line·Fill-Extrusion·Symbol)
+                  Pipeline을 독립 구축, MVT Parser를 확장 가능한 렌더링 기반으로 재사용.</div></div></div>
+              <div class="achv"><div><div class="head">Style 타입별 VBO 통합 → Draw Call 90%+ 감소.</div>
+                <div class="sub">레이어마다 별도 VBO로 그리던 구조라 Style 종류에 비례해 Draw Call이 증가하는 게
+                  문제 → 같은 Style Type끼리 VBO를 하나로 통합해 배치 하나로 그리도록 변경.</div></div></div>
+              <div class="achv"><div><div class="head">Ear Clipping 동적 할당 → Static Memory Pool 교체 → Frame-time Spike 제거.</div>
+                <div class="sub">Ear Clipping 알고리즘이 매 프레임 동적 할당을 유발해 Frame-time Spike 발생
+                  → 정적 Memory Pool로 할당 방식을 바꿔서 Spike 자체를 제거.</div></div></div>
+              <div class="achv"><div><div class="head">glTF·KTX Pipeline 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑.</div>
+                <div class="sub">기존 텍스처 포맷이 로딩 시간·용량 면에서 비효율적 → KTX·ASTC 압축 포맷으로
+                  전환, GPU 기반 Skinning Shader까지 같이 개발.</div></div></div>
+              <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 Layer 구현.</div>
+                <div class="sub">Android 앱 Layer(Kotlin)와 엔진 Layer(C++) 사이에 실시간 내비게이션 데이터가
+                  오가야 함 → JNI Bridge + gRPC로 통신 Layer 구축.</div></div></div>
+              <div class="achv"><div><div class="head">커스텀 디버깅 툴 제작, glTF·KTX Pipeline 사내 세미나 진행.</div></div></div>
             </div>
           </div>
         </div>
@@ -99,7 +112,9 @@
             <div class="org">LG전자</div>
             <div class="role">VS 사업부 · 인턴 → 정규직</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">Cinemo/DLNA 기반 스마트폰-차량 미디어 스트리밍 구현.</div></div></div>
+              <div class="achv"><div><div class="head">Cinemo API·DLNA 기반 스마트폰-차량 콘텐츠 스트리밍 구현.</div>
+                <div class="sub">차량 인포테인먼트에 스마트폰 콘텐츠를 미러링해야 함 → Cinemo API/DLNA 프로토콜
+                  기반 스트리밍으로 연결.</div></div></div>
             </div>
           </div>
         </div>
@@ -109,7 +124,9 @@
             <div class="org">한양대학교 — CGR 연구실</div>
             <div class="role">학부 연구생</div>
             <div class="achv-list">
-              <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션, 관절 참조 애니메이션.</div></div></div>
+              <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션, 관절 참조 Animation 구현.</div>
+                <div class="sub">물리 기반 캐릭터 Animation 연구가 필요함 → 탄성 입자 역학으로 고무줄
+                  시뮬레이션, 관절 참조 데이터로 인체 Animation 구현.</div></div></div>
             </div>
           </div>
         </div>
