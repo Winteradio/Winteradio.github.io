@@ -284,6 +284,27 @@ table.spec td.k { color: var(--accent); white-space: nowrap; }
 .issue-state.closed { color: var(--accent-2); border-color: var(--accent-2-soft); background: var(--accent-2-soft); }
 .issue-body { margin-top: 8px; font-size: 13.5px; color: var(--text-dim); line-height: 1.65; }
 
+/* ---------- collapsible bug lists ---------- */
+details.collapse { margin: 22px 0; }
+details.collapse > .issues { margin: 12px 0 0; }
+details.collapse summary {
+  cursor: pointer; list-style: none; user-select: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px; border: 1px solid var(--rule); border-radius: 12px;
+  background: var(--surface); font-size: 14px; font-weight: 600; color: var(--text);
+}
+details.collapse summary::-webkit-details-marker { display: none; }
+details.collapse summary::before {
+  content: "▸"; color: var(--accent-2); font-size: 12px; transition: transform .15s;
+}
+details.collapse[open] summary::before { transform: rotate(90deg); }
+details.collapse summary:hover { border-color: var(--accent-2-soft); color: var(--accent-2); }
+details.collapse summary .count {
+  margin-left: auto; font-size: 11px; color: var(--text-faint); font-weight: 400;
+  font-family: "Cascadia Code", "SF Mono", Consolas, "JetBrains Mono", ui-monospace,
+    Pretendard, "Pretendard Variable", "Noto Sans KR", monospace;
+}
+
 /* ---------- real captures ---------- */
 .gbuffer-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 26px 0; }
 .gbuffer-row figure { margin: 0; border: 1px solid var(--rule); background: var(--surface-2); border-radius: 12px; overflow: hidden; }
