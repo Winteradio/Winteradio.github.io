@@ -123,6 +123,13 @@
     </div>
 
     <div class="achv-list">
+      <div class="achv"><div><div class="head">Entity/Component/Node/System은 전부 <code class="mono">Object</code> 하나를 상속하고, 저장은 <code class="mono">Registry&lt;Base&gt;</code> 하나가 담당합니다.</div>
+        <div class="sub">초기 설계 노트에는 SceneManager/EntityManager/ComponentManager/SystemManager/NodeManager,
+          다섯 개의 전용 Manager가 따로 있었습니다. 지금 코드는 이걸 범용 <code class="mono">Registry&lt;Base&gt;</code>
+          하나로 합쳤습니다 — 타입 해시를 키로 <code class="mono">Container&lt;T, Base&gt;</code>를 담는
+          <code class="mono">HashMap</code> 하나가 생성(<code class="mono">Create&lt;T&gt;</code>)·조회·삭제를
+          타입 구분 없이 전부 처리합니다. 위 "아쉬운 점"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
+          차이 때문입니다.</div></div></div>
       <div class="achv"><div><div class="head">GC 도달 가능성은 범용 프로퍼티 순회입니다.</div>
         <div class="sub">클래스별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 프로퍼티
           목록을 그대로 따라갑니다. <code class="mono">PROPERTY()</code>로 등록하지 않은
