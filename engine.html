@@ -48,13 +48,13 @@
       <div class="toc-title">목차</div>
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
-        <li><span class="n">02</span><a href="#threading">Threading &amp; 프레임 동기화</a></li>
-        <li><span class="n">03</span><a href="#modules">네 개의 Layer (상세 &amp; Diagram)</a></li>
-        <li><span class="n">04</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
-        <li><span class="n">05</span><a href="#status">기능 현황</a></li>
-        <li><span class="n">06</span><a href="#issues">해결한 이슈</a></li>
-        <li><span class="n">07</span><a href="#notes">기술 노트</a></li>
-        <li><span class="n">08</span><a href="#results">결과물</a></li>
+        <li><span class="n">02</span><a href="#results">결과물</a></li>
+        <li><span class="n">03</span><a href="#threading">Threading &amp; 프레임 동기화</a></li>
+        <li><span class="n">04</span><a href="#modules">네 개의 Layer (상세 &amp; Diagram)</a></li>
+        <li><span class="n">05</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
+        <li><span class="n">06</span><a href="#status">기능 현황</a></li>
+        <li><span class="n">07</span><a href="#issues">해결한 이슈</a></li>
+        <li><span class="n">08</span><a href="#notes">기술 노트</a></li>
         <li><span class="n">09</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
@@ -117,9 +117,88 @@
     </div>
   </section>
 
-  <section id="threading">
+  <section id="results">
     <div class="section-head">
       <span class="section-num mono">02</span>
+      <div>
+        <h2 class="section-title display">결과물</h2>
+        <span class="section-tag">섀도우 매핑 · Deferred Rendering · 100만 Instance 최적화</span>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px;margin:0 0 10px;">성능 최적화 여정 — 100만 Instance 병목 추적기</h3>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 16px;">
+      <a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>
+      한 건에서 한 달(2026-04-22 ~ 2026-05-23)에 걸쳐 실제로 있었던 일임 — Profiler로 병목을 찾고,
+      고치고, 중간에 리팩토링으로 오히려 성능이 떨어지기도 하고, 다시 고치고, 다음 병목을 찾는 과정을 그대로
+      옮김.
+    </p>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">1) 3만 Instance 회전 — Render Thread가 scalar GLM 행렬 곱에 발목잡힘.</div>
+        <div class="sub">Flame Graph에서 <code class="mono">SceneProxy::UpdateRotation → UpdateTransform →
+          glm::detail::mul4x4</code>가 압도적 1위. GLM이 SIMD 없이 컴파일돼서 mat4×mat4가 전부 스칼라 루프로
+          도는 게 원인이었음.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/216b6f9b-b7e4-4f54-960e-c5ae26cae5d2" alt="Flame Graph — glm::detail::mul4x4 병목" loading="lazy">
+      <figcaption class="mono"><span><b>Flame Graph</b> — glm::detail::mul4x4가 Render Thread 예산을 대부분 잡아먹음</span></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/f82b5884-7186-4799-b5f2-c91505c53fe0" alt="RHI Worker는 병목이 아님을 확인한 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>프로파일링으로 배제</b> — RHIWorker 자체는 원인이 아니었음을 확인</span></figcaption>
+    </figure>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">2) 리팩토링 중 오히려 후퇴 — ISM 도입 과정에서 성능이 10배 나빠짐.</div>
+        <div class="sub">Unreal의 <code class="mono">FInstancedStaticMeshSceneProxy</code>를 참고해 InstancedStaticMeshProxy
+          개념을 도입하던 중, 이전 엔진이 <b>100만 개 @ 20 FPS</b>(Release)를 버텼던 반면 리팩토링 직후 버전은
+          <b>10만 개에서야 20 FPS</b>로 오히려 후퇴함 — 리팩토링이 항상 개선을 보장하지 않는다는 걸 Profiler가
+          바로 알려준 사례임.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/07db348b-e48a-4199-af2b-be8fc3e90cfe" alt="ISM 리팩토링 직후, 10만 큐브에서 20fps로 후퇴한 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>회귀 확인</b> — ISM 리팩토링 직후, 10만 개에서 이미 20 FPS까지 하락</span></figcaption>
+    </figure>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">3) TransformPass로 회복 + 그 이상 — TRS 행렬 계산을 GPU Compute Shader로 완전히 이전.</div>
+        <div class="sub">기존에는 MeshBatch 안에서 Instance마다 CPU로 Translation×Rotation×Scale 행렬을 만들었는데,
+          이제 <code class="mono">local_size_x = 64</code> Compute Shader가 RawTransform SSBO(위치·쿼터니언·스케일)를
+          읽어 Transform SSBO(mat4)로 계산함. 결과: <b>Debug 10만 개 안정 20 FPS</b>(리팩토링 전에는 3만 개에서도
+          10 FPS 밑으로 떨어졌음), <b>Release 50만 개 ~15 FPS</b>.</div></div></div>
+      <div class="achv"><div><div class="head">4) 다음 병목까지 찾아둠 — HashTable::Rehash의 임시 배열이 Proxy 등록 시 힙 할당을 유발.</div>
+        <div class="sub">행렬 계산 병목이 풀리자 Profiler가 다음으로 <code class="mono">HashTable::Rehash</code> 내부의
+          임시 <code class="mono">DynamicArray</code> 생성을 새 할당 Hotspot으로 지목함. 다음 단계로 대량 삽입 전에
+          예상 용량만큼 <code class="mono">Reserve</code>를 미리 호출해서 Hot Path에서 Rehash 자체를 없애는 방향을
+          이슈에 남겨둠.</div></div></div>
+    </div>
+    <figure class="gif-embed">
+      <img src="https://github.com/user-attachments/assets/14fff8b7-0171-4dc6-a8f6-07c3c6357134" alt="TransformPass 도입 이후 HashTable::Rehash가 새 병목으로 나타난 프로파일 스크린샷" loading="lazy">
+      <figcaption class="mono"><span><b>다음 타겟</b> — HashTable::Rehash가 새로운 할당 Hotspot으로 떠오름</span></figcaption>
+    </figure>
+
+    <figure class="gif-embed">
+      <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 50만 큐브, 릴리즈 모드" loading="lazy">
+      <figcaption class="mono"><span><b>GPU Compute TRS</b> — 50만 큐브, Release</span>
+        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">100만 큐브 원본(112MB) →</a></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="assets/deferred-rendering.gif" alt="Deferred Rendering 파이프라인 데모" loading="lazy">
+      <figcaption class="mono"><span><b>Deferred Rendering</b> — Geometry → Lighting, 전체 파이프라인</span></figcaption>
+    </figure>
+    <figure class="gif-embed">
+      <img src="assets/fixed_shadow_shimmering.gif" alt="섀도우 시머링 수정, 텍셀 스냅, 카메라 이동 중" loading="lazy">
+      <figcaption class="mono"><span><b>섀도우 시머링 수정</b> — 텍셀 스냅, 카메라 이동 중</span></figcaption>
+    </figure>
+
+    <div class="achv-list" style="margin-top:20px;">
+      <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었음.</div>
+        <div class="sub">100만 Instance에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
+          <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
+    </div>
+  </section>
+
+  <section id="threading">
+    <div class="section-head">
+      <span class="section-num mono">03</span>
       <div>
         <h2 class="section-title display">Threading &amp; 프레임 동기화</h2>
         <span class="section-tag">FrameGate — producer/consumer 조건 변수 쌍</span>
@@ -139,7 +218,7 @@
 
   <section id="modules">
     <div class="section-head">
-      <span class="section-num mono">03</span>
+      <span class="section-num mono">04</span>
       <div>
         <h2 class="section-title display">네 개의 Layer — 상세 내용 &amp; Diagram</h2>
         <span class="section-tag">World는 렌더 타입을 모르고 · RHI만 그래픽스 API를 부름</span>
@@ -304,7 +383,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="findings">
     <div class="section-head">
-      <span class="section-num mono">04</span>
+      <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">실제 코드에서 발견한 것들</h2>
         <span class="section-tag">설계 문서가 아니라 소스를 직접 읽고 확인한 내용</span>
@@ -393,7 +472,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="status">
     <div class="section-head">
-      <span class="section-num mono">05</span>
+      <span class="section-num mono">06</span>
       <div>
         <h2 class="section-title display">기능 현황</h2>
         <span class="section-tag">저장소 README의 Implementation Status 표 그대로</span>
@@ -425,7 +504,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">06</span>
+      <span class="section-num mono">07</span>
       <div>
         <h2 class="section-title display">해결한 이슈</h2>
         <span class="section-tag">저장소 이슈 트래커와 디버그 로그 기준</span>
@@ -479,7 +558,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="notes">
     <div class="section-head">
-      <span class="section-num mono">07</span>
+      <span class="section-num mono">08</span>
       <div>
         <h2 class="section-title display">기술 노트</h2>
         <span class="section-tag">구현하면서 직접 유도/정리한 그래픽스 이론 — 이슈 트래커에 전문을 남겨둠</span>
@@ -543,85 +622,6 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           해결로 이어짐.
         </div>
       </div>
-    </div>
-  </section>
-
-  <section id="results">
-    <div class="section-head">
-      <span class="section-num mono">08</span>
-      <div>
-        <h2 class="section-title display">결과물</h2>
-        <span class="section-tag">섀도우 매핑 · Deferred Rendering · 100만 Instance 최적화</span>
-      </div>
-    </div>
-
-    <h3 style="font-size:16px;margin:0 0 10px;">성능 최적화 여정 — 100만 Instance 병목 추적기</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 16px;">
-      <a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>
-      한 건에서 한 달(2026-04-22 ~ 2026-05-23)에 걸쳐 실제로 있었던 일임 — Profiler로 병목을 찾고,
-      고치고, 중간에 리팩토링으로 오히려 성능이 떨어지기도 하고, 다시 고치고, 다음 병목을 찾는 과정을 그대로
-      옮김.
-    </p>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">1) 3만 Instance 회전 — Render Thread가 scalar GLM 행렬 곱에 발목잡힘.</div>
-        <div class="sub">Flame Graph에서 <code class="mono">SceneProxy::UpdateRotation → UpdateTransform →
-          glm::detail::mul4x4</code>가 압도적 1위. GLM이 SIMD 없이 컴파일돼서 mat4×mat4가 전부 스칼라 루프로
-          도는 게 원인이었음.</div></div></div>
-    </div>
-    <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/216b6f9b-b7e4-4f54-960e-c5ae26cae5d2" alt="Flame Graph — glm::detail::mul4x4 병목" loading="lazy">
-      <figcaption class="mono"><span><b>Flame Graph</b> — glm::detail::mul4x4가 Render Thread 예산을 대부분 잡아먹음</span></figcaption>
-    </figure>
-    <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/f82b5884-7186-4799-b5f2-c91505c53fe0" alt="RHI Worker는 병목이 아님을 확인한 프로파일 스크린샷" loading="lazy">
-      <figcaption class="mono"><span><b>프로파일링으로 배제</b> — RHIWorker 자체는 원인이 아니었음을 확인</span></figcaption>
-    </figure>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">2) 리팩토링 중 오히려 후퇴 — ISM 도입 과정에서 성능이 10배 나빠짐.</div>
-        <div class="sub">Unreal의 <code class="mono">FInstancedStaticMeshSceneProxy</code>를 참고해 InstancedStaticMeshProxy
-          개념을 도입하던 중, 이전 엔진이 <b>100만 개 @ 20 FPS</b>(Release)를 버텼던 반면 리팩토링 직후 버전은
-          <b>10만 개에서야 20 FPS</b>로 오히려 후퇴함 — 리팩토링이 항상 개선을 보장하지 않는다는 걸 Profiler가
-          바로 알려준 사례임.</div></div></div>
-    </div>
-    <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/07db348b-e48a-4199-af2b-be8fc3e90cfe" alt="ISM 리팩토링 직후, 10만 큐브에서 20fps로 후퇴한 프로파일 스크린샷" loading="lazy">
-      <figcaption class="mono"><span><b>회귀 확인</b> — ISM 리팩토링 직후, 10만 개에서 이미 20 FPS까지 하락</span></figcaption>
-    </figure>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">3) TransformPass로 회복 + 그 이상 — TRS 행렬 계산을 GPU Compute Shader로 완전히 이전.</div>
-        <div class="sub">기존에는 MeshBatch 안에서 Instance마다 CPU로 Translation×Rotation×Scale 행렬을 만들었는데,
-          이제 <code class="mono">local_size_x = 64</code> Compute Shader가 RawTransform SSBO(위치·쿼터니언·스케일)를
-          읽어 Transform SSBO(mat4)로 계산함. 결과: <b>Debug 10만 개 안정 20 FPS</b>(리팩토링 전에는 3만 개에서도
-          10 FPS 밑으로 떨어졌음), <b>Release 50만 개 ~15 FPS</b>.</div></div></div>
-      <div class="achv"><div><div class="head">4) 다음 병목까지 찾아둠 — HashTable::Rehash의 임시 배열이 Proxy 등록 시 힙 할당을 유발.</div>
-        <div class="sub">행렬 계산 병목이 풀리자 Profiler가 다음으로 <code class="mono">HashTable::Rehash</code> 내부의
-          임시 <code class="mono">DynamicArray</code> 생성을 새 할당 Hotspot으로 지목함. 다음 단계로 대량 삽입 전에
-          예상 용량만큼 <code class="mono">Reserve</code>를 미리 호출해서 Hot Path에서 Rehash 자체를 없애는 방향을
-          이슈에 남겨둠.</div></div></div>
-    </div>
-    <figure class="gif-embed">
-      <img src="https://github.com/user-attachments/assets/14fff8b7-0171-4dc6-a8f6-07c3c6357134" alt="TransformPass 도입 이후 HashTable::Rehash가 새 병목으로 나타난 프로파일 스크린샷" loading="lazy">
-      <figcaption class="mono"><span><b>다음 타겟</b> — HashTable::Rehash가 새로운 할당 Hotspot으로 떠오름</span></figcaption>
-    </figure>
-
-    <figure class="gif-embed">
-      <img src="assets/gpu-compute-trs.gif" alt="GPU compute TRS, 50만 큐브, 릴리즈 모드" loading="lazy">
-      <figcaption class="mono"><span><b>GPU Compute TRS</b> — 50만 큐브, Release</span>
-        <a href="https://github.com/Winteradio/Game-Engine/blob/master/asset/screenshot/gpu-computue-trs-1m-cubes.gif" target="_blank" rel="noopener">100만 큐브 원본(112MB) →</a></figcaption>
-    </figure>
-    <figure class="gif-embed">
-      <img src="assets/deferred-rendering.gif" alt="Deferred Rendering 파이프라인 데모" loading="lazy">
-      <figcaption class="mono"><span><b>Deferred Rendering</b> — Geometry → Lighting, 전체 파이프라인</span></figcaption>
-    </figure>
-    <figure class="gif-embed">
-      <img src="assets/fixed_shadow_shimmering.gif" alt="섀도우 시머링 수정, 텍셀 스냅, 카메라 이동 중" loading="lazy">
-      <figcaption class="mono"><span><b>섀도우 시머링 수정</b> — 텍셀 스냅, 카메라 이동 중</span></figcaption>
-    </figure>
-
-    <div class="achv-list" style="margin-top:20px;">
-      <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었음.</div>
-        <div class="sub">100만 Instance에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
-          <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
     </div>
   </section>
 
