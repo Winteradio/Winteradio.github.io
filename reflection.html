@@ -251,7 +251,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -259,9 +259,9 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">src/Utils.cpp:9,53, include/Type/TypeInfo.h:93</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/31" target="_blank" rel="noopener">#31</a> · src/Utils.cpp:9,53, include/Type/TypeInfo.h:93</span>
           <span class="issue-title">Windows 밖에서는 링크가 안 됨 — GetName 정의가 아예 없음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#31">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">TypeInfo.h:93</code>은 플랫폼 무관하게 <code class="mono">Utils::GetName(...)</code>을
@@ -274,9 +274,9 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Method/MethodInfo.h:77, MethodCall.h:117</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/32" target="_blank" rel="noopener">#32</a> · include/Method/MethodInfo.h:77, MethodCall.h:117</span>
           <span class="issue-title">MethodInfo::Invoke가 소유 클래스를 검증하지 않음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#32">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 시그니처(Return/Args)가 같으면 서로 무관한 두 클래스의 메서드가 같은
@@ -301,6 +301,11 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       </div>
     </div>
     </details>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">GitHub에 지금 열려 있는 이슈 (실시간)</h3>
+    <div class="issues" data-gh-issues-list="Winteradio/Reflection">
+      <p class="foot-line" style="font-size:13px;">불러오는 중…</p>
+    </div>
   </section>
 
 </main>

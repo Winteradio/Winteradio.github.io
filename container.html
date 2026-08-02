@@ -369,7 +369,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -377,9 +377,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/List.h:336</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/34" target="_blank" rel="noopener">#34</a> · include/List.h:336</span>
           <span class="issue-title">List::Splice(4-인자 오버로드)에 잘못된 다운캐스트 — 인스턴스화하면 컴파일 안 됨</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#34">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Node* prev = node-&gt;prev;</code>인데 <code class="mono">node</code>는
@@ -393,9 +393,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/TLSFArena.h:1-2</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/35" target="_blank" rel="noopener">#35</a> · include/TLSFArena.h:1-2</span>
           <span class="issue-title">TLSFArena.h의 include guard 매크로 이름이 서로 다름</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#35">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">#ifndef __WTR_TLSF_ARENA_H__</code>로 체크하고
@@ -405,9 +405,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/HashTable.h:263,266</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/36" target="_blank" rel="noopener">#36</a> · include/HashTable.h:263,266</span>
           <span class="issue-title">HashMap의 ReverseIterator가 실제로는 정방향</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#36">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Key != Data</code>(HashMap) 케이스에서 <code class="mono">ReverseIterator</code>가
@@ -418,9 +418,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Variant.h:124-139</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/33" target="_blank" rel="noopener">#33</a> · include/Variant.h:124-139</span>
           <span class="issue-title">Variant::Move()가 실제로는 copy를 호출</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#33">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 이름 붙은 <code class="mono">T&amp;&amp; rhsValue</code> 변수를 만든 뒤 <code class="mono">T(rhsValue)</code>에
@@ -432,9 +432,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Variant.h — Copy() / Move() / AlignedStorage::valid</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/32" target="_blank" rel="noopener">#32</a> · include/Variant.h — Copy() / Move() / AlignedStorage::valid</span>
           <span class="issue-title">valid 플래그가 영원히 false라서, 대입할 때마다 기존 값의 소멸자를 건너뜀</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#32">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">AlignedStorage::valid</code>는 생성자와
@@ -453,9 +453,9 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/TLSFArena.h — Free() / Merge() / Remove()</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/31" target="_blank" rel="noopener">#31</a> · include/TLSFArena.h — Free() / Merge() / Remove()</span>
           <span class="issue-title">병합된 Free()마다 m_remainedSize가 실제보다 더 깎임 — 진짜 누수는 아님</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#31">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">Free()</code>는 <code class="mono">block.free = true</code>만 찍고
@@ -502,6 +502,11 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       </div>
     </div>
     </details>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">GitHub에 지금 열려 있는 이슈 (실시간)</h3>
+    <div class="issues" data-gh-issues-list="Winteradio/Container">
+      <p class="foot-line" style="font-size:13px;">불러오는 중…</p>
+    </div>
   </section>
 
 </main>

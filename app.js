@@ -35,3 +35,44 @@
       .catch(function () { /* keep the static fallback state already in the markup */ });
   });
 }());
+
+// Live open-issue list — separate from the hand-curated bug cards above.
+// Renders every currently-open issue straight from the GitHub API, so the
+// page always reflects the real tracker without needing a manual update.
+// data-gh-issues-list="owner/repo" on an empty container.
+(function () {
+  function escapeHtml(s) {
+    var div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  var lists = document.querySelectorAll('[data-gh-issues-list]');
+  lists.forEach(function (el) {
+    var repo = el.getAttribute('data-gh-issues-list');
+
+    fetch('https://api.github.com/repos/' + repo + '/issues?state=open&per_page=20')
+      .then(function (res) { return res.ok ? res.json() : []; })
+      .then(function (issues) {
+        issues = (issues || []).filter(function (i) { return !i.pull_request; });
+
+        if (!issues.length) {
+          el.innerHTML = '<p class="foot-line" style="font-size:13px;">지금 열려 있는 이슈가 없습니다.</p>';
+          return;
+        }
+
+        el.innerHTML = issues.map(function (i) {
+          return '<div class="issue-card"><div class="issue-head">' +
+            '<span class="issue-num mono">#' + i.number + '</span>' +
+            '<span class="issue-title"><a href="' + i.html_url + '" target="_blank" rel="noopener">' +
+              escapeHtml(i.title) + '</a></span>' +
+            '<span class="issue-state open mono">미해결</span>' +
+            '</div></div>';
+        }).join('');
+      })
+      .catch(function () {
+        el.innerHTML = '<p class="foot-line" style="font-size:13px;">GitHub에서 못 불러왔습니다 — ' +
+          '<a href="https://github.com/' + repo + '/issues" target="_blank" rel="noopener">직접 보기 →</a></p>';
+      });
+  });
+}());

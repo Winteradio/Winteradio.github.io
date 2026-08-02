@@ -194,7 +194,7 @@
       <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -202,9 +202,9 @@
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Object/Entity.h:72</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/12" target="_blank" rel="noopener">#12</a> · include/Object/Entity.h:72</span>
           <span class="issue-title">Entity::AddNode&lt;T&gt;()가 Node가 아니라 Component 쪽에 등록됨</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#12">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 템플릿 래퍼가 <code class="mono">AddNode(nodeType)</code> 대신 <code class="mono">AddComponent(nodeType)</code>를
@@ -215,9 +215,9 @@
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">src/Object/Entity.cpp:47-59</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/13" target="_blank" rel="noopener">#13</a> · src/Object/Entity.cpp:47-59</span>
           <span class="issue-title">Entity의 move 대입 연산자가 실제로는 아무것도 move하지 않음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#13">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Object::operator=(other)</code>가 lvalue를 받아 베이스 클래스는 복사되고,
@@ -228,9 +228,9 @@
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Graph/Graph.h:105,136,193</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/14" target="_blank" rel="noopener">#14</a> · include/Graph/Graph.h:105,136,193</span>
           <span class="issue-title">Graph의 BaseNode 템플릿 인자가 Create()/Add()에서 무시됨</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#14">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Graph&lt;Base, BaseNode = GraphNode&lt;Base&gt;&gt;</code>는 커스텀 노드 타입을
@@ -244,9 +244,9 @@
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Graph/Graph.h:174-184</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/15" target="_blank" rel="noopener">#15</a> · include/Graph/Graph.h:174-184</span>
           <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static 싱글턴을 반환</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#15">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">static GraphNode&lt;T&gt; null;</code>은 같은 타입 <code class="mono">T</code>의 모든
@@ -256,9 +256,9 @@
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Graph/Graph.h:18-28</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/16" target="_blank" rel="noopener">#16</a> · include/Graph/Graph.h:18-28</span>
           <span class="issue-title">GraphObserver::m_updated가 초기화되지 않음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#16">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 기본 멤버 초기화자가 없고 생성자는 <code class="mono">= default</code>입니다.
@@ -295,6 +295,11 @@
       </div>
     </div>
     </details>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">GitHub에 지금 열려 있는 이슈 (실시간)</h3>
+    <div class="issues" data-gh-issues-list="Winteradio/ECS-with-Scene-and-Node">
+      <p class="foot-line" style="font-size:13px;">불러오는 중…</p>
+    </div>
   </section>
 
 </main>

@@ -584,7 +584,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <span class="section-num mono">09</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
       </div>
     </div>
 
@@ -593,9 +593,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">Renderer/LightingPass.cpp:64-65, 160-185</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/52" target="_blank" rel="noopener">#52</a> · Renderer/LightingPass.cpp:64-65, 160-185</span>
           <span class="issue-title">라이트가 여러 개면 마지막 라이트만 남는 블렌딩 버그</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#52">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 증상: 라이트 하나당 풀스크린 쿼드를 한 번씩 그리는 구조라, 라이트가 여러 개면 화면엔 가장
@@ -609,9 +609,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">Framework/Application.cpp, Engine.cpp</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/53" target="_blank" rel="noopener">#53</a> · Framework/Application.cpp, Engine.cpp</span>
           <span class="issue-title">AssetWorker가 초기화 중 두 번 생성되고 첫 번째는 버려짐</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#53">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
@@ -622,9 +622,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">Platform/Win32/Win32Window.cpp — WndProc</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/54" target="_blank" rel="noopener">#54</a> · Platform/Win32/Win32Window.cpp — WndProc</span>
           <span class="issue-title">WM_CLOSE에서 설정한 종료 상태가 같은 호출 안에서 즉시 덮어써짐</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#54">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - WndProc의 switch 문에 케이스 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서 설정한
@@ -637,9 +637,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">RHI/RHIDescriptions.h:397, 410</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/55" target="_blank" rel="noopener">#55</a> · RHI/RHIDescriptions.h:397, 410</span>
           <span class="issue-title">RHIDrawIndexDesc / RHIDispatchDesc가 자기 타입 태그 대신 다른 태그를 재사용</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#55">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">eResourceType</code>은 9개 값이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
@@ -650,9 +650,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">Asset/PNGParser.cpp:66-73</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/56" target="_blank" rel="noopener">#56</a> · Asset/PNGParser.cpp:66-73</span>
           <span class="issue-title">PNGParser의 componentType이 실제 데이터 타입과 어긋남</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#56">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">stbi_load_from_memory</code>는 항상 8비트를 반환하는데,
@@ -663,9 +663,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">Renderer/RenderCommandList.cpp — ExecuteAll()</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/57" target="_blank" rel="noopener">#57</a> · Renderer/RenderCommandList.cpp — ExecuteAll()</span>
           <span class="issue-title">소멸자 호출 후 멤버를 읽는 기술적 UB 패턴</span>
-          <span class="issue-state open mono">버그(경미) · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#57">버그(경미) · 미수정</span>
         </div>
         <div class="issue-body">
           - 태스크를 실행한 뒤 <code class="mono">execute->~RenderTask()</code>를 호출하고 바로 다음 줄에서
@@ -690,9 +690,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">RHI/OpenGL/GLSystem.cpp:3519-3526</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/58" target="_blank" rel="noopener">#58</a> · RHI/OpenGL/GLSystem.cpp:3519-3526</span>
           <span class="issue-title">FlushPipeLine의 조건이 뒤집혀 있어 GL 프로그램이 영구 leak</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#58">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">if (!glPipeLine || glPipeLine-&gt;GetID() == GL_NONE)</code> 분기 안에서
@@ -706,9 +706,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">RHI/OpenGL/GLSystem.cpp:639-650</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/59" target="_blank" rel="noopener">#59</a> · RHI/OpenGL/GLSystem.cpp:639-650</span>
           <span class="issue-title">InitializeTexture 실패 후 return이 없어서 삭제된 텍스처가 "준비됨"으로 표시됨</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#59">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 실패 시 텍스처를 삭제하고 <code class="mono">eError</code> 상태를 설정한 뒤에도
@@ -733,9 +733,9 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">World/Component.cpp:192-201</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/60" target="_blank" rel="noopener">#60</a> · World/Component.cpp:192-201</span>
           <span class="issue-title">InstancedTransformComponent::UpdateRotation이 실제로는 회전을 반영하지 않음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#60">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - 새로 들어온 <code class="mono">rotation</code> 인자와 현재 값을 비교하려고
@@ -803,6 +803,11 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       </div>
     </div>
     </details>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">GitHub에 지금 열려 있는 이슈 (실시간)</h3>
+    <div class="issues" data-gh-issues-list="Winteradio/Game-Engine">
+      <p class="foot-line" style="font-size:13px;">불러오는 중…</p>
+    </div>
   </section>
 
 </main>

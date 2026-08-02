@@ -212,7 +212,7 @@ int main()
       <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
+        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -220,9 +220,9 @@ int main()
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">src/Storage/PoolBudget.cpp:52-72</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/17" target="_blank" rel="noopener">#17</a> · src/Storage/PoolBudget.cpp:52-72</span>
           <span class="issue-title">소멸자가 버킷 하나만 비어 있어도 Release()를 건너뛰어 대부분 그냥 샙니다</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#17">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">eSparse..eFull</code> 네 버킷을 순회하다 하나라도 비면 <code class="mono">empty = true;
@@ -246,9 +246,9 @@ int main()
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Storage/Array.h — Clear() / Sweep()</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/19" target="_blank" rel="noopener">#19</a> · include/Storage/Array.h — Clear() / Sweep()</span>
           <span class="issue-title">m_used 체크 없이 초기화 안 된 메모리를 IAccessor로 취급</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#19">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Acquire()</code>는 실제로 사용하기 전에 <code class="mono">m_used</code>를
@@ -290,9 +290,9 @@ int main()
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">include/Pointer/RefPtr.h:22-33</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/20" target="_blank" rel="noopener">#20</a> · include/Pointer/RefPtr.h:22-33</span>
           <span class="issue-title">RefPtr 참조 카운트에 acquire 펜스가 없음</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#20">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">AddRef</code>/<code class="mono">Release</code> 모두 <code class="mono">memory_order_release</code>로만
@@ -315,9 +315,9 @@ int main()
       </div>
       <div class="issue-card">
         <div class="issue-head">
-          <span class="issue-num mono">src/Storage/StorageManager.cpp:65-96</span>
+          <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/18" target="_blank" rel="noopener">#18</a> · src/Storage/StorageManager.cpp:65-96</span>
           <span class="issue-title">Purge()가 풀 버킷 하나만 시간 초과해도 배열 버킷 전체와 Clear()를 건너뜀</span>
-          <span class="issue-state open mono">버그 · 미수정</span>
+          <span class="issue-state open mono" data-gh-issue="Winteradio/MemoryPool#18">버그 · 미수정</span>
         </div>
         <div class="issue-body">
           - <code class="mono">m_poolMap</code>을 순회하다 어떤 버킷의 <code class="mono">Purge(timeLimit)</code>이
@@ -330,6 +330,11 @@ int main()
       </div>
     </div>
     </details>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">GitHub에 지금 열려 있는 이슈 (실시간)</h3>
+    <div class="issues" data-gh-issues-list="Winteradio/MemoryPool">
+      <p class="foot-line" style="font-size:13px;">불러오는 중…</p>
+    </div>
   </section>
 
 </main>
