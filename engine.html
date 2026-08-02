@@ -369,6 +369,12 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           때문. grazing 컷오프도 맨 끝에서 한 번만 곱하도록 이동(dFdx 앞에서 분기하면 GLSL에서 undefined behavior).</div></div></div>
     </div>
 
+    <figure class="gbuffer-row" style="margin-top:16px;">
+      <figure><img src="assets/shadow_debug_acne.png" alt="섀도우 acne 디버그 캡처"><figcaption class="mono">Acne</figcaption></figure>
+      <figure><img src="assets/shadow_debug_nan_1.png" alt="NaN으로 물체 전체가 검게 나오는 디버그 캡처"><figcaption class="mono">NaN 전파</figcaption></figure>
+      <figure><img src="assets/shadow_debug_grazing.png" alt="grazing 각도 디버그 캡처"><figcaption class="mono">Grazing 각도</figcaption></figure>
+    </figure>
+
     <h3 style="font-size:16px;margin:26px 0 8px;">Multi-proxy dirty flag race <span class="status-chip done">해결</span></h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">증상</div>

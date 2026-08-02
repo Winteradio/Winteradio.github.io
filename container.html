@@ -47,8 +47,9 @@
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
         <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
-        <li><span class="n">03</span><a href="#issues">결과물 / 이슈</a></li>
-        <li><span class="n">04</span><a href="#bugs">버그</a></li>
+        <li><span class="n">03</span><a href="#rtree">RTree — 공간 인덱스</a></li>
+        <li><span class="n">04</span><a href="#issues">결과물 / 이슈</a></li>
+        <li><span class="n">05</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -184,9 +185,93 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
     </div>
   </section>
 
-  <section id="issues">
+  <section id="rtree">
     <div class="section-head">
       <span class="section-num mono">03</span>
+      <div>
+        <h2 class="section-title display">RTree — 공간 인덱스</h2>
+        <span class="section-tag">Boundary 하나로 재귀 분할되는 트리, 이번에 처음으로 실제로 돌려봄</span>
+      </div>
+    </div>
+    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
+      2D/3D 바운딩 박스(<code class="mono">Boundary{ min, max }</code>)로 값을 색인하는 R-tree입니다.
+      노드가 <code class="mono">maxEntry</code>개를 넘기면 <code class="mono">SplitNode()</code>가 두 개로
+      쪼개고, 그 결과로 생긴 새 형제 노드를 부모에 끼워 넣다가 부모까지 가득 차면
+      <code class="mono">SplitNode → InsertNode → SplitNode</code>로 재귀합니다 — 부모가 없으면(즉 루트가
+      쪼개지면) 완전히 새로운 루트를 하나 더 만듭니다.
+    </p>
+
+    <pre class="diagram">using Tree2D = wtr::RTree&lt;std::string, float, 2&gt;;
+Tree2D tree(4, 2); // maxEntry=4, minEntry=2
+
+tree.Insert(Tree2D::Boundary({0.f, 0.f}, {2.f, 2.f}), "Seoul");
+...
+
+tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const std::string* value)
+{
+    // value == nullptr  -> 이 항목은 Node (내부 노드/leaf 노드)
+    // value != nullptr -> 이 항목은 실제 Data, *value가 저장된 값
+});</pre>
+
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">이번 세션 전까지는 사실상 한 번도 실행된 적이 없었습니다.</div>
+        <div class="sub"><code class="mono">Boundary</code>가 <code class="mono">private</code>라 외부 코드는
+          그 타입 자체를 이름 붙일 수도 없었습니다 — <code class="mono">Insert()</code>가 public이어도 인자를
+          만들 방법이 없어 호출이 불가능했고, 실제로 기존 데모의 <code class="mono">RTreeTest rtree(4,2);</code>도
+          <code class="mono">Insert()</code>를 한 번도 부르지 않았습니다. 트리를 들여다볼 public API도 전혀
+          없었습니다.</div></div></div>
+      <div class="achv"><div><div class="head">추가한 건 접근 범위 조정 + 순회 API뿐, 알고리즘은 그대로입니다.</div>
+        <div class="sub"><code class="mono">Boundary</code>를 public으로 옮기고, 방문자 패턴의
+          <code class="mono">Traverse(Visitor&amp;&amp;)</code>를 새로 추가했습니다. <code class="mono">RTree.h</code>는
+          여전히 로깅 라이브러리를 전혀 모르고, 어떻게 출력할지는 호출자(데모 코드)가 정합니다.</div></div></div>
+    </div>
+
+    <h3 style="font-size:16px;margin:26px 0 8px;">데모로 실제로 잡은 버그 두 개(둘 다 수정됨)</h3>
+    <div class="issues">
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">SplitNode() — allEntries 초기화</span>
+          <span class="issue-title">복사해놓고 그 복사본과 스왑 — node-&gt;entries가 안 비워짐</span>
+          <span class="issue-state closed mono">해결</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">DynamicArray&lt;Entry*&gt; allEntries = node-&gt;entries; std::swap(allEntries,
+          node-&gt;entries);</code> — 스왑 전에 이미 <code class="mono">node-&gt;entries</code>를 복사해놨기
+          때문에, 스왑해봐야 서로 같은 내용을 가진 채로 끝나서 <code class="mono">node-&gt;entries</code>가
+          전혀 비워지지 않았습니다.<br>
+          - 증상: 분할할 때마다 기존 엔트리들이 재분배 루프에 의해 다시 한번 추가되어 두 배로 들어갔고, 이
+          중복 포인터가 소멸자에서 두 번 <code class="mono">Destroy()</code>되며 이중 해제로 세그폴트가
+          났습니다. 실제로 5개(분할 1회)만 넣어도 재현됐습니다.<br>
+          - 해결: <code class="mono">DynamicArray&lt;Entry*&gt; allEntries{};</code>로 빈 상태에서 시작해서
+          스왑하도록 수정 — 알고리즘 자체는 안 건드리고 이 초기화 한 줄만 고쳤습니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">SplitNode() — 재분배 루프</span>
+          <span class="issue-title">엔트리를 옮기면서 parent 포인터를 안 갱신 — 깊은 트리에서 서브트리 통째로 유실</span>
+          <span class="issue-state closed mono">해결</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">node-&gt;entries.PushBack(...)</code>/<code class="mono">newNode-&gt;entries.PushBack(...)</code>로
+          엔트리를 재분배하면서 그 엔트리의 <code class="mono">-&gt;parent</code>는 갱신하지 않았습니다.<br>
+          - 증상: 나중에 그 엔트리(자신도 Node일 수 있음)가 다시 가득 차서 분할될 때,
+          <code class="mono">node-&gt;parent</code>가 낡은 값(보통 nullptr)을 가리켜서 "나는 부모가 없다=내가
+          루트다"로 오판 — 완전히 새로운 최상위 루트를 또 만들고 <code class="mono">m_root</code>를 거기로
+          덮어써버려서, 그 전까지 쌓인 진짜 트리가 <code class="mono">m_root</code>에서 도달 불가능해집니다.
+          6개 클러스터·24개 항목으로 재귀 분할을 유도하는 테스트를 직접 짜서 재현했습니다(1024×1024 안에
+          20개가 조용히 사라지는 걸 <code class="mono">Traverse()</code> 카운트로 확인).<br>
+          - 해결: 재분배 루프에서 <code class="mono">-&gt;parent</code>를 매번 갱신하도록 수정. 수정 후 같은
+          24개 테스트에서 <code class="mono">Node count: 13 | Data count: 24 (inserted 24)</code>로 전부
+          정확히 살아있고, Node 깊이 3단(재귀 분할 확인)까지 나옵니다.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="issues">
+    <div class="section-head">
+      <span class="section-num mono">04</span>
       <div><h2 class="section-title display">결과물 / 이슈</h2></div>
     </div>
 
@@ -251,7 +336,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">04</span>
+      <span class="section-num mono">05</span>
       <div>
         <h2 class="section-title display">버그</h2>
         <span class="section-tag">GitHub 이슈가 아니라, 이번에 코드를 다시 읽으며 직접 찾은 것들</span>
@@ -311,6 +396,28 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
           <code class="mono">operator==</code>도 저장된 값이 아니라 <code class="mono">m_nCurrentHash</code>만
           비교하는데, <code class="mono">std::hash</code> 특수화가 없는 타입은 항상 0을 반환해서 그런 타입의
           모든 값이 내용과 무관하게 같다고 판정됩니다.
+        </div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-head">
+          <span class="issue-num mono">include/TLSFArena.h — Free() / Merge() / Remove()</span>
+          <span class="issue-title">병합된 Free()마다 m_remainedSize가 실제보다 더 깎임 — 진짜 누수는 아님</span>
+          <span class="issue-state open mono">버그 · 미수정</span>
+        </div>
+        <div class="issue-body">
+          - 원인: <code class="mono">Free()</code>는 <code class="mono">block.free = true</code>만 찍고
+          병합을 시도하는데, <code class="mono">Insert()</code>는 병합이 전부 실패했을 때만 호출됩니다. 근데
+          <code class="mono">Merge()</code> 내부의 <code class="mono">Remove(baseIndex)</code>는 그 블록이
+          실제로 <code class="mono">Insert()</code>된 적 있는지 확인 안 하고 무조건
+          <code class="mono">m_remainedSize -= block.size</code>를 합니다 — 한 번도 더해진 적 없는 크기를
+          빼버리는 셈입니다.<br>
+          - 증상: 양쪽 이웃이 이미 free인 블록을 마지막에 <code class="mono">Free()</code>하는(한 번의 호출
+          안에서 좌우 병합이 동시에 일어나는) 패턴마다 <code class="mono">m_remainedSize</code>가 그 블록
+          크기만큼 실제보다 적게 나옵니다. 직접 만든 스트레스 테스트로 확인: 전부 해제한 뒤
+          <code class="mono">IsEmpty()</code>가 <code class="mono">false</code>를 반환.<br>
+          - 실제로는 누수 아님: 같은 상태에서 전체 용량(1MB)을 다시 <code class="mono">Allocate()</code>해보면
+          <code class="mono">offset=0, size=1048576</code>로 정확히 성공합니다 — free-list/비트맵은
+          완전히 정상이고, <code class="mono">m_remainedSize</code> 통계만 신뢰할 수 없는 상태입니다.
         </div>
       </div>
       <div class="issue-card">
