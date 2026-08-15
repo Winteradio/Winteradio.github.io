@@ -14,7 +14,7 @@
 <div class="topbar">
   <div class="wrap topbar-inner">
     <a class="brand" href="index.html">
-      <span class="name display">WONMOCK LEE</span>
+      <span class="name display">WONMOCK LEE / GRAPHICS ENGINEER</span>
     </a>
     <nav class="topnav">
       <a href="index.html">홈</a>
@@ -36,8 +36,8 @@
     <h1 class="title display">STL-free <span class="accent">Container</span></h1>
     <p class="subhead">
       DynamicArray, StaticArray, HashMap/HashSet(Robin Hood Hashing), 그리고 그 아래를 받치는 Allocator들 —
-      Arena, LinearArena, TLSFArena로 구성했다. TLSFArena는 임의 바이트 범위에서 O(1)로 할당·해제·분할·병합할
-      수 있다.
+      Arena, LinearArena, TLSFArena로 구성함. TLSFArena는 임의 바이트 범위에서 O(1)로 할당·해제·분할·병합할
+      수 있음.
     </p>
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Container" target="_blank" rel="noopener">github.com/Winteradio/Container</a>
@@ -57,7 +57,7 @@
 
   <section id="intro">
     <div class="section-head">
-      <span class="section-num mono">01</span>
+      <span class="section-num mono">01 / INTRO</span>
       <div><h2 class="section-title display">핵심 내용</h2></div>
     </div>
     <div class="callout">
@@ -128,7 +128,7 @@
 
   <section id="structure">
     <div class="section-head">
-      <span class="section-num mono">02</span>
+      <span class="section-num mono">02 / MODULES</span>
       <div>
         <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
         <span class="section-tag">Robin Hood Hashing과 TLSF Bitmap 탐색을 실제 동작 단위로</span>
@@ -252,7 +252,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
 
   <section id="rtree">
     <div class="section-head">
-      <span class="section-num mono">03</span>
+      <span class="section-num mono">03 / DESIGN</span>
       <div>
         <h2 class="section-title display">RTree — 공간 인덱스</h2>
         <span class="section-tag">Boundary 하나로 재귀 분할되는 Tree, 이번에 처음으로 실제로 돌려봄</span>
@@ -346,7 +346,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">04</span>
+      <span class="section-num mono">04 / ISSUES</span>
       <div><h2 class="section-title display">이슈</h2></div>
     </div>
 
@@ -411,7 +411,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">05</span>
+      <span class="section-num mono">05 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
         <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>

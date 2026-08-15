@@ -14,7 +14,7 @@
 <div class="topbar">
   <div class="wrap topbar-inner">
     <a class="brand" href="index.html">
-      <span class="name display">WONMOCK LEE</span>
+      <span class="name display">WONMOCK LEE / GRAPHICS ENGINEER</span>
     </a>
     <nav class="topnav">
       <a href="index.html" class="active">홈</a>
@@ -31,24 +31,23 @@
 <main class="wrap">
 
   <section class="hero">
-    <span class="eyebrow"><span class="dot"></span>그래픽스 / 렌더링 엔지니어</span>
+    <span class="eyebrow">01 / PROFILE</span>
     <h1 class="title display">구조 짜는 걸<br>좋아하는 <span class="accent">엔지니어</span></h1>
     <p class="subhead">
-      본업인 그래픽스 엔지니어 일과 병행해서 몇 년째 혼자 C++ 엔진을 만들고 있다. Entity-Component,
-      Memory Pool, Reflection, Container까지 전부 밑바닥부터 직접 짰고, 각각 따로 저장소를 두고 이슈까지
-      공개로 관리한다. 뭐가 어떻게, 왜 그렇게 동작하는지 끝까지 알고 싶어서 하는 일이다.
+      회사에서는 그래픽스 엔진을 만들고, 퇴근 후엔 몇 년째 C++ 엔진을 혼자 만드는 중. Entity-Component,
+      Memory Pool, Reflection, Container — 전부 라이브러리 없이 밑바닥부터 직접 짰고, 저장소와 이슈도
+      다 공개해둠. 남이 만든 걸 갖다 쓰기만 해서는 왜 그렇게 동작하는지 절반밖에 못 배운다고 생각함.
     </p>
-    <div class="contact-strip mono">
-      <span>📍 서울 광진구</span>
-      <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
-      <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
-      <a href="https://www.linkedin.com/in/wonmock-lee-642302216/" target="_blank" rel="noopener">LinkedIn</a>
+    <div class="contact-strip">
+      <span>서울, KR</span>
+      <span>그래픽스 / 렌더링</span>
+      <span>새 도전 환영</span>
     </div>
   </section>
 
   <section id="skills">
     <div class="section-head">
-      <span class="section-num mono">01</span>
+      <span class="section-num mono">02 / STACK</span>
       <div>
         <h2 class="section-title display">기술 스택</h2>
         <span class="section-tag">본업과 사이드 프로젝트 전반에 걸쳐 쓰는 것들</span>
@@ -72,7 +71,7 @@
 
   <section id="career">
     <div class="section-head">
-      <span class="section-num mono">02</span>
+      <span class="section-num mono">03 / CAREER</span>
       <div>
         <h2 class="section-title display">커리어</h2>
       </div>
@@ -86,21 +85,21 @@
             <div class="role">그래픽스 엔진 개발팀 · Android (C++)</div>
             <div class="achv-list">
               <div class="achv"><div><div class="head">MVT Rendering Architecture 설계 — Paint/Layout 로직 분리.</div>
-                <div class="sub">지도 벡터 타일(MVT)마다 Layer 타입이 제각각이라 단일 Pipeline으로는 확장이 어려움
-                  → Paint(스타일)와 Layout(지오메트리)을 분리하고 Layer 타입별(Fill·Line·Fill-Extrusion·Symbol)
-                  Pipeline을 독립 구축, MVT Parser를 확장 가능한 렌더링 기반으로 재사용.</div></div></div>
+                <div class="sub">지도 벡터 타일(MVT)은 Layer 타입이 제각각이라 단일 Pipeline으로 다 받아내기가
+                  어려웠음. Paint(스타일)와 Layout(지오메트리)을 분리하고 Layer 타입별(Fill·Line·Fill-Extrusion·Symbol)
+                  Pipeline을 따로 세운 다음, MVT Parser는 그 위에서 계속 재사용 가능하도록 만듦.</div></div></div>
               <div class="achv"><div><div class="head">Style 타입별 VBO 통합 → Draw Call 90%+ 감소.</div>
-                <div class="sub">레이어마다 별도 VBO로 그리던 구조라 Style 종류에 비례해 Draw Call이 증가하는 게
-                  문제 → 같은 Style Type끼리 VBO를 하나로 통합해 배치 하나로 그리도록 변경.</div></div></div>
-              <div class="achv"><div><div class="head">Ear Clipping 동적 할당 → Static Memory Pool 교체 → Frame-time Spike 제거.</div>
-                <div class="sub">Ear Clipping 알고리즘이 매 프레임 동적 할당을 유발해 Frame-time Spike 발생
-                  → 정적 Memory Pool로 할당 방식을 바꿔서 Spike 자체를 제거.</div></div></div>
+                <div class="sub">레이어마다 VBO를 따로 그리다 보니 Style 종류가 늘 때마다 Draw Call도 같이
+                  늘어났음. 같은 Style Type끼리는 VBO를 하나로 합쳐서 한 배치로 그리도록 바꿈.</div></div></div>
+              <div class="achv"><div><div class="head">Ear Clipping 동적 할당 제거 — Static Memory Pool로 Frame-time Spike 잡음.</div>
+                <div class="sub">Ear Clipping이 매 프레임 동적 할당을 일으켜서 스파이크가 났음. 정적 Memory
+                  Pool로 할당 방식 자체를 바꿔서 원인을 없앰.</div></div></div>
               <div class="achv"><div><div class="head">glTF·KTX Pipeline 구축, KTX·ASTC 전환 → 로딩 성능 70~80%↑.</div>
-                <div class="sub">기존 텍스처 포맷이 로딩 시간·용량 면에서 비효율적 → KTX·ASTC 압축 포맷으로
-                  전환, GPU 기반 Skinning Shader까지 같이 개발.</div></div></div>
+                <div class="sub">기존 텍스처 포맷은 로딩 시간과 용량 둘 다 아까웠음. KTX·ASTC 압축 포맷으로
+                  바꾸고, 그 김에 GPU 기반 Skinning Shader도 같이 붙임.</div></div></div>
               <div class="achv"><div><div class="head">실시간 내비게이션용 Kotlin–C++ JNI Bridge · gRPC 통신 Layer 구현.</div>
-                <div class="sub">Android 앱 Layer(Kotlin)와 엔진 Layer(C++) 사이에 실시간 내비게이션 데이터가
-                  오가야 함 → JNI Bridge + gRPC로 통신 Layer 구축.</div></div></div>
+                <div class="sub">Android 앱(Kotlin)과 엔진(C++)이 내비게이션 데이터를 실시간으로 주고받아야
+                  해서, 그 사이를 JNI Bridge와 gRPC로 연결함.</div></div></div>
               <div class="achv"><div><div class="head">커스텀 디버깅 툴 제작, glTF·KTX Pipeline 사내 세미나 진행.</div></div></div>
             </div>
           </div>
@@ -112,8 +111,8 @@
             <div class="role">VS 사업부 · 인턴 → 정규직</div>
             <div class="achv-list">
               <div class="achv"><div><div class="head">Cinemo API·DLNA 기반 스마트폰-차량 콘텐츠 스트리밍 구현.</div>
-                <div class="sub">차량 인포테인먼트에 스마트폰 콘텐츠를 미러링해야 함 → Cinemo API/DLNA 프로토콜
-                  기반 스트리밍으로 연결.</div></div></div>
+                <div class="sub">차량 인포테인먼트에 스마트폰 화면을 미러링하는 기능을, Cinemo API와 DLNA
+                  프로토콜로 붙임.</div></div></div>
             </div>
           </div>
         </div>
@@ -124,8 +123,8 @@
             <div class="role">학부 연구생</div>
             <div class="achv-list">
               <div class="achv"><div><div class="head">탄성 입자 기반 고무줄 시뮬레이션, 관절 참조 Animation 구현.</div>
-                <div class="sub">물리 기반 캐릭터 Animation 연구가 필요함 → 탄성 입자 역학으로 고무줄
-                  시뮬레이션, 관절 참조 데이터로 인체 Animation 구현.</div></div></div>
+                <div class="sub">물리 기반 캐릭터 Animation을 연구하면서, 탄성 입자 역학으로 고무줄을
+                  시뮬레이션하고 관절 참조 데이터로 인체 움직임을 만듦.</div></div></div>
             </div>
           </div>
         </div>
@@ -135,7 +134,7 @@
 
   <section id="projects">
     <div class="section-head">
-      <span class="section-num mono">03</span>
+      <span class="section-num mono">04 / WORK</span>
       <div>
         <h2 class="section-title display">사이드 프로젝트</h2>
         <span class="section-tag">직접 만든 C++ 엔진, 시스템 하나당 페이지 하나로 나눔</span>
@@ -143,8 +142,8 @@
     </div>
     <div class="project-grid">
       <a class="project-card" href="engine.html">
-        <span class="tag mono">01 · 개발 중</span>
-        <span><span class="name">Game Engine</span><br><span class="desc">4-thread 아키텍처, Deferred Rendering — GPU 컴퓨트로 100만 Instance, 최적화로 5.4→22 FPS.</span></span>
+        <span class="tag mono">01</span>
+        <span><span class="name">Game Engine</span><span class="status-chip progress">개발 중</span><br><span class="desc">4-thread 아키텍처, Deferred Rendering — GPU 컴퓨트로 100만 Instance, 최적화로 5.4→22 FPS.</span></span>
         <span class="go">→</span>
       </a>
       <a class="project-card" href="ecs.html">
@@ -169,15 +168,15 @@
       </a>
     </div>
     <p class="foot-line" style="margin-top:18px;">
-      이 포트폴리오를 쓰면서 다섯 프로젝트의 소스를 처음부터 다시 읽음. 각 페이지에는 핵심 내용
-      다음에 특징/주요 내용을 먼저 정리해뒀고, 그 과정에서 찾은 버그는 GitHub 이슈와 따로 "버그" 섹션에
-      펼쳐보기 형태로 모아둠.
+      이 페이지를 쓰면서 다섯 프로젝트 소스를 처음부터 다시 읽음. 각 페이지 앞부분엔 구조와 설계
+      이유를 정리해뒀고, 그때그때 발견한 버그는 GitHub 이슈로 올리고 페이지 안 "버그" 섹션에도
+      펼쳐보기로 따로 모아둠.
     </p>
   </section>
 
   <section id="resume">
     <div class="section-head">
-      <span class="section-num mono">04</span>
+      <span class="section-num mono">05 / RESUME</span>
       <div>
         <h2 class="section-title display">이력서</h2>
       </div>
@@ -213,14 +212,17 @@
 </main>
 
 <footer id="contact">
-  <div class="wrap foot-grid">
-    <p class="foot-line">
-      그래픽스/렌더링 엔지니어 포지션을 찾는 중. 위 저장소는 전부 공개되어 있고, 이슈까지 그대로 볼 수 있음.
-    </p>
-    <div class="contact mono">
-      <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
-      <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
-      <a href="https://www.linkedin.com/in/wonmock-lee-642302216/" target="_blank" rel="noopener">LinkedIn</a>
+  <div class="wrap">
+    <span class="section-num mono">06 / CONTACT</span>
+    <div class="foot-grid">
+      <p class="foot-line">
+        그래픽스/렌더링 엔지니어 자리를 찾는 중. 위 저장소는 전부 공개돼 있고, 이슈도 가감 없이 그대로 열려 있음.
+      </p>
+      <div class="contact mono">
+        <a href="mailto:tot4766@gmail.com">tot4766@gmail.com</a>
+        <a href="https://github.com/Winteradio" target="_blank" rel="noopener">github.com/Winteradio</a>
+        <a href="https://www.linkedin.com/in/wonmock-lee-642302216/" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
     </div>
   </div>
 </footer>
