@@ -42,15 +42,20 @@
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Container" target="_blank" rel="noopener">github.com/Winteradio/Container</a>
     </div>
+    <nav class="chain" aria-label="라이브러리 의존 순서">
+      <span class="lbl">스택 내 위치 — 왼쪽이 오른쪽의 기반 (오른쪽이 왼쪽을 submodule로 포함)</span>
+      <a href="https://github.com/Winteradio/CMake" target="_blank" rel="noopener">CMake</a><i>→</i><a href="https://github.com/Winteradio/Log" target="_blank" rel="noopener">Log</a><i>→</i><a href="container.html" class="on" aria-current="page">Container</a><i>→</i><a href="reflection.html">Reflection</a><i>→</i><a href="memory.html">Memory</a><i>→</i><a href="ecs.html">ECS</a><i>→</i><a href="engine.html">Engine</a>
+    </nav>
 
     <div class="toc">
       <div class="toc-title">목차</div>
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
         <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
-        <li><span class="n">03</span><a href="#rtree">RTree — 공간 인덱스</a></li>
-        <li><span class="n">04</span><a href="#issues">이슈</a></li>
-        <li><span class="n">05</span><a href="#bugs">버그</a></li>
+        <li><span class="n">03</span><a href="#history">개발 히스토리</a></li>
+        <li><span class="n">04</span><a href="#rtree">RTree — 공간 인덱스</a></li>
+        <li><span class="n">05</span><a href="#issues">이슈</a></li>
+        <li><span class="n">06</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -110,19 +115,19 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">RTree는 이번 세션 전까지 죽은 코드나 다름없었음.</div>
+      <div class="achv"><div><div class="head">RTree는 2026.08 데모를 짜기 전까지 죽은 코드나 다름없었음.</div>
         <div class="sub"><code class="mono">Boundary</code>가 private라 외부에서 <code class="mono">Insert()</code>를
           호출할 방법조차 없었고, <code class="mono">SplitNode()</code>엔 컴파일이 깨지는 오타가 있었음 —
-          한 번도 실행 안 해본 코드가 라이브러리에 포함돼 있었다는 뜻.</div></div></div>
+          한 번도 실행 안 해본 코드가 라이브러리에 포함돼 있었다는 뜻 → 접근 범위를 고치고 데모로 돌려서 버그 2건까지
+          수정함.</div></div></div>
       <div class="achv"><div><div class="head">"Allocator 교체 가능"이라는 설계 의도가 절반만 실현됨.</div>
         <div class="sub"><code class="mono">LinearArena</code>가 실제로는 다른 Container들이 기대하는
           Allocator Interface(1인자 <code class="mono">Allocate</code>, <code class="mono">Deallocate</code>
           존재)와 안 맞아서, <code class="mono">DynamicArray&lt;T, LinearArena&gt;</code>로는 실제로 못 씀.</div></div></div>
-      <div class="achv"><div><div class="head">테스트되지 않은 경로에 실제 버그가 몰려 있음.</div>
+      <div class="achv"><div><div class="head">테스트되지 않은 경로에 실제 버그가 몰려 있었음.<span class="status-chip done">수정됨 · #34 #36</span></div>
         <div class="sub"><code class="mono">List::Splice</code> 특정 오버로드는 Instance화하면 아예 컴파일이
           안 되고, <code class="mono">HashMap</code>의 <code class="mono">rBegin()/rEnd()</code>는 실제로는
-          정방향으로 순회함 — 둘 다 이번에 처음 코드를 다시 읽으면서 찾을 때까지 아무도 걸린 적이
-          없었음.</div></div></div>
+          정방향으로 순회했음 — 둘 다 2026.08 코드 리뷰에서 처음 찾았고 바로 수정함.</div></div></div>
     </div>
   </section>
 
@@ -224,38 +229,55 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
           누가 쓰고 있는지 기록이 없어서 하나만 골라 해제할 방법 없고, Page 전체 offset을 한 번에 초기화하는
           <code class="mono">Reset()</code>만 존재함.</div></div></div>
     </div>
+  </section>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정 — 실제 커밋 히스토리 기준</h3>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">시작은 Variant 하나 — 해시값이 항상 0으로 나오는 버그를 나흘 연속 고침.</div>
-        <div class="sub">2025-03-30 첫 커밋은 헤더 하나짜리 Variant뿐이었음. 나흘 뒤(04-06~04-07) 같은 날
-          "Fix the hash code" 커밋을 세 번 반복 — 마지막 커밋 메시지에 원인이 그대로 남아있음: "hash value가
-          값이 이미 사라진 뒤에 계산돼서 항상 0으로 나옴". Copy/Move 시 소멸자 스킵을 막으려던
-          <code class="mono">valid</code> 플래그도 이때 처음 추가됐는데, 지금 <a href="#bugs">버그</a>
-          섹션의 이슈 #32(valid가 영원히 false)·#33(<code class="mono">Move()</code>가 실제로는 copy 호출)이
-          바로 이 근본 원인의 흔적임 — 1년 넘게 완전히 고쳐지지 않은 문제.</div></div></div>
-      <div class="achv"><div><div class="head">8개월 공백 후 재개 — Variant 하나였던 저장소가 실사용 Container로 확장됨.</div>
-        <div class="sub">2025-04 이후 커밋이 끊겼다가 2025-12-09 "Add some container"로 재개. 12-11~12-16
-          사이 HashMap의 타입 정리, 그리고 Hash Table의 erase 길이 계산 버그(길이가 max size의 배수일 때
-          0으로 잘못 나오던 것)를 고치는 등, 실제로 쓸 수 있는 Container로 다듬는 작업이 이 기간에 몰림.</div></div></div>
-      <div class="achv"><div><div class="head">Allocator 계층은 한 번에 완성되지 않고 순서대로 쌓임.</div>
-        <div class="sub">Arena를 먼저 만들고 2주 뒤 LinearArena를 추가(2025-12-31~2026-01-01), 이후 2026-02에
-          "가장 최근 Page를 재사용 안 하는" 버그를 다시 고침 — 계층을 한 번에 설계·완성한 게 아니라, 하나
-          쌓을 때마다 실사용하며 버그를 그때그때 잡아나간 흔적.</div></div></div>
-      <div class="achv"><div><div class="head">TLSFArena는 이 페이지의 다른 기능보다 훨씬 최근에 들어옴.</div>
-        <div class="sub">2026-07-21, 이 Repository에서 가장 최근 커밋이 "Add the TLSF Arena". HashMap과
-          Arena 계열이 반년 넘게 실사용하며 다듬어진 것과 달리 TLSF는 아직 그 시간을 못 거쳤고,
-          <a href="#bugs">버그</a> 섹션 이슈 #31(m_remainedSize 부정확)이 아직 남아있는 것도 이 때문으로
-          보임.</div></div></div>
+  <section id="history">
+    <div class="section-head">
+      <span class="section-num mono">03 / HISTORY</span>
+      <div>
+        <h2 class="section-title display">개발 히스토리</h2>
+        <span class="section-tag">실제 커밋 히스토리 기준 — Variant 하나에서 시작해 Vulkan 메모리 할당기까지</span>
+      </div>
     </div>
+
+    <div data-activity="container"><p class="foot-line" style="font-size:13px;">커밋 기록을 불러오는 중…</p></div>
+
+    <ol class="tl">
+      <li class="tl-era"><span class="n mono">1기</span><span class="h">Variant 하나로 시작<small>2025.03 — 2025.04</small></span></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.03.31</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">Variant 하나로 첫 커밋</span></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.04.07</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">해시값이 항상 0으로 나오는 버그를 이틀 동안 붙잡음</span>
+        <div class="tl-sub">04.06~07 이틀 동안 "Fix the hash code" 커밋만 네 번 — 마지막 커밋 메시지에 원인이 그대로 남아 있음: "hash value가 값이 이미 사라진 뒤에 계산돼서 항상 0으로 나옴". Copy/Move 때 소멸자 스킵을 막으려던 <code class="mono">valid</code> 플래그도 이때 처음 들어왔는데, 이게 1년 뒤 리뷰에서 찾은 #32(valid가 영원히 false) · #33(Move가 copy로 동작)의 뿌리였음 — 2026.08.05에 수정.</div></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">실사용 Container로 확장<small>2025.12 — 2026.07 · 8개월 공백 뒤 재개</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2025.12.09</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">DynamicArray · HashMap 등 실사용 Container 추가</span>
+        <div class="tl-sub">12.11~12.16에 HashMap 타입 정리와 Hash Table erase 길이 계산 버그(길이가 max size의 배수면 0으로 나오던 것) 수정이 몰림.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.12.14</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">std::unordered_map 대비 벤치마크</span>
+        <div class="tl-sub">100만 개 기준 삽입 1.72배 · 조회 1.26배 — Open Addressing이 Node 기반 Chaining보다 Cache Miss가 적은 효과를 숫자로 확인 (<a href="https://github.com/Winteradio/Container/issues/16" target="_blank" rel="noopener">#16</a>).</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.01.01</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">Arena 위에 LinearArena 추가</span>
+        <div class="tl-sub">"마지막 Page를 재사용 안 하는" 버그는 실제로 쓰다가 2026.05.21에 다시 고침 — 계층을 한 번에 완성한 게 아니라 하나 쌓을 때마다 실사용하며 버그를 잡아나간 흔적.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.07.21</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">TLSFArena 추가 → 다음 날 Vulkan 메모리에 바로 쓰임</span>
+        <div class="tl-sub">엔진의 <code class="mono">VulkanArena</code>가 07.22부터 이 TLSF를 그대로 상속해서 4MB <code class="mono">VkDeviceMemory</code> 블록을 서브 할당함.</div></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026.08</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2026.08.05</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">RTree를 처음으로 실제로 돌려봄 — 버그 2건 수정</span>
+        <div class="tl-sub"><code class="mono">Boundary</code>가 private라 아무도 <code class="mono">Insert()</code>를 부를 수 없던 RTree에 순회 API를 붙이고 데모를 짜서, <code class="mono">SplitNode()</code>의 이중 해제 · 서브트리 유실 버그를 찾아 고침 (<a href="#rtree">RTree 절</a>).</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.08.07</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">리뷰로 찾은 버그 6건 수정 + 테스트 재작성</span>
+        <div class="tl-sub">#31~#36(TLSF 통계, Variant 소멸자 누락 · copy로 동작하던 move, List::Splice 다운캐스트, include guard 오타, HashMap 역방향 Iterator)을 고치고, 데모 테스트를 수명 추적 객체(TrackedObject) 기반으로 다시 짬 (<a href="https://github.com/Winteradio/Container/pull/37" target="_blank" rel="noopener">PR #37</a>, <a href="https://github.com/Winteradio/Container/pull/38" target="_blank" rel="noopener">PR #38</a>).</div></div></li>
+    </ol>
   </section>
 
   <section id="rtree">
     <div class="section-head">
-      <span class="section-num mono">03 / DESIGN</span>
+      <span class="section-num mono">04 / DESIGN</span>
       <div>
         <h2 class="section-title display">RTree — 공간 인덱스</h2>
-        <span class="section-tag">Boundary 하나로 재귀 분할되는 Tree, 이번에 처음으로 실제로 돌려봄</span>
+        <span class="section-tag">Boundary 하나로 재귀 분할되는 Tree — 2026.08에 처음으로 실제로 돌려봄</span>
       </div>
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
@@ -289,7 +311,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 });</pre>
 
     <div class="achv-list">
-      <div class="achv"><div><div class="head">이번 세션 전까지는 사실상 한 번도 실행된 적이 없었음.</div>
+      <div class="achv"><div><div class="head">2026.08 전까지는 사실상 한 번도 실행된 적이 없었음.</div>
         <div class="sub"><code class="mono">Boundary</code>가 <code class="mono">private</code>라 외부 코드는
           그 타입 자체를 이름 붙일 수도 없었음 — <code class="mono">Insert()</code>가 public이어도 인자를
           만들 방법이 없어 호출이 불가능했고, 실제로 기존 데모의 <code class="mono">RTreeTest rtree(4,2);</code>도
@@ -346,7 +368,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">04 / ISSUES</span>
+      <span class="section-num mono">05 / ISSUES</span>
       <div><h2 class="section-title display">이슈</h2></div>
     </div>
 
@@ -411,20 +433,20 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">05 / BUGS</span>
+      <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 8건 중 6건 수정, 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
-      <summary>실제 버그 8건 <span class="count">클릭해서 펼치기</span></summary>
+      <summary>실제 버그 8건 — 6건 수정 완료 <span class="count">클릭해서 펼치기</span></summary>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/34" target="_blank" rel="noopener">#34</a> · include/List.h:336</span>
           <span class="issue-title">List::Splice(4-인자 오버로드)에 잘못된 다운캐스트 — 인스턴스화하면 컴파일 안 됨</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#34">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#34">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Node* prev = node-&gt;prev;</code>인데 <code class="mono">node</code>는
@@ -433,53 +455,57 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
           코드라 C++에서는 컴파일되지 않음. 바로 옆의 다른 <code class="mono">Splice</code> 오버로드
           3개(257·298·400행)는 전부 <code class="mono">NodeBase*</code>로 맞게 타입을 씀 — 이 오버로드만
           복붙 중 타입을 놓친 것으로 보이고, 실제로 이 특정 오버로드가 호출(Instance화)되기 전까지는 Template이라
-          드러나지 않음.
+          드러나지 않음.<br>
+          - 수정(2026.08.05): 이 오버로드도 <code class="mono">NodeBase* prev</code>로 타입을 맞춤.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/35" target="_blank" rel="noopener">#35</a> · include/TLSFArena.h:1-2</span>
           <span class="issue-title">TLSFArena.h의 include guard 매크로 이름이 서로 다름</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#35">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#35">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">#ifndef __WTR_TLSF_ARENA_H__</code>로 체크하고
           <code class="mono">#define __WTR_TLSF_ANREA_H__</code>("ANREA")로 정의 — 오타 때문에 guard가
-          걸리지 않음. 한 번역 단위에서 이 헤더가 두 번 include되면 재정의 에러 발생.
+          걸리지 않음. 한 번역 단위에서 이 헤더가 두 번 include되면 재정의 에러 발생.<br>
+          - 수정(2026.08.05): <code class="mono">#define</code> 쪽 오타를 <code class="mono">__WTR_TLSF_ARENA_H__</code>로 고침.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/36" target="_blank" rel="noopener">#36</a> · include/HashTable.h:263,266</span>
           <span class="issue-title">HashMap의 ReverseIterator가 실제로는 정방향</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#36">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#36">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Key != Data</code>(HashMap) 케이스에서 <code class="mono">ReverseIterator</code>가
           <code class="mono">BaseIterator&lt;true, false&gt;</code>로 풀립니다 — reverse 플래그가 꺼진 채로.
           HashMap의 <code class="mono">rBegin()/rEnd()</code>가 뒤가 아니라 앞으로 순회하고, const 여부도
-          <code class="mono">Iterator</code>와 어긋납니다.
+          <code class="mono">Iterator</code>와 어긋납니다.<br>
+          - 수정(2026.08.05): <code class="mono">ReverseIterator</code>의 Template 인자를 바로잡아 실제로 역방향 · const로 동작함.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/33" target="_blank" rel="noopener">#33</a> · include/Variant.h:124-139</span>
           <span class="issue-title">Variant::Move()가 실제로는 copy를 호출</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#33">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#33">해결</span>
         </div>
         <div class="issue-body">
           - 이름 붙은 <code class="mono">T&amp;&amp; rhsValue</code> 변수를 만든 뒤 <code class="mono">T(rhsValue)</code>에
           그대로 넘김 — 이름 있는 rvalue 참조는 lvalue라서 copy 생성자/대입이 선택됨.
           <code class="mono">operator==</code>도 저장된 값이 아니라 <code class="mono">m_nCurrentHash</code>만
           비교하는데, <code class="mono">std::hash</code> 특수화가 없는 타입은 항상 0을 반환해서 그런 타입의
-          모든 값이 내용과 무관하게 같다고 판정됨.
+          모든 값이 내용과 무관하게 같다고 판정됨.<br>
+          - 수정(2026.08.05): <code class="mono">T(std::move(rhsValue))</code> / <code class="mono">lhsValue = std::move(rhsValue)</code>로 실제 move가 일어나게 바꿈.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/32" target="_blank" rel="noopener">#32</a> · include/Variant.h — Copy() / Move() / AlignedStorage::valid</span>
           <span class="issue-title">valid 플래그가 영원히 false라서, 대입할 때마다 기존 값의 소멸자를 건너뜀</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#32">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#32">해결</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">AlignedStorage::valid</code>는 생성자와
@@ -493,14 +519,15 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
           <code class="mono">std::string</code>/<code class="mono">std::vector</code>처럼 힙을 소유한
           타입이었다면 그 소멸자가 절대 호출되지 않고 내부 Pointer까지 덮어써져서 나중에 정리할 방법도
           없음 — 이미 값이 있는 <code class="mono">Variant</code>에 다른 <code class="mono">Variant</code>를
-          대입할 때마다 발생하는 실제 메모리 누수.
+          대입할 때마다 발생하는 실제 메모리 누수.<br>
+          - 수정(2026.08.05): 대입 전에 <code class="mono">Destroy()</code>를 먼저 불러 기존 값의 소멸자가 호출되도록 함.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/31" target="_blank" rel="noopener">#31</a> · include/TLSFArena.h — Free() / Merge() / Remove()</span>
           <span class="issue-title">병합된 Free()마다 m_remainedSize가 실제보다 더 깎임 — 진짜 누수는 아님</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Container#31">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#31">해결</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">Free()</code>는 <code class="mono">block.free = true</code>만 찍고
@@ -515,7 +542,8 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
           <code class="mono">IsEmpty()</code>가 <code class="mono">false</code>를 반환.<br>
           - 실제로는 누수 아님: 같은 상태에서 전체 용량(1MB)을 다시 <code class="mono">Allocate()</code>해보면
           <code class="mono">offset=0, size=1048576</code>로 정확히 성공 — free-list/Bitmap은
-          완전히 정상, <code class="mono">m_remainedSize</code> 통계만 신뢰할 수 없는 상태.
+          완전히 정상, <code class="mono">m_remainedSize</code> 통계만 신뢰할 수 없는 상태.<br>
+          - 수정(2026.08.05): <code class="mono">m_remainedSize</code>를 병합 경로가 아니라 할당 · 해제 시점에 직접 갱신하도록 바꿈.
         </div>
       </div>
       <div class="issue-card">
@@ -567,6 +595,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 </footer>
 
 <script src="app.js"></script>
+<script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 <script>

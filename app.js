@@ -57,7 +57,7 @@
         issues = (issues || []).filter(function (i) { return !i.pull_request; });
 
         if (!issues.length) {
-          el.innerHTML = '<p class="foot-line" style="font-size:13px;">지금 열려 있는 이슈가 없습니다.</p>';
+          el.innerHTML = '<p class="foot-line" style="font-size:13px;">지금 열려 있는 이슈 없음.</p>';
           return;
         }
 
@@ -71,7 +71,7 @@
         }).join('');
       })
       .catch(function () {
-        el.innerHTML = '<p class="foot-line" style="font-size:13px;">GitHub에서 못 불러왔습니다 — ' +
+        el.innerHTML = '<p class="foot-line" style="font-size:13px;">GitHub에서 못 불러옴 — ' +
           '<a href="https://github.com/' + repo + '/issues" target="_blank" rel="noopener">직접 보기 →</a></p>';
       });
   });

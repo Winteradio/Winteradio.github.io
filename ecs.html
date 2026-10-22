@@ -41,15 +41,20 @@
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/ECS-with-Scene-and-Node" target="_blank" rel="noopener">github.com/Winteradio/ECS-with-Scene-and-Node</a>
     </div>
+    <nav class="chain" aria-label="라이브러리 의존 순서">
+      <span class="lbl">스택 내 위치 — 왼쪽이 오른쪽의 기반 (오른쪽이 왼쪽을 submodule로 포함)</span>
+      <a href="https://github.com/Winteradio/CMake" target="_blank" rel="noopener">CMake</a><i>→</i><a href="https://github.com/Winteradio/Log" target="_blank" rel="noopener">Log</a><i>→</i><a href="container.html">Container</a><i>→</i><a href="reflection.html">Reflection</a><i>→</i><a href="memory.html">Memory</a><i>→</i><a href="ecs.html" class="on" aria-current="page">ECS</a><i>→</i><a href="engine.html">Engine</a>
+    </nav>
 
     <div class="toc">
       <div class="toc-title">목차</div>
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
         <li><span class="n">02</span><a href="#relationships">상세 내용 &amp; 다이어그램</a></li>
-        <li><span class="n">03</span><a href="#design-choice">왜 Sparse Set도 Archetype도 아닌 Node인가</a></li>
-        <li><span class="n">04</span><a href="#issues">이슈</a></li>
-        <li><span class="n">05</span><a href="#bugs">버그</a></li>
+        <li><span class="n">03</span><a href="#history">개발 히스토리</a></li>
+        <li><span class="n">04</span><a href="#design-choice">왜 Sparse Set도 Archetype도 아닌 Node인가</a></li>
+        <li><span class="n">05</span><a href="#issues">이슈</a></li>
+        <li><span class="n">06</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -93,18 +98,18 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">데모가 실제 API와 완전히 다름.</div>
+      <div class="achv"><div><div class="head">데모가 실제 API와 완전히 달랐음.<span class="status-chip done">수정됨 · #8</span></div>
         <div class="sub">체크인된 코드에 없는 <code class="mono">NodeRegistry</code>/<code class="mono">SystemRegistry</code>/
-          <code class="mono">DependOn</code> 등을 데모가 그대로 참조 — 처음 이 프로젝트를 받은
-          사람은 데모조차 컴파일할 수 없음(이슈 #8보다 한 겹 더 깊은 불일치).</div></div></div>
+          <code class="mono">DependOn</code> 등을 데모가 그대로 참조해서, 처음 받은 사람은 데모조차 컴파일할 수 없었음 →
+          2026.08 데모를 실제 API만 쓰도록 다시 짜서 빌드 · 실행까지 확인함.</div></div></div>
       <div class="achv"><div><div class="head">GC 등록을 빠뜨리면 컴파일 타임에 못 잡음.</div>
         <div class="sub"><code class="mono">PROPERTY()</code>를 깜빡한 멤버는 조용히 GC 추적에서 빠져서,
           다음 <code class="mono">Collect()</code> 때 예고 없이 해제됨 — 런타임에야 드러나는 종류의
           실수.</div></div></div>
-      <div class="achv"><div><div class="head">Instance화되기 전까지는 안 드러나는 버그가 있음.</div>
+      <div class="achv"><div><div class="head">Instance화되기 전까지는 안 드러나는 버그가 있었음.<span class="status-chip done">수정됨 · #12 #13</span></div>
         <div class="sub"><code class="mono">Entity::AddNode&lt;T&gt;()</code>가 실제로는 Component 쪽에 등록되는
           비대칭 버그, move 대입이 아무것도 move하지 않는 버그 등 — Template이라 실제로 그 경로를 쓰기 전까지는
-          조용히 묻혀 있었음.</div></div></div>
+          조용히 묻혀 있었음 → 2026.08 리뷰에서 찾아 바로 수정함.</div></div></div>
     </div>
   </section>
 
@@ -133,7 +138,7 @@
           하나로 합침 — 타입 해시를 키로 <code class="mono">Container&lt;T, Base&gt;</code>를 담는
           <code class="mono">HashMap</code> 하나가 생성(<code class="mono">Create&lt;T&gt;</code>)·조회·삭제를
           타입 구분 없이 전부 처리. 위 "주요 내용"의 데모-API 불일치는 정확히 이 리팩토링 전/후 API
-          차이 때문.</div></div></div>
+          차이 때문이었음(2026.08 해소).</div></div></div>
       <div class="achv"><div><div class="head">GC 도달 가능성은 범용 Property 순회.</div>
         <div class="sub">Class별로 따로 짠 추적 함수가 아니라, <code class="mono">TypeInfo</code>의 Property
           목록을 그대로 따라감. <code class="mono">PROPERTY()</code>로 등록하지 않은
@@ -151,47 +156,49 @@
       <div class="cap mono" style="text-align:left;margin-bottom:10px;">Class 다이어그램 — Registry&lt;Base&gt;/Container&lt;T, Base&gt; 실제 통합 구조</div>
       <img src="https://www.plantuml.com/plantuml/svg/VLLTQzj857tNhxYu3tLQctms3yM497QI3QKVrCbp6KjZMrjfHep63Uu7fAqBeIdKXOIQa2p9m-vIo4FQcjA5_JNxc57-mzwH56diP5Slbkuzzzvppjp1Yw4aGdPypmgVkYmWWlZG8FRJbk0TvbIvnmLijLr9ZNpO9WxVSbaBciGBpOpjaJ1SvKm-83w5AcSXnyXrWBhxdCBqh95oQ9DqF9bL5-uJhzLXiCPbsxKBroEJDZD6CkKj61KmDpvvIKhXDZgIhjkSnRLJ1cH92BwLIBun7pz6ighhbxbmg4WXS_5p1J9ctetLEwkpArNBYWd0myQlr9RmmW8eRswkry1_qkcu3dxUNgDolLQS01ssNgNu5IPTsOtnjvSSxEa7d54cYx8Rq0bunfDQJ3tW3XsB_aB2yO86vrxMl53lXfBwbMKIqeK2a12IWFvEHhuWZL0AOijNi1auHE84rwTrIOCIe8MIkEXpFj20enhDQ0EdeYRziywQF1kjHrGl6roPjI8mNTJ6_5VlvHoGMFf8YbnNrhcoKO9SNHRUI0wWHYIfIov8YrOs5l0emkH3Zrln0u_OjEWw9I2Y5Hfp49kUrpW3dSb8FAOj5nbt3NilGvd1PJoYzdqIL49SnYUoPBGQSMX1iyiCrxmrWwgWU2GuzFzP6cui54r4xaSCVKnz_YnkPpYVoLaJ96Zh8qL0B2OB96vYUJCP2qxAhqvbZGQKEPJPtIBUusnNHhiQ3iNVL-tHTw9aJDHsC7n9dIWlTrpFAQRhdQYkSo6fZjMwZFYkZRURT76mbLx1oijoERrU8w7y2bYZInfdSykiaSFac2lSAfWhTXSktcv7lxs3Y_rXj7keJWuXEZcxEFXWvI9lfMMvCejnIK6uhRO4tXpP61IMy9tCRlMahfbCA6CwEkwf7ziG7GrXTFkGmq2z6I2768MqVeT_jlTIXkfxJvT61r-oClL-3v4pKpFpvQdPyinSANsVAq_FW_hK1_Lj9_hSHypvrv_Hzpv4dq_FVvvfaHT79z7EGFK7wiiPH6zErT7VqPzz2zS0jBP4O8DBoNsjC3C3UoL2aFyWEXb6lQzmFjnMVvmY6K2EwcClmrpoF3z3kVizjRk3OxGsbAw-xMafncffbDeTgjs_45AyHzhiPWXBNeiBLxPntc4lUliwEjvNnwSJET55VDF_ZFy2" alt="Registry Base Container 클래스 다이어그램" loading="lazy">
     </div>
+  </section>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:0 0 14px;">
-      GitHub 커밋 히스토리 기준 — 지어낸 이야기가 아니라 실제 diff에서 확인한 변화만 정리.
-    </p>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">2023.06 첫 버전 → 2년 넘게 방치 후 2025.11 재개.</div>
-        <div class="sub">2023년 6~9월에 초기 버전을 만들고 커밋이 끊김. 2025.11.30
-          "<code class="mono">Set the developping</code>" 커밋으로 2년 넘는 공백 이후 다시 시작함 —
-          지금 코드는 사실상 이때부터의 완전 재작성.</div></div></div>
-      <div class="achv"><div><div class="head">2025.12.16, 통짜 재작성 — Manager 5개 + Interface 6개를 걷어냄.</div>
-        <div class="sub">커밋 <code class="mono">2b2b069</code> "Edit the ECS" 하나에서
-          <code class="mono">SceneManager/EntityManager/ComponentManager/SystemManager/NodeManager</code>(5개)와
-          <code class="mono">IObject/IComponent/INode/ISystem/Entity/Scene</code>(Interface 6개)를 전부 삭제 —
-          대신 <code class="mono">Object</code> 공통 베이스와 타입별 Registry 4개
-          (<code class="mono">Component/Node/System/ContainerRegistry</code>), 그리고 신규
-          <code class="mono">Graph.h</code>로 교체함. 지금 구조의 첫 뼈대.</div></div></div>
-      <div class="achv"><div><div class="head">2026.03.24, Container 4개 → Container.h 하나로 통합.</div>
-        <div class="sub">커밋 <code class="mono">1801487</code> "edit the container" — 타입별로 따로 있던
-          <code class="mono">BaseContainer/ComponentContainer/EntityContainer/NodeContainer</code> 4개 파일을
-          지우고 제네릭 <code class="mono">Container&lt;T, Base&gt;</code> 하나로 교체. 같은 커밋에서
-          <code class="mono">ComponentRegistry/NodeRegistry/ContainerRegistry</code> 3개도
-          <code class="mono">Registry&lt;Base&gt;</code> 하나로 합침 — 단,
-          <code class="mono">SystemRegistry</code>만 이때는 살아남음(이름만 변경).</div></div></div>
-      <div class="achv"><div><div class="head">2026.04.16, 마지막 남은 SystemRegistry 제거 — 의존성 관리를 Graph&lt;Base&gt;로 흡수.</div>
-        <div class="sub">커밋 <code class="mono">5e41709</code> "Edit the system registry and graph" —
-          <code class="mono">SystemRegistry.h/.cpp</code>를 완전히 삭제하고
-          <code class="mono">Graph.h</code>를 337줄 고쳐서(위상정렬 로직 흡수) System 전용이던 의존성 관리를
-          범용 <code class="mono">Graph&lt;Base&gt;</code> 하나로 넘김. 지금 위 클래스 다이어그램의 최종
-          형태가 여기서 완성됨.</div></div></div>
-      <div class="achv"><div><div class="head">데모(<code class="mono">demofile/main.cpp</code>)는 이 세 번의 리팩토링을 하나도 못 따라감.</div>
-        <div class="sub">지금도 <code class="mono">ECS::NodeRegistry</code>/<code class="mono">ComponentRegistry</code>/
-          <code class="mono">SystemRegistry</code>를 그대로 참조 — 헤더에는 더 이상 존재하지 않는 타입들.
-          위 "주요 내용"에 있는 데모 불일치 버그가 정확히 이 세 단계 중 어디까지 반영됐는지도 모른 채 방치된
-          결과.</div></div></div>
+  <section id="history">
+    <div class="section-head">
+      <span class="section-num mono">03 / HISTORY</span>
+      <div>
+        <h2 class="section-title display">개발 히스토리</h2>
+        <span class="section-tag">GitHub 커밋 기준 — 지어낸 이야기가 아니라 실제 diff에서 확인한 변화만 정리</span>
+      </div>
     </div>
+
+    <div data-activity="ecs"><p class="foot-line" style="font-size:13px;">커밋 기록을 불러오는 중…</p></div>
+
+    <ol class="tl">
+      <li class="tl-era"><span class="n mono">1기</span><span class="h">Manager 기반 첫 버전<small>2023.06 — 2023.09 · DX11 엔진에서 떼어낸 직후</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2023.06.21</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">독립 저장소로 첫 커밋</span>
+        <div class="tl-sub">엔진 안에서 쓰던 Scene · Entity · Component · Node · System Manager 구조를 그대로 들고 나옴.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2023.09.02</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">SystemManager에 위상정렬 도입</span>
+        <div class="tl-sub">System 실행 순서를 손으로 짠 목록 대신 의존 관계로 정하기 시작함 — 지금 <code class="mono">Graph&lt;Base&gt;</code>의 출발점.</div></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">통짜 재작성 → 범용 Registry · Graph<small>2025.12 — 2026.05 · 2년 넘는 공백 뒤 12.01 "Set the developping"으로 재개</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2025.12.17</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">Manager 5개 + Interface 6개를 걷어냄</span>
+        <div class="tl-sub">커밋 <code class="mono">2b2b069</code> 하나에서 <code class="mono">SceneManager/EntityManager/ComponentManager/SystemManager/NodeManager</code>와 <code class="mono">IObject/IComponent/INode/ISystem/Entity/Scene</code>을 전부 삭제 — <code class="mono">Object</code> 공통 베이스, 타입별 Registry 4개, 신규 <code class="mono">Graph.h</code>로 교체. 지금 구조의 첫 뼈대.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.03.24</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">Container 4개 → <code class="mono">Container&lt;T, Base&gt;</code> 하나로 통합</span>
+        <div class="tl-sub">커밋 <code class="mono">1801487</code> — 타입별로 따로 있던 Base/Component/Entity/NodeContainer를 제네릭 하나로 교체하고, Component/Node/ContainerRegistry 3개도 <code class="mono">Registry&lt;Base&gt;</code> 하나로 합침. SystemRegistry만 이때는 살아남음.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.04.17</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">마지막 SystemRegistry 제거 — 의존성 관리를 <code class="mono">Graph&lt;Base&gt;</code>로 흡수</span>
+        <div class="tl-sub">커밋 <code class="mono">5e41709</code> — <code class="mono">Graph.h</code>를 337줄 고쳐 위상정렬 로직을 흡수하고, System 전용이던 의존성 관리를 범용 Graph로 넘김. 엔진의 <a href="engine.html#modules">RenderGraph</a>도 이 Graph를 상속해서 Pass 순서를 정함.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.05.26</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">Graph Node의 의존 정보가 반영되지 않던 문제 수정</span></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026.08</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.08.08</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">리뷰로 찾은 버그 5건 + 빌드 안 되던 데모 수정</span>
+        <div class="tl-sub">08.02 등록한 #12~#16과, 세 번의 리팩토링을 못 따라가 컴파일조차 안 되던 데모(#8)를 한 번에 정리 — 없는 헤더를 include하던 <code class="mono">ECS.h</code>를 지우고, 데모를 실제 API(Registry · Graph · 순환 감지 · GC 연동)만 쓰도록 다시 짬 (<a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/pull/17" target="_blank" rel="noopener">PR #17</a>).</div></div></li>
+    </ol>
   </section>
 
   <section id="design-choice">
     <div class="section-head">
-      <span class="section-num mono">03 / DESIGN</span>
+      <span class="section-num mono">04 / DESIGN</span>
       <div>
         <h2 class="section-title display">Sparse Set도 Archetype도 아닌 Node</h2>
       </div>
@@ -219,7 +226,7 @@
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">04 / ISSUES</span>
+      <span class="section-num mono">05 / ISSUES</span>
       <div><h2 class="section-title display">이슈</h2></div>
     </div>
 
@@ -228,7 +235,7 @@
         <div class="issue-head">
           <span class="issue-num mono">#8</span>
           <span class="issue-title"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/8" target="_blank" rel="noopener">The demo project isn't built and worked</a></span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#8">미해결</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#8">해결</span>
         </div>
         <div class="issue-body">
           - 원인: <code class="mono">ECS.h</code>가 저장소에 실제로 존재하지 않는 헤더 두 개
@@ -236,7 +243,8 @@
           를 include — 데모와 README가 체크아웃된 헤더에는 없는 API(<code class="mono">TypedSystem&lt;T&gt;</code>,
           전용 <code class="mono">SystemRegistry</code>)를 설명하고 있는 상태.<br>
           - 개선 방향: 같은 역할을 하는 범용 <code class="mono">Registry&lt;Base&gt;</code>가 이미 존재하고 컴파일도
-          됨 — 빠진 전용 헤더를 복원하거나, 데모/README를 실제로 있는 범용 API 기준으로 갱신하면 됨.
+          됨 — 빠진 전용 헤더를 복원하거나, 데모/README를 실제로 있는 범용 API 기준으로 갱신하면 됨.<br>
+          - 해결(2026.08.08): 없는 헤더를 include하던 <code class="mono">ECS.h</code>를 지우고, 데모를 실제로 있는 범용 API 기준으로 다시 짬 — 빌드 · 실행까지 확인 (<a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/pull/17" target="_blank" rel="noopener">PR #17</a>).
         </div>
       </div>
     </div>
@@ -244,46 +252,48 @@
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">05 / BUGS</span>
+      <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 7건 중 6건 수정, 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
-      <summary>실제 버그 7건 <span class="count">클릭해서 펼치기</span></summary>
+      <summary>실제 버그 7건 — 6건 수정 완료 <span class="count">클릭해서 펼치기</span></summary>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/12" target="_blank" rel="noopener">#12</a> · include/Object/Entity.h:72</span>
           <span class="issue-title">Entity::AddNode&lt;T&gt;()가 Node가 아니라 Component 쪽에 등록됨</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#12">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#12">해결</span>
         </div>
         <div class="issue-body">
           - Template 래퍼가 <code class="mono">AddNode(nodeType)</code> 대신 <code class="mono">AddComponent(nodeType)</code>를
           호출함. 짝인 <code class="mono">RemoveNode&lt;T&gt;()</code>는 맞게 작성돼 있어서 더 눈에 안 띄는
           비대칭 버그. 이 경로로 등록한 Node는 <code class="mono">HasNode&lt;T&gt;()</code>가 항상 false를
-          반환함.
+          반환함.<br>
+          - 수정(2026.08.08): <code class="mono">AddNode(nodeType)</code>을 부르도록 고침.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/13" target="_blank" rel="noopener">#13</a> · src/Object/Entity.cpp:47-59</span>
           <span class="issue-title">Entity의 move 대입 연산자가 실제로는 아무것도 move하지 않음</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#13">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#13">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Object::operator=(other)</code>가 lvalue를 받아 베이스 Class는 복사되고,
           <code class="mono">m_name = std::move(m_name)</code>은 <code class="mono">other.m_name</code>이 아니라
           자기 자신을 self-move — 사실상 no-op. "move" 대입인데 이름은 그대로, UUID만 원본과 같은 값이
-          됨.
+          됨.<br>
+          - 수정(2026.08.08): <code class="mono">Object::operator=(std::move(other))</code>와 <code class="mono">m_name = std::move(other.m_name)</code>으로 실제 move가 되게 바꿈.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/14" target="_blank" rel="noopener">#14</a> · include/Graph/Graph.h:105,136,193</span>
           <span class="issue-title">Graph의 BaseNode Template 인자가 Create()/Add()에서 무시됨</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#14">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#14">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Graph&lt;Base, BaseNode = GraphNode&lt;Base&gt;&gt;</code>는 커스텀 노드 타입을
@@ -292,38 +302,41 @@
           자기 <code class="mono">BaseNode</code> 대신 <code class="mono">GraphNode&lt;Base&gt; node;</code>를
           하드코딩함. 기본값(<code class="mono">BaseNode = GraphNode&lt;Base&gt;</code>)으로 쓰는 한은
           문제없지만, 실제로 커스텀 <code class="mono">BaseNode</code>를 넘기면 이 대입 자체가 컴파일되지
-          않음.
+          않음.<br>
+          - 수정(2026.08.08): <code class="mono">Memory::MakeRef&lt;BaseNode&gt;()</code>로 노드를 만들어 <code class="mono">BaseNode</code>가 다시 진짜 커스터마이즈 지점이 됨.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/15" target="_blank" rel="noopener">#15</a> · include/Graph/Graph.h:174-184</span>
           <span class="issue-title">Graph::GetNode&lt;T&gt;()가 미스 시 공유 static Singleton을 반환</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#15">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#15">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">static GraphNode&lt;T&gt; null;</code>은 같은 타입 <code class="mono">T</code>의 모든
           조회 미스가 공유하는 함수-로컬 정적 변수. 호출자가 반환값에 <code class="mono">SetDependency</code>
-          등으로 쓰기를 하면, 그 타입에 대한 이후 모든 미스가 오염된 상태를 보게 됨.
+          등으로 쓰기를 하면, 그 타입에 대한 이후 모든 미스가 오염된 상태를 보게 됨.<br>
+          - 수정(2026.08.08): 조회 미스면 공유 static 대신 빈 <code class="mono">RefPtr</code>를 반환.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/ECS-with-Scene-and-Node/issues/16" target="_blank" rel="noopener">#16</a> · include/Graph/Graph.h:18-28</span>
           <span class="issue-title">GraphObserver::m_updated가 초기화되지 않음</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#16">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/ECS-with-Scene-and-Node#16">해결</span>
         </div>
         <div class="issue-body">
           - 기본 멤버 초기화자가 없고 생성자는 <code class="mono">= default</code>. <code class="mono">Graph::GetSorted()</code>는
           <code class="mono">Add</code>/<code class="mono">Create</code>가 한 번도 호출되지 않은 상태에서도
-          <code class="mono">IsUpdated()</code>를 읽어서, 첫 호출은 정의되지 않은 값을 읽는 셈.
+          <code class="mono">IsUpdated()</code>를 읽어서, 첫 호출은 정의되지 않은 값을 읽는 셈.<br>
+          - 수정(2026.08.08): 기본 멤버 초기화자를 추가.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">demofile/main.cpp, SystemList.h, ComponentList.h, NodeList.h</span>
           <span class="issue-title">데모가 실제로 존재하지 않는 API 전체를 호출 — 이슈 #8보다 한 겹 더 깊은 불일치</span>
-          <span class="issue-state open mono">설계 노트</span>
+          <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">ECS::NodeRegistry</code>, <code class="mono">ECS::ComponentRegistry</code>,
@@ -332,7 +345,8 @@
           어디에도 없음. 체크인된 코드는 범용 <code class="mono">Registry&lt;Base&gt;</code>와, 의존성 Graph
           API가 없는 추상 <code class="mono">System&lt;Base&gt;</code>뿐. <code class="mono">ECS::Component</code>/
           <code class="mono">ECS::Node</code>도 기본 생성자만 선언하는데 데모는 <code class="mono">ECS::Component(uuid)</code>처럼
-          없는 생성자를 호출해서, 헤더를 복원해도 이 부분은 여전히 컴파일되지 않음.
+          없는 생성자를 호출해서, 헤더를 복원해도 이 부분은 여전히 컴파일되지 않음.<br>
+          - 해결(2026.08.08): 데모를 Entity · Component · Node · Registry · Graph만 쓰도록 다시 짜서 빌드 · 실행 확인 (#8).
         </div>
       </div>
       <div class="issue-card">
@@ -367,6 +381,7 @@
 </footer>
 
 <script src="app.js"></script>
+<script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </body>
