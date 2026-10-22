@@ -43,15 +43,20 @@
     <div class="contact-strip mono">
       <a href="https://github.com/Winteradio/Reflection" target="_blank" rel="noopener">github.com/Winteradio/Reflection</a>
     </div>
+    <nav class="chain" aria-label="라이브러리 의존 순서">
+      <span class="lbl">스택 내 위치 — 왼쪽이 오른쪽의 기반 (오른쪽이 왼쪽을 submodule로 포함)</span>
+      <a href="https://github.com/Winteradio/CMake" target="_blank" rel="noopener">CMake</a><i>→</i><a href="https://github.com/Winteradio/Log" target="_blank" rel="noopener">Log</a><i>→</i><a href="container.html">Container</a><i>→</i><a href="reflection.html" class="on" aria-current="page">Reflection</a><i>→</i><a href="memory.html">Memory</a><i>→</i><a href="ecs.html">ECS</a><i>→</i><a href="engine.html">Engine</a>
+    </nav>
 
     <div class="toc">
       <div class="toc-title">목차</div>
       <ol>
         <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
         <li><span class="n">02</span><a href="#structure">상세 내용 &amp; 다이어그램</a></li>
-        <li><span class="n">03</span><a href="#mechanics">매크로가 실제로 확장되는 방식</a></li>
-        <li><span class="n">04</span><a href="#issues">이슈</a></li>
-        <li><span class="n">05</span><a href="#bugs">버그</a></li>
+        <li><span class="n">03</span><a href="#history">개발 히스토리</a></li>
+        <li><span class="n">04</span><a href="#mechanics">매크로가 실제로 확장되는 방식</a></li>
+        <li><span class="n">05</span><a href="#issues">이슈</a></li>
+        <li><span class="n">06</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -97,14 +102,15 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었음.</div>
+      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었음.<span class="status-chip done">수정됨 · #31</span></div>
         <div class="sub"><code class="mono">Utils.cpp</code>가 Windows 아닐 때 <code class="mono">GetName</code>
-          대신 이름이 다른 <code class="mono">GetClassName</code>을 정의 — GCC/Clang 빌드는
-          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크 실패함. Linux/Mac에서
-          한 번도 안 돌려봤다는 뜻.</div></div></div>
-      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않음.</div>
-        <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 Class를 검증하지 않음 — 시그니처만
-          같으면 서로 무관한 Class끼리도 조용히 타입 펀될 수 있음.</div></div></div>
+          대신 이름이 다른 <code class="mono">GetClassName</code>을 정의해서, GCC/Clang 빌드는
+          <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크가 실패했음 → 2026.08 비Windows 분기 이름을
+          <code class="mono">GetName</code>으로 맞춤.</div></div></div>
+      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않았음.<span class="status-chip done">수정됨 · #32</span></div>
+        <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 Class를 검증하지 않아서, 시그니처만
+          같으면 서로 무관한 Class끼리도 조용히 타입 펀될 수 있었음 → Invoke 전에 Instance의 런타임 타입을 소유 Class와
+          대조하도록 바꿈.</div></div></div>
       <div class="achv"><div><div class="head">Template Class 조합에서 Macro가 깨질 수 있음.</div>
         <div class="sub">Template Class 내부의 <code class="mono">PROPERTY()</code>가 GCC/Clang의 공격적인
           dead-code elimination에 스트리핑되는 문제가 아직 완전히 해결되지 않음(이슈 #25).</div></div></div>
@@ -152,47 +158,54 @@ prop-&gt;Set(obj, 42);            // 컴파일 타임 오프셋으로 직접 메
 
 const auto* method = type-&gt;GetMethod("Add");
 int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함수 Pointer별 static 생성</pre>
+  </section>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">개발 여정</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
-      2024-01 첫 커밋부터 지금까지 실제 커밋 로그 기준 — 회고가 아니라 커밋 메시지·diff에서 그대로 확인한
-      순서.
-    </p>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">2024-01 ~ 04 — TypeCast부터 먼저 완성.</div>
-        <div class="sub">첫 커밋(오타로 "Reflectin System")부터 <code class="mono">TypeCast</code> 하나를
-          완성하는 데 약 3개월 — Reflection의 다른 기능보다 "안전하게 다운캐스트하는 것" 자체를 먼저
-          풀어야 할 문제로 봤다는 뜻.</div></div></div>
-      <div class="achv"><div><div class="head">2025-02 — C++11 호환을 위해 표준 기능을 직접 재구현.</div>
-        <div class="sub"><code class="mono">std::void_t</code>/<code class="mono">std::remove_pointer_t</code>
-          같은 C++14/17 기능을 Template으로 손수 다시 짜서 C++11에서도 돌아가게 함(커밋 68743b1). 이
-          시점에 코드도 <code class="mono">TypeReflection</code>/<code class="mono">MethodReflection</code>/
-          <code class="mono">PropertyReflection</code> 세 폴더로 처음 나뉨.</div></div></div>
-      <div class="achv"><div><div class="head">2025-11-01 — "Property Set, Get Error Fix"라는 이름의 대규모 재정리.</div>
-        <div class="sub">커밋 메시지는 버그 수정 하나지만 실제 diff는 13개 파일, 수백 줄 — 폴더 구조가
-          <code class="mono">TypeReflection/...</code>에서 지금의 <code class="mono">include/Type,
-          Property, Method/...</code>로 바뀐 것도 이 커밋. Property Get/Set 버그를 고치면서 구조 자체를
-          다시 정리한 것으로 보임.</div></div></div>
-      <div class="achv"><div><div class="head">2025-11-26 ~ 30 — 타입 안전성 우회 경로와 그 판별 기준을 뒤늦게 분리.</div>
-        <div class="sub">raw getter/setter(타입 체크를 건너뛰는 접근)를 추가한 지 나흘 뒤에
-          <code class="mono">IsBase</code> Template 함수를 별도로 도입(커밋 6e34708) — 지금 페이지에 있는
-          "Get은 상속 허용, Set은 완전 동일 타입만" 규칙이 이 두 커밋 사이에서 갈라져 나온 것.</div></div></div>
-      <div class="achv"><div><div class="head">2025-12-10 — 독립적으로 만들던 Container 프로젝트를 서브모듈로 결합.</div>
-        <div class="sub"><code class="mono">external/Container</code>를 git submodule로 추가하고
-          <code class="mono">ContainerPropertyInfo</code>를 새로 만듦 — Container 라이브러리를 따로
-          만들다가, 어느 정도 완성된 뒤에야 Reflection에 연결한 순서. 64바이트 SBO Iterator도 이 커밋
-          이후에 자리 잡음.</div></div></div>
-      <div class="achv"><div><div class="head">2025-12-11 — GCC 경고 수정은 시도했지만 범위가 좁았음.</div>
-        <div class="sub">"Edit the gcc compiler warning and error" 커밋은 실제로는
-          <code class="mono">ContainerPropertyInfo.h</code> 한 곳만 건드림 — <code class="mono">Utils.cpp</code>의
-          <code class="mono">GetName</code>/<code class="mono">GetClassName</code> 플랫폼 분기 문제는
-          이때도 그대로 남았고, 지금 "주요 내용"의 크로스플랫폼 버그로 이어짐.</div></div></div>
+  <section id="history">
+    <div class="section-head">
+      <span class="section-num mono">03 / HISTORY</span>
+      <div>
+        <h2 class="section-title display">개발 히스토리</h2>
+        <span class="section-tag">2024.01 첫 커밋부터 실제 커밋 로그 기준 — 회고가 아니라 커밋 메시지 · diff에서 그대로 확인한 순서</span>
+      </div>
     </div>
+
+    <div data-activity="reflection"><p class="foot-line" style="font-size:13px;">커밋 기록을 불러오는 중…</p></div>
+
+    <ol class="tl">
+      <li class="tl-era"><span class="n mono">1기</span><span class="h">TypeCast부터<small>2024.01 — 2025.02</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2024.04.02</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">TypeCast 완성</span>
+        <div class="tl-sub">첫 커밋(2024.01.14, 오타로 "Reflectin System")부터 <code class="mono">TypeCast</code> 하나를 완성하는 데 약 3개월 — 프로퍼티 등록보다 "안전하게 다운캐스트하는 것"을 먼저 풀 문제로 봤다는 뜻.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.02.02</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">C++11 호환을 위해 표준 기능을 직접 재구현</span>
+        <div class="tl-sub"><code class="mono">std::void_t</code>/<code class="mono">std::remove_pointer_t</code> 같은 C++14/17 기능을 Template으로 다시 짜서 C++11에서도 돌아가게 함. 이때 코드도 <code class="mono">TypeReflection</code>/<code class="mono">MethodReflection</code>/<code class="mono">PropertyReflection</code> 세 폴더로 처음 나뉨.</div></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">TypeManager 구조 → 대규모 재정리<small>2025.10 — 2025.12</small></span></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.10.15</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">TypeInfo + TypeManager 구조 도입</span></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2025.11.01</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">"Property Set, Get Error Fix"라는 이름의 대규모 재정리</span>
+        <div class="tl-sub">커밋 메시지는 버그 수정 하나지만 실제 diff는 13개 파일, 수백 줄 — 폴더 구조가 지금의 <code class="mono">include/Type, Property, Method/...</code>로 바뀐 것도 이 커밋. 버그를 고치면서 구조 자체를 다시 정리함.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.12.01</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">타입 안전성 우회 경로와 판별 기준을 분리</span>
+        <div class="tl-sub">raw getter/setter(타입 체크를 건너뛰는 접근)를 넣은 지(11.26) 닷새 뒤 <code class="mono">IsBase</code> Template을 따로 도입 — "Get은 상속 허용, Set은 완전히 같은 타입만" 규칙이 이 두 커밋 사이에서 갈라져 나옴.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.12.10</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">Container 프로젝트를 submodule로 결합</span>
+        <div class="tl-sub"><code class="mono">external/Container</code>를 붙이고 <code class="mono">ContainerPropertyInfo</code>를 새로 만듦 — 64바이트 SBO Iterator도 이 뒤에 자리 잡음.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.12.12</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">GCC 경고 수정 — 하지만 범위가 좁았음</span>
+        <div class="tl-sub"><code class="mono">ContainerPropertyInfo.h</code> 한 곳만 건드려서 <code class="mono">Utils.cpp</code>의 플랫폼 분기 문제는 그대로 남음 → 2026.08 #31로 마저 고침.</div></div></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026</small></span></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.04.12</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">전방 선언 타입에서 TypeInfo 초기화가 실패하던 문제 수정 (#29)</span></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.08.07</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">리뷰로 찾은 버그 2건 수정</span>
+        <div class="tl-sub">Windows 밖에서 <code class="mono">GetName</code>이 <code class="mono">GetClassName</code>으로 남아 링크가 깨지던 문제(#31), <code class="mono">MethodInfo::Invoke</code>가 Instance의 실제 타입을 소유 Class와 대조하지 않던 문제(#32) (<a href="https://github.com/Winteradio/Reflection/pull/33" target="_blank" rel="noopener">PR #33</a>).</div></div></li>
+    </ol>
   </section>
 
   <section id="mechanics">
     <div class="section-head">
-      <span class="section-num mono">03 / DESIGN</span>
+      <span class="section-num mono">04 / DESIGN</span>
       <div>
         <h2 class="section-title display">매크로가 실제로 확장되는 방식</h2>
       </div>
@@ -274,7 +287,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">04 / ISSUES</span>
+      <span class="section-num mono">05 / ISSUES</span>
       <div><h2 class="section-title display">이슈</h2></div>
     </div>
 
@@ -311,20 +324,20 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">05 / BUGS</span>
+      <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 3건 중 2건 수정, 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
-      <summary>실제 버그 3건 <span class="count">클릭해서 펼치기</span></summary>
+      <summary>실제 버그 3건 — 2건 수정 완료 <span class="count">클릭해서 펼치기</span></summary>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/31" target="_blank" rel="noopener">#31</a> · src/Utils.cpp:9,53, include/Type/TypeInfo.h:93</span>
           <span class="issue-title">Windows 밖에서는 링크가 안 됨 — GetName 정의가 아예 없음</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#31">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Reflection#31">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">TypeInfo.h:93</code>은 플랫폼 무관하게 <code class="mono">Utils::GetName(...)</code>을
@@ -332,21 +345,23 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
           <code class="mono">GetName</code>을 정의하고 <code class="mono">#else</code> 분기는 이름이 다른
           <code class="mono">GetClassName</code>을 정의함. GCC/Clang 빌드는
           <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 Instance화하는 순간 "undefined reference"로
-          링크 실패 — #25/#29와는 별개인, 아직 등록되지 않은 빌드 차단 버그.
+          링크 실패 — #25/#29와는 별개인, 아직 등록되지 않은 빌드 차단 버그.<br>
+          - 수정(2026.08.07): 비Windows 분기의 함수 이름을 <code class="mono">GetName</code>으로 맞춤 (<a href="https://github.com/Winteradio/Reflection/pull/33" target="_blank" rel="noopener">PR #33</a>).
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/32" target="_blank" rel="noopener">#32</a> · include/Method/MethodInfo.h:77, MethodCall.h:117</span>
           <span class="issue-title">MethodInfo::Invoke가 소유 Class를 검증하지 않음</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Reflection#32">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Reflection#32">해결</span>
         </div>
         <div class="issue-body">
           - 시그니처(Return/Args)가 같으면 서로 무관한 두 Class의 Method가 같은
           <code class="mono">MethodCall&lt;Return,Args...&gt;</code> TypeInfo로 묶여 <code class="mono">Cast</code>를
           통과함. <code class="mono">MemberMethodCall::Invoke</code>는 전달받은 Pointer를 그냥
           <code class="mono">static_cast&lt;ClassType*&gt;</code>해서 호출 — <code class="mono">PropertyInfo</code>와
-          달리 런타임 타입 체크가 없어서, 잘못된 Class의 Instance를 넘기면 조용히 타입 펀됨.
+          달리 런타임 타입 체크가 없어서, 잘못된 Class의 Instance를 넘기면 조용히 타입 펀됨.<br>
+          - 수정(2026.08.07): Invoke 전에 Instance의 런타임 타입을 소유 Class와 대조해서 무관한 Class면 거부함 (<a href="https://github.com/Winteradio/Reflection/pull/33" target="_blank" rel="noopener">PR #33</a>).
         </div>
       </div>
       <div class="issue-card">
@@ -384,6 +399,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 </footer>
 
 <script src="app.js"></script>
+<script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </body>

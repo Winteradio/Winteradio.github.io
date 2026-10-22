@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="이원목 — 그래픽스 / 렌더링 엔지니어. 커리어, 기술 스택, 직접 만든 C++ 엔진을 시스템별로 소개합니다.">
+<meta name="description" content="이원목 — 그래픽스 / 렌더링 엔지니어. 직접 만든 C++ 엔진과 라이브러리 6개의 구조, 3년 반의 개발 히스토리, 커리어를 소개합니다.">
 <title>이원목 — 그래픽스 / 렌더링 엔지니어</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -43,35 +43,195 @@
       <span>그래픽스 / 렌더링</span>
       <span>새 도전 환영</span>
     </div>
-  </section>
 
-  <section id="skills">
-    <div class="section-head">
-      <span class="section-num mono">02 / STACK</span>
-      <div>
-        <h2 class="section-title display">기술 스택</h2>
-        <span class="section-tag">본업과 사이드 프로젝트 전반에 걸쳐 쓰는 것들</span>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="v">4만<span class="u">줄</span></div>
+        <div class="l">C++ 코드 — 엔진 <b>3.0만</b> · 라이브러리 6개 <b>0.95만</b> (공백 줄 제외)</div>
+      </div>
+      <div class="kpi">
+        <div class="v">424<span class="u">커밋</span></div>
+        <div class="l">저장소 <b>7개</b> · PR <b>146개</b> · 2023.03부터</div>
+      </div>
+      <div class="kpi">
+        <div class="v">22<span class="u">FPS</span></div>
+        <div class="l"><b>100만 Instance</b>(Release) — 병목 추적으로 5.4 → 22</div>
+      </div>
+      <div class="kpi">
+        <div class="v">25<span class="u">/ 26건</span></div>
+        <div class="l">2026.08 전체 코드 리뷰로 찾은 버그 — <b>6일 만에 수정</b></div>
       </div>
     </div>
-    <div class="tbl-wrap">
-      <table class="spec">
-        <tbody>
-          <tr><td class="k" style="width:170px;">엔진 아키텍처</td>
-            <td>Multi-thread 렌더링(4-thread) · RHI 추상화 · Descriptor 기반 API · RenderPass + Proxy /
-              MeshDrawCommand · ECS(Node · System · Graph)</td></tr>
-          <tr><td class="k">C++ 시스템</td>
-            <td>C++17/20 · 커스텀 Allocator(Pool · Array · LinearArena) · Mark-and-Sweep GC · 런타임 Reflection
-              (TMP/SFINAE) · STL-free Container(Robin Hood HashMap)</td></tr>
-          <tr><td class="k">그래픽스 API</td>
-            <td>OpenGL ES · GLSL · RenderDoc · NSight Graphics</td></tr>
-        </tbody>
-      </table>
+  </section>
+
+  <section id="work">
+    <div class="section-head">
+      <span class="section-num mono">02 / WORK</span>
+      <div>
+        <h2 class="section-title display">엔진 하나, 라이브러리 여섯</h2>
+        <span class="section-tag">라이브러리를 독립 저장소로 먼저 만들고 git submodule로 엔진에 조립함 — 블록을 누르면 상세 페이지로 이동</span>
+      </div>
     </div>
+
+    <div class="stackmap">
+      <a class="sm-engine" href="engine.html">
+        <div class="sm-head">
+          <span class="sm-name">Game-Engine<span class="status-chip progress">개발 중</span></span>
+          <span class="sm-meta mono">2023.03 시작 · 2025.12 재시작 · 커밋 138 · C++ 3.0만 줄</span>
+        </div>
+        <div class="sm-mods">
+          <div class="sm-mod"><b>Framework</b><span>Worker 4종 · FrameGate · Win32 입력</span></div>
+          <div class="sm-mod"><b>World</b><span>ECS Scene · Commander · Proxy 스냅샷</span></div>
+          <div class="sm-mod"><b>Renderer</b><span>RenderGraph · Deferred · GPU Instancing</span></div>
+          <div class="sm-mod"><b>RHI</b><span>OpenGL 4.6 · Vulkan(진행 중)</span></div>
+          <div class="sm-mod"><b>Asset</b><span>OBJ · MTL · PNG · GLSL 비동기 로드</span></div>
+        </div>
+        <div class="sm-threads mono"><b>THREAD</b>&nbsp; Main(Win32) · World · Render · RHI · Asset(+Task ×4)</div>
+      </a>
+      <div class="sm-down mono">git submodule로 조립 · 아래 계층으로만 의존</div>
+      <ol class="sm-libs">
+        <li><a class="sm-lib" href="ecs.html"><span class="sm-name">ECS</span><span class="sm-role">Entity · Component · Node, System 실행 순서는 의존성 Graph(Kahn)</span><span class="sm-meta mono">2023.06 · 커밋 32 · 1.1K줄</span></a></li>
+        <li><a class="sm-lib" href="memory.html"><span class="sm-name">Memory</span><span class="sm-role">Mark-and-Sweep GC · 시간 예산 Purge · RefPtr</span><span class="sm-meta mono">2023.05 · 커밋 88 · 2.6K줄</span></a></li>
+        <li><a class="sm-lib" href="reflection.html"><span class="sm-name">Reflection</span><span class="sm-role">GENERATE · PROPERTY · METHOD — 컴파일 타임 타입 등록</span><span class="sm-meta mono">2024.01 · 커밋 41 · 2.1K줄</span></a></li>
+        <li><a class="sm-lib" href="container.html"><span class="sm-name">Container</span><span class="sm-role">Robin Hood HashMap(삽입 1.72배) · DynamicArray · TLSFArena</span><span class="sm-meta mono">2025.03 · 커밋 32 · 3.1K줄</span></a></li>
+        <li><a class="sm-lib" href="https://github.com/Winteradio/Log" target="_blank" rel="noopener"><span class="sm-name">Log</span><span class="sm-role">스트림 스타일 로거 · 레벨별 저장 · 플랫폼별 콘솔</span><span class="sm-meta mono">2023.05 · 커밋 85 · 0.7K줄 ↗</span></a></li>
+        <li><a class="sm-lib" href="https://github.com/Winteradio/CMake" target="_blank" rel="noopener"><span class="sm-name">CMake</span><span class="sm-role">6개 저장소 공통 빌드 규칙 — Project · Library · ExternalProject</span><span class="sm-meta mono">2025.10 · 커밋 8 ↗</span></a></li>
+      </ol>
+      <p class="sm-ext mono">외부 — glad · glm · stb · imgui · yaml-cpp · Vulkan SDK(shaderc · SPIRV-Reflect)</p>
+    </div>
+
+    <h3 style="font-size:16px;margin:34px 0 0;">라이브러리가 엔진 안에서 실제로 쓰이는 지점</h3>
+    <div class="reuse">
+      <div class="reuse-row"><span class="k mono">RenderGraph : ECS::Graph</span>
+        <span class="d">ECS가 System 실행 순서를 정할 때 쓰는 위상정렬(Kahn)을 그대로 상속해서, Transform → Shadow →
+          Geometry → Lighting → Debug Pass 순서를 정함.</span></div>
+      <div class="reuse-row"><span class="k mono">VulkanArena : TLSFArena</span>
+        <span class="d">Container의 TLSF 할당기를 상속 — 4MB <code class="mono">VkDeviceMemory</code> 블록 안을 O(1)로 서브
+          할당함. 리소스마다 <code class="mono">vkAllocateMemory</code>를 부르지 않음.</span></div>
+      <div class="reuse-row"><span class="k mono">RenderCommandList</span>
+        <span class="d">World Thread가 기록하는 람다를 Container의 <code class="mono">LinearArena</code> 두 개에 번갈아
+          placement-new — 프레임마다 Reset만 해서 힙 할당이 거의 없음.</span></div>
+      <div class="reuse-row"><span class="k mono">PROPERTY → GC</span>
+        <span class="d">World의 Registry/Container 멤버를 Reflection의 <code class="mono">PROPERTY</code>로 등록 —
+          Memory의 GC가 그 Property 목록을 따라가며 Entity · Component · Node의 도달 가능성을 마킹함.</span></div>
+    </div>
+    <p class="foot-line" style="margin-top:18px;max-width:64ch;">
+      각 상세 페이지 앞부분엔 구조와 설계 이유, 실제 커밋 기준 개발 히스토리를 정리해둠. 2026.08 전체 코드
+      리뷰에서 찾은 버그는 GitHub 이슈로 올린 뒤 대부분 바로 고쳤고, 페이지 안 "버그" 섹션에 원인과 함께 남겨둠.
+    </p>
+  </section>
+
+  <section id="history">
+    <div class="section-head">
+      <span class="section-num mono">03 / HISTORY</span>
+      <div>
+        <h2 class="section-title display">3년 반의 개발 히스토리</h2>
+        <span class="section-tag">7개 저장소의 실제 커밋 기록 — 칸 하나가 저장소 하나의 한 달, 진할수록 커밋이 많음</span>
+      </div>
+    </div>
+
+    <div data-activity="all"><p class="foot-line" style="font-size:13px;">커밋 히트맵을 불러오는 중…</p></div>
+
+    <ol class="era-list">
+      <li><a href="#era-01"><b>01</b>DX11 엔진 → 라이브러리 분리<span class="mono">2023.03 — 2023.10</span></a></li>
+      <li><a href="#era-02"><b>02</b>라이브러리 단발 개선<span class="mono">2023.11 — 2025.09</span></a></li>
+      <li><a href="#era-03"><b>03</b>라이브러리 재작성 → 엔진 재시작<span class="mono">2025.10 — 2025.12</span></a></li>
+      <li><a href="#era-04"><b>04</b>엔진 뼈대 — RHI · Proxy · 멀티스레드<span class="mono">2026.01 — 2026.03</span></a></li>
+      <li><a href="#era-05"><b>05</b>렌더링 — Deferred · 100만 Instance · Shadow<span class="mono">2026.04 — 2026.06</span></a></li>
+      <li><a href="#era-06"><b>06</b>Vulkan · RHI 재설계 · 전체 코드 리뷰<span class="mono">2026.07 — 현재</span></a></li>
+    </ol>
+
+    <ol class="tl">
+      <li class="tl-era" id="era-01"><span class="n mono">01</span><span class="h">DX11 엔진 → 라이브러리 분리<small>2023.03 — 2023.10 · 엔진 안에서 막힌 문제를 각각 독립 저장소로 떼어냄</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2023.03.23</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">DirectX 11 엔진 첫 커밋</span>
+        <div class="tl-sub">ImGui 에디터 레이어(파일 · 프로퍼티 브라우저)와 프로젝트 저장/불러오기까지 구현.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2023.05.13</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">ComponentManager 재할당 → Pointer 무효화 문제를 겪음</span>
+        <div class="tl-sub">vector가 재할당될 때마다 Component Pointer가 전부 무효화됨 — 6일 뒤 "memory pool" 아이디어
+          커밋으로 이어지고, 이게 라이브러리 분리의 출발점이 됨.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2023.05.20</span><div class="tl-body">
+        <span class="tl-repo">Memory · Log · ECS</span><span class="tl-head">엔진에서 라이브러리 3개를 독립 저장소로 분리</span>
+        <div class="tl-sub">MemoryPool(05.20) → Log(05.31) → ECS(06.21) 순서. ECS는 SystemManager에 위상정렬을 넣는
+          데까지(09.02), Memory는 v4.x까지 진행.</div></div></li>
+
+      <li class="tl-era" id="era-02"><span class="n mono">02</span><span class="h">라이브러리 단발 개선<small>2023.11 — 2025.09 · 커밋은 뜸했지만 라이브러리 단위로 이어감</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2024.01.14</span><div class="tl-body">
+        <span class="tl-repo">Reflection</span><span class="tl-head">Reflection 저장소 시작</span>
+        <div class="tl-sub">TypeCast부터 완성(2024.04) — 프로퍼티 등록보다 안전한 다운캐스트를 먼저 풂.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.01.27</span><div class="tl-body">
+        <span class="tl-repo">Log</span><span class="tl-head">C 스타일 → C++ 스트림 스타일 Log로 전환</span></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.03.31</span><div class="tl-body">
+        <span class="tl-repo">Container</span><span class="tl-head">Variant 하나로 Container 저장소 시작</span></div></li>
+
+      <li class="tl-era" id="era-03"><span class="n mono">03</span><span class="h">라이브러리 재작성 → 엔진 재시작<small>2025.10 — 2025.12 · 커밋이 가장 몰린 구간, 라이브러리부터 다시 짠 뒤 엔진을 조립</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2025.10.09</span><div class="tl-body">
+        <span class="tl-repo">CMake</span><span class="tl-head">공통 CMake 저장소 분리</span>
+        <div class="tl-sub">Project · Library · ExternalProject 규칙을 한 곳에 모아 라이브러리 6개의 빌드 방식을 통일함.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.11.30</span><div class="tl-body">
+        <span class="tl-repo">Memory</span><span class="tl-head">Mark-and-Sweep GC로 재작성</span>
+        <div class="tl-sub">옛 MemoryManager · MemoryPtr 구조를 걷어내고 Accessor · Collector · Pointer · Storage로 다시 짬.
+          순환 참조가 마킹을 무한 루프에 빠뜨리는 문제를 직접 겪고 <code class="mono">IsMarked</code> 가드로 수정(12.15).</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2025.12.17</span><div class="tl-body">
+        <span class="tl-repo">ECS</span><span class="tl-head">Manager 5개 + Interface 6개 → Object · Registry · Graph</span>
+        <div class="tl-sub">전용 Manager를 전부 걷어내고 범용 Registry와 의존성 Graph로 교체한 통짜 재작성.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2025.12.18</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">DX11 코드 전부 제거, OpenGL 기반으로 재시작</span>
+        <div class="tl-sub">라이브러리 6개를 git submodule로 조립하는 지금의 구조가 여기서 시작됨
+          (<a href="https://github.com/Winteradio/Game-Engine/pull/1" target="_blank" rel="noopener">PR #1</a>).</div></div></li>
+
+      <li class="tl-era" id="era-04"><span class="n mono">04</span><span class="h">엔진 뼈대 — RHI · Proxy · 멀티스레드<small>2026.01 — 2026.03</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2026.01.27</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHI / Proxy 기반 아키텍처</span>
+        <div class="tl-sub">파일 45개가 한 번에 바뀐 커밋 — World가 렌더 타입을 모르는 지금의 경계가 여기서 확립됨.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.02.21</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">WGL Context 소유권을 RHI Thread로 이전 → 멀티스레드 렌더링 첫 성공</span></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.02.22</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHIFrameExecutor(프레임 링) / RHITaskExecutor(업로드) 분리</span></div></li>
+
+      <li class="tl-era" id="era-05"><span class="n mono">05</span><span class="h">렌더링 — Deferred · 100만 Instance · Shadow<small>2026.04 — 2026.06 · 엔진 커밋이 가장 많았던 석 달</small></span></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.04.04</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">FrameGate 도입 — Thread 동기화와 프레임 데이터 보관을 분리</span></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.04.17</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">MeshBatch Instancing + Normal Mapping</span></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.05.21</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RenderPass 아키텍처 + Deferred Rendering 완성</span>
+        <div class="tl-sub">임시방편이던 PipeLine 체계를 걷어내고 Pass 단위 구조로 전면 교체
+          (<a href="https://github.com/Winteradio/Game-Engine/pull/28" target="_blank" rel="noopener">PR #28</a>).</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.05.24</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">100만 Instance 5.4 → 22 FPS</span>
+        <div class="tl-sub"><a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>
+          한 달 추적 — 스칼라 GLM 행렬 곱은 GPU Compute TRS(TransformPass)로, 프레임당 200만 번 돌던
+          HashSet 삽입은 Dirty 가드 하나로 정리. Release 기준.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.06.02</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Point · Spot Light — Phong, GBuffer UInt 비트 패킹</span></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.06.27</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Directional Shadow 안정화</span>
+        <div class="tl-sub">텍셀 스냅으로 시머링 제거(06.25), RPDB + Normal Offset + NaN-safe 분모로 acne · 깜빡임 해결(06.27).</div></div></li>
+
+      <li class="tl-era" id="era-06"><span class="n mono">06</span><span class="h">Vulkan · RHI 재설계 · 전체 코드 리뷰<small>2026.07 — 현재</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2026.07.09</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Vulkan 백엔드 착수</span>
+        <div class="tl-sub">06.30 Instance · Device 선택부터 시작해 Surface · Swapchain(07.09), Semaphore/Fence 프레임 루프(07.15),
+          GLSL → SPIR-V + SPIRV-Reflect까지. 07.22부터 VulkanMemory가 Container의 TLSFArena(07.21 추가)로 4MB 블록을 서브 할당.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.08.02</span><div class="tl-body">
+        <span class="tl-repo">전체</span><span class="tl-head">전체 저장소 코드 리뷰 — 버그 26건 등록, 6일 만에 25건 수정</span>
+        <div class="tl-sub">엔진 9 · ECS 5 · Memory 4 · Container 6 · Reflection 2건을 이슈로 올리고 PR 9개로 병합.
+          남은 1건은 LightingPass Blending(<a href="https://github.com/Winteradio/Game-Engine/issues/52" target="_blank" rel="noopener">#52</a>).</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.09.03</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Vulkan Buffer · Texture 경로 완성</span>
+        <div class="tl-sub">생성 · 초기화 · 갱신 · 리사이즈 책임 분리, Staging Buffer 풀, Buffer → Image 복사, Barrier.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.10.18</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHI 공용 계층 재설계</span>
+        <div class="tl-sub">RHISystem 파사드 + RHIContext(GL / Vulkan) 분리, 리소스별 Transition 상태 모델, 상수용 UBO Ring
+          Buffer, GLSL 단일 소스(GL 4.6 · Vulkan 1.1). <a href="https://github.com/Winteradio/Game-Engine/tree/update/vulkan-rhi" target="_blank" rel="noopener">update/vulkan-rhi</a>
+          브랜치에서 진행 중.</div></div></li>
+    </ol>
   </section>
 
   <section id="career">
     <div class="section-head">
-      <span class="section-num mono">03 / CAREER</span>
+      <span class="section-num mono">04 / CAREER</span>
       <div>
         <h2 class="section-title display">커리어</h2>
       </div>
@@ -132,51 +292,33 @@
     </div>
   </section>
 
-  <section id="projects">
+  <section id="skills">
     <div class="section-head">
-      <span class="section-num mono">04 / WORK</span>
+      <span class="section-num mono">05 / STACK</span>
       <div>
-        <h2 class="section-title display">사이드 프로젝트</h2>
-        <span class="section-tag">직접 만든 C++ 엔진, 시스템 하나당 페이지 하나로 나눔</span>
+        <h2 class="section-title display">기술 스택</h2>
+        <span class="section-tag">본업과 사이드 프로젝트 전반에 걸쳐 쓰는 것들</span>
       </div>
     </div>
-    <div class="project-grid">
-      <a class="project-card" href="engine.html">
-        <span class="tag mono">01</span>
-        <span><span class="name">Game Engine</span><span class="status-chip progress">개발 중</span><br><span class="desc">4-thread 아키텍처, Deferred Rendering — GPU 컴퓨트로 100만 Instance, 최적화로 5.4→22 FPS.</span></span>
-        <span class="go">→</span>
-      </a>
-      <a class="project-card" href="ecs.html">
-        <span class="tag mono">02</span>
-        <span><span class="name">ECS</span><br><span class="desc">Node 기반 필터링과 의존성 Graph로 실행 순서를 정하는 Entity Component 시스템.</span></span>
-        <span class="go">→</span>
-      </a>
-      <a class="project-card" href="memory.html">
-        <span class="tag mono">03</span>
-        <span><span class="name">Memory Pool</span><br><span class="desc">Unreal Engine을 참고한 Mark-and-Sweep GC, 점진적이고 시간 예산 기반.</span></span>
-        <span class="go">→</span>
-      </a>
-      <a class="project-card" href="reflection.html">
-        <span class="tag mono">04</span>
-        <span><span class="name">Reflection</span><br><span class="desc">UE 스타일 GENERATE/PROPERTY/METHOD 매크로 — 컴파일 타임 타입 등록.</span></span>
-        <span class="go">→</span>
-      </a>
-      <a class="project-card" href="container.html">
-        <span class="tag mono">05</span>
-        <span><span class="name">Container</span><br><span class="desc">STL-free DynamicArray, Robin Hood HashMap(std::unordered_map 대비 삽입 1.72배), TLSF 서브 Allocator.</span></span>
-        <span class="go">→</span>
-      </a>
+    <div class="tbl-wrap">
+      <table class="spec">
+        <tbody>
+          <tr><td class="k" style="width:170px;">엔진 아키텍처</td>
+            <td>Multi-thread 렌더링(4-thread) · RHI 추상화 · Descriptor 기반 API · RenderPass + Proxy /
+              MeshDrawCommand · ECS(Node · System · Graph) · Vulkan Barrier/Transition 모델</td></tr>
+          <tr><td class="k">C++ 시스템</td>
+            <td>C++17/20 · 커스텀 Allocator(Pool · Array · LinearArena · TLSF) · Mark-and-Sweep GC · 런타임 Reflection
+              (TMP/SFINAE) · STL-free Container(Robin Hood HashMap)</td></tr>
+          <tr><td class="k">그래픽스 API</td>
+            <td>OpenGL 4.6 / ES · Vulkan 1.1(백엔드 진행 중) · GLSL → SPIR-V(shaderc · SPIRV-Reflect) · RenderDoc · NSight Graphics</td></tr>
+        </tbody>
+      </table>
     </div>
-    <p class="foot-line" style="margin-top:18px;">
-      이 페이지를 쓰면서 다섯 프로젝트 소스를 처음부터 다시 읽음. 각 페이지 앞부분엔 구조와 설계
-      이유를 정리해뒀고, 그때그때 발견한 버그는 GitHub 이슈로 올리고 페이지 안 "버그" 섹션에도
-      펼쳐보기로 따로 모아둠.
-    </p>
   </section>
 
   <section id="resume">
     <div class="section-head">
-      <span class="section-num mono">05 / RESUME</span>
+      <span class="section-num mono">06 / RESUME</span>
       <div>
         <h2 class="section-title display">이력서</h2>
       </div>
@@ -213,7 +355,7 @@
 
 <footer id="contact">
   <div class="wrap">
-    <span class="section-num mono">06 / CONTACT</span>
+    <span class="section-num mono">07 / CONTACT</span>
     <div class="foot-grid">
       <p class="foot-line">
         그래픽스/렌더링 엔지니어 자리를 찾는 중. 위 저장소는 전부 공개돼 있고, 이슈도 가감 없이 그대로 열려 있음.
@@ -228,6 +370,7 @@
 </footer>
 
 <script src="app.js"></script>
+<script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </body>

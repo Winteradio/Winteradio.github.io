@@ -47,15 +47,16 @@
     <div class="toc">
       <div class="toc-title">목차</div>
       <ol>
-        <li><span class="n">01</span><a href="#intro">핵심 내용</a></li>
+        <li><span class="n">01</span><a href="#intro">핵심 내용 &amp; 전체 구조</a></li>
         <li><span class="n">02</span><a href="#results">결과물</a></li>
-        <li><span class="n">03</span><a href="#threading">Threading &amp; 프레임 동기화</a></li>
-        <li><span class="n">04</span><a href="#modules">네 개의 Layer (상세 &amp; Diagram)</a></li>
-        <li><span class="n">05</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
-        <li><span class="n">06</span><a href="#status">기능 현황</a></li>
-        <li><span class="n">07</span><a href="#issues">해결한 이슈</a></li>
-        <li><span class="n">08</span><a href="#notes">기술 노트</a></li>
-        <li><span class="n">09</span><a href="#bugs">버그</a></li>
+        <li><span class="n">03</span><a href="#history">개발 히스토리</a></li>
+        <li><span class="n">04</span><a href="#threading">Threading &amp; 프레임 동기화</a></li>
+        <li><span class="n">05</span><a href="#modules">네 개의 Layer (상세 &amp; Diagram)</a></li>
+        <li><span class="n">06</span><a href="#findings">실제 코드에서 발견한 것들</a></li>
+        <li><span class="n">07</span><a href="#status">기능 현황</a></li>
+        <li><span class="n">08</span><a href="#issues">해결한 이슈</a></li>
+        <li><span class="n">09</span><a href="#notes">기술 노트</a></li>
+        <li><span class="n">10</span><a href="#bugs">버그</a></li>
       </ol>
     </div>
   </section>
@@ -64,9 +65,135 @@
     <div class="section-head">
       <span class="section-num mono">01 / INTRO</span>
       <div>
-        <h2 class="section-title display">핵심 내용</h2>
+        <h2 class="section-title display">핵심 내용 &amp; 전체 구조</h2>
+        <span class="section-tag">Thread 5개가 각자 맡은 단계만 처리함 — 아래 그림 한 장이 엔진 전체임</span>
       </div>
     </div>
+    <figure class="fig">
+      <div class="cap mono"><span>전체 구조 — Thread별 책임과 데이터 흐름</span><span>검은 칸 = 다음 Thread로 넘기는 지점</span></div>
+      <div class="fig-scroll"><svg class="dg" viewBox="0 0 960 578" role="img" aria-labelledby="arch-title arch-desc">
+<title id="arch-title">엔진 Thread 구조와 데이터 흐름</title>
+<desc id="arch-desc">Main, World, Render, RHI, Asset Thread가 각자 맡은 단계를 처리하고, World에서 Render로는 RenderCommandList, Render에서 RHI로는 RHICommandList로 넘기며 각 경계는 FrameGate가 최대 3프레임까지 앞서도록 제한함. Asset Thread는 파싱 후 GPU 업로드 명령을 RHITaskExecutor로 넘김. RHI는 RHISystem과 RHIContext를 거쳐 OpenGL 또는 Vulkan 백엔드를 호출함.</desc>
+<defs><marker id="ah-arch" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0.5 L7.5,4 L0,7.5 z" fill="#111"/></marker></defs>
+<rect class="lane" x="0" y="0" width="960" height="72"/>
+<text class="m-ink" x="14" y="34">MAIN</text>
+<text class="m" x="14" y="49">Thread</text>
+<rect class="lane" x="0" y="122" width="960" height="72"/>
+<text class="m-ink" x="14" y="156">WORLD</text>
+<text class="m" x="14" y="171">Thread</text>
+<rect class="lane" x="0" y="244" width="960" height="72"/>
+<text class="m-ink" x="14" y="278">RENDER</text>
+<text class="m" x="14" y="293">Thread</text>
+<rect class="lane" x="0" y="366" width="960" height="100"/>
+<text class="m-ink" x="14" y="414">RHI</text>
+<text class="m" x="14" y="429">Thread</text>
+<rect class="lane" x="0" y="506" width="960" height="72"/>
+<text class="m-ink" x="14" y="540">ASSET</text>
+<text class="m" x="14" y="555">Thread +4</text>
+<rect class="box" x="766" y="12" width="186" height="48"/>
+<text class="t" x="778" y="32">Engine::Run</text>
+<text class="s" x="778" y="49">메시지 펌프 · Worker 시작</text>
+<rect class="box" x="548" y="12" width="186" height="48"/>
+<text class="t" x="560" y="32">Win32Window</text>
+<text class="s" x="560" y="49">WndProc · 리사이즈 · 종료</text>
+<rect class="box" x="330" y="12" width="186" height="48"/>
+<text class="t" x="342" y="32">Win32InputHandler</text>
+<text class="s" x="342" y="49">키 · 마우스 이벤트 큐</text>
+<rect class="box" x="112" y="12" width="186" height="48"/>
+<text class="t" x="124" y="32">InputStorage</text>
+<text class="s" x="124" y="49">lock-free 3중 버퍼</text>
+<line class="edge" x1="762" y1="36" x2="738" y2="36" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="544" y1="36" x2="520" y2="36" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="326" y1="36" x2="302" y2="36" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="205" y1="60" x2="205" y2="132" marker-end="url(#ah-arch)"/>
+<text class="m" x="215" y="101">입력 스냅샷 (매 프레임)</text>
+<rect class="box" x="112" y="134" width="186" height="48"/>
+<text class="t" x="124" y="154">World::Update</text>
+<text class="s" x="124" y="171">입력 → System 실행</text>
+<rect class="box" x="330" y="134" width="186" height="48"/>
+<text class="t" x="342" y="154">System Graph</text>
+<text class="s" x="342" y="171">Kahn 위상정렬로 실행 순서</text>
+<rect class="box" x="548" y="134" width="186" height="48"/>
+<text class="t" x="560" y="154">Scene::Flush</text>
+<text class="s" x="560" y="171">추가 · 삭제 · 갱신 3단계</text>
+<rect class="box-ink" x="766" y="134" width="186" height="48"/>
+<text class="t-inv" x="778" y="154">Commander</text>
+<text class="s-inv" x="778" y="171">Proxy 스냅샷 → 람다 기록</text>
+<line class="edge" x1="302" y1="158" x2="326" y2="158" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="520" y1="158" x2="544" y2="158" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="738" y1="158" x2="762" y2="158" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="830" y1="182" x2="830" y2="254" marker-end="url(#ah-arch)"/>
+<rect class="box-ink" x="821" y="215" width="18" height="7"/>
+<text class="m-ink" x="846" y="222">FrameGate ≤ 3</text>
+<text class="m" x="818" y="213" text-anchor="end">RenderCommandList</text>
+<text class="m" x="818" y="229" text-anchor="end">람다 · LinearArena ×2 핑퐁</text>
+<rect class="box" x="766" y="256" width="186" height="48"/>
+<text class="t" x="778" y="276">RenderCommandList</text>
+<text class="s" x="778" y="293">ExecuteAll — 람다 실행</text>
+<rect class="box" x="548" y="256" width="186" height="48"/>
+<text class="t" x="560" y="276">RenderScene</text>
+<text class="s" x="560" y="293">SceneProxy · MeshBatch</text>
+<rect class="box" x="330" y="256" width="186" height="48"/>
+<text class="t" x="342" y="276">MeshProcessor</text>
+<text class="s" x="342" y="293">→ MeshDrawCommand</text>
+<rect class="box-ink" x="112" y="256" width="186" height="48"/>
+<text class="t-inv" x="124" y="276">RenderGraph</text>
+<text class="s-inv" x="124" y="293">Pass 5종 · ECS::Graph 상속</text>
+<line class="edge" x1="762" y1="280" x2="738" y2="280" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="544" y1="280" x2="520" y2="280" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="326" y1="280" x2="302" y2="280" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="205" y1="304" x2="205" y2="374" marker-end="url(#ah-arch)"/>
+<rect class="box-ink" x="196" y="337" width="18" height="7"/>
+<text class="m-ink" x="189" y="344" text-anchor="end">FrameGate ≤ 3</text>
+<text class="m" x="217" y="335">RHICommandList</text>
+<text class="m" x="217" y="351">CRTP RHICommand&lt;T&gt; 기록</text>
+<rect class="box" x="112" y="376" width="186" height="36"/>
+<text class="t" x="124" y="391" style="font-size:12px">RHIFrameExecutor</text>
+<text class="s" x="124" y="405" style="font-size:10.5px">CommandList 링 ×3 (SPSC)</text>
+<rect class="box" x="112" y="420" width="186" height="36"/>
+<text class="t" x="124" y="435" style="font-size:12px">RHITaskExecutor</text>
+<text class="s" x="124" y="449" style="font-size:10.5px">Asset 업로드 큐</text>
+<rect class="box" x="330" y="376" width="186" height="80"/>
+<text class="t" x="342" y="396">RHISystem</text>
+<text class="s" x="342" y="413">상태 캐시 · 지연 해제</text>
+<text class="s" x="342" y="428">Transition · 상수 Ring Buffer</text>
+<rect class="box" x="548" y="376" width="186" height="80"/>
+<text class="t" x="560" y="396">RHIContext</text>
+<text class="s" x="560" y="413">백엔드 가상 인터페이스</text>
+<text class="s" x="560" y="428">엔진은 이 아래를 모름</text>
+<rect class="box" x="766" y="376" width="186" height="36"/>
+<text class="t" x="778" y="391" style="font-size:12px">GLContext</text>
+<text class="s" x="778" y="405" style="font-size:10.5px">OpenGL 4.6 · WGL</text>
+<rect class="box-dash" x="766" y="420" width="186" height="36"/>
+<text class="t" x="778" y="435" style="font-size:12px">VulkanContext</text>
+<text class="s" x="778" y="449" style="font-size:10.5px">Vulkan 1.1 · 진행 중</text>
+<path class="edge" d="M300,394 H314 V416 H326" marker-end="url(#ah-arch)"/>
+<path class="edge" d="M300,438 H314 V416"/>
+<line class="edge" x1="520" y1="416" x2="544" y2="416" marker-end="url(#ah-arch)"/>
+<path class="edge" d="M736,416 H750 V394 H762" marker-end="url(#ah-arch)"/>
+<path class="edge" d="M750,416 V438 H762" marker-end="url(#ah-arch)"/>
+<rect class="box" x="766" y="518" width="186" height="48"/>
+<text class="t" x="778" y="538">AssetSystem</text>
+<text class="s" x="778" y="555">로드 요청 큐</text>
+<rect class="box" x="548" y="518" width="186" height="48"/>
+<text class="t" x="560" y="538">AssetWorker</text>
+<text class="s" x="560" y="555">유휴 TaskWorker에 배정</text>
+<rect class="box" x="330" y="518" width="186" height="48"/>
+<text class="t" x="342" y="538">TaskWorker ×4</text>
+<text class="s" x="342" y="555">OBJ · MTL · PNG · GLSL 파싱</text>
+<rect class="box" x="112" y="518" width="186" height="48"/>
+<text class="t" x="124" y="538">AssetCommander</text>
+<text class="s" x="124" y="555">GPU 업로드 명령 기록</text>
+<line class="edge" x1="762" y1="542" x2="738" y2="542" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="544" y1="542" x2="520" y2="542" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="326" y1="542" x2="302" y2="542" marker-end="url(#ah-arch)"/>
+<line class="edge" x1="205" y1="518" x2="205" y2="460" marker-end="url(#ah-arch)"/>
+<text class="m" x="217" y="492">업로드 Task (RHI Thread에서만 실행)</text>
+</svg></div>
+      <p class="note">지그재그로 읽으면 됨 — Main(←) → World(→) → Render(←) → RHI(→). World → Render, Render → RHI 경계마다
+        <b>FrameGate</b>가 있어서 앞 Thread가 뒤 Thread보다 최대 3프레임까지만 앞서 나감. 그래픽스 API를 부르는 건 RHI Thread
+        하나뿐이고, Asset Thread도 GPU 업로드는 직접 하지 않고 명령만 기록해서 넘김.</p>
+    </figure>
     <div class="callout">
       <b>왜 이 구조:</b> OpenGL Context는 Thread 종속적이라 GPU 호출을 한 Thread에 몰아야 함 — World 시뮬레이션이
       그 GPU 대기에 발목 잡히지 않도록, Unreal 스타일로 World/Render/RHI/Asset을 4개 Thread로 분리.
@@ -83,7 +210,7 @@
           하나에 람다를 쓰는 동안 Render Thread가 다른 하나를 비움.</div></div></div>
       <div class="achv"><div><div class="head">100만 Instance 최적화의 진짜 병목은 "무조건 실행되는 삽입"이었음.</div>
         <div class="sub">Dirty 추적용 <code class="mono">HashSet::Insert</code>가 프레임당 200만 번 무조건 호출되던
-          것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS까지 끌어올림.</div></div></div>
+          것을 <code class="mono">if (!IsDirty())</code> 가드 하나로 5.4 → 22 FPS(Release)까지 끌어올림.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">특징</h3>
@@ -112,8 +239,8 @@
           있음.</div></div></div>
       <div class="achv"><div><div class="head">GC와 Vulkan, 둘 다 아직 절반임.</div>
         <div class="sub">Memory Library는 이미 완성됐지만 엔진에 완전히 통합되지는 않았고(기능 현황 "진행
-          중"), Vulkan은 초기화·Swapchain·프레임 루프까지만 동작하고 Resource 생성·Draw 경로는 전부
-          비어있음.</div></div></div>
+          중"), Vulkan은 리소스 계층(메모리 · Buffer · Texture · Shader)까지 동작하고 Pipeline · RenderPass · Draw
+          경로는 아직 비어있음 — 그 전에 RHI 공용 계층부터 재설계하는 중.</div></div></div>
     </div>
   </section>
 
@@ -192,17 +319,211 @@
     <div class="achv-list" style="margin-top:20px;">
       <div class="achv"><div><div class="head">Hash Storm: 병목은 "무조건 실행되는 삽입"이었음.</div>
         <div class="sub">100만 Instance에서 프레임당 200만 번 호출되던 <code class="mono">HashSet::Insert</code>를
-          <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> Debug.</div></div></div>
+          <code class="mono">if (!IsDirty())</code> 가드로 프레임당 1회로 축소: <b>5.4 → 22 FPS</b> (Release).</div></div></div>
     </div>
+  </section>
+
+  <section id="history">
+    <div class="section-head">
+      <span class="section-num mono">03 / HISTORY</span>
+      <div>
+        <h2 class="section-title display">개발 히스토리</h2>
+        <span class="section-tag">실제 커밋 기준 — 2023년 DirectX 11 1기, 2025.12 OpenGL로 다시 시작한 2기</span>
+      </div>
+    </div>
+
+    <div data-activity="engine"><p class="foot-line" style="font-size:13px;">커밋 기록을 불러오는 중…</p></div>
+
+    <ol class="tl">
+      <li class="tl-era"><span class="n mono">1기</span><span class="h">DirectX 11 엔진<small>2023.03 — 2023.05 · 에디터부터 만들다가 메모리 문제에서 막힘</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2023.03.23</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">첫 커밋 — DX11 CoreEngine + ImGui 레이어</span>
+        <div class="tl-sub">파일 · 프로퍼티 브라우저 레이어와 프로젝트 저장/불러오기까지 구현.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2023.04.21</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">ECS 구조 도입 — Entity · ComponentManager · NodeManager</span></div></li>
+      <li class="tl-item"><span class="tl-date mono">2023.05.13</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">ComponentManager 재할당 → Pointer 무효화</span>
+        <div class="tl-sub">vector가 늘어날 때마다 Component Pointer가 전부 무효화되는 문제를 겪음 — 6일 뒤 "memory pool"
+          아이디어 커밋으로 이어지고, Memory · Log · ECS를 독립 저장소로 떼어내는 계기가 됨.</div></div></li>
+
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">OpenGL로 재시작 — 4-thread 뼈대<small>2025.12 — 2026.03 · 라이브러리를 먼저 다시 짠 뒤 엔진을 처음부터 조립</small></span></li>
+      <li class="tl-item key"><span class="tl-date mono">2025.12.18</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">DX11 코드 전부 제거, OpenGL + Win32/WGL로 재시작</span>
+        <div class="tl-sub">라이브러리 6개를 git submodule로 조립하는 지금의 구조가 여기서 시작됨
+          (<a href="https://github.com/Winteradio/Game-Engine/pull/1" target="_blank" rel="noopener">PR #1</a>).</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2025.12.31</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Framework 뼈대 — Engine · Worker · InputStorage, World/Render Worker 분리</span></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.01.14</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">첫 화면 — WGLContext + GLSystem + RHICommandList로 사각형 출력</span></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.01.27</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHI / Proxy 기반 아키텍처</span>
+        <div class="tl-sub">파일 45개가 한 번에 바뀐 <code class="mono">736602c</code> — World가 렌더 타입을 직접 안 건드리는 지금의
+          경계가 이 시점부터 시작됨.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.02.01</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Asset 모듈 + GLSystem 본구현 + RHIWorker</span>
+        <div class="tl-sub">Loader · Parser · Worker로 나뉜 Asset 모듈, 버퍼 · 셰이더 · 텍스처를 다루는 GLSystem 709줄, RHI 명령을 따로
+          실행하는 RHIWorker가 한 번에 들어옴.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.02.21</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">WGL Context 소유권을 RHI Thread로 이전 → 멀티스레드 첫 렌더링</span>
+        <div class="tl-sub">OpenGL Context가 Thread 종속이라 생기던 문제 — Context를 RHI Thread가 소유하게 바꾸고 나서야 단색
+          배경이 멀티스레드에서 처음 그려짐.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.02.22</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHICommandExecutor → RHIFrameExecutor(프레임 링) / RHITaskExecutor(업로드) 분리</span></div></li>
+
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">Deferred · 성능 · Lighting · Shadow<small>2026.04 — 2026.06 · 엔진 커밋이 가장 많았던 석 달</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2026.04.04</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">FrameGate 도입 — 동기화와 데이터 보관을 분리</span>
+        <div class="tl-sub"><code class="mono">FrameContext</code> 하나가 Thread 동기화와 프레임 데이터 보관을 같이 맡던 구조를 정리 —
+          동기화는 FrameGate로, 데이터는 RenderCommand/Proxy로 쪼갬.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.04.17</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">MeshBatch Instancing + Normal Mapping (Stanford Dragon)</span></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.05.21</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">PipeLine → RenderPass 아키텍처 전면 교체, Deferred Rendering 완성</span>
+        <div class="tl-sub">전역 싱글턴 3개(GlobalResource · GlobalSampler · GlobalPipeLine)를 <code class="mono">GlobalRenderer</code>
+          하나로 합치고, <code class="mono">eResourceSlot</code>과 셰이더 바인딩 이름 규칙(u/t/o 접두사)을 이때 처음 세움.
+          3개 커밋으로 지금의 Renderer 구조가 만들어짐
+          (<a href="https://github.com/Winteradio/Game-Engine/pull/28" target="_blank" rel="noopener">PR #28</a>).</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.05.24</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">100만 Instance 5.4 → 22 FPS (Release)</span>
+        <div class="tl-sub"><a href="https://github.com/Winteradio/Game-Engine/issues/25" target="_blank" rel="noopener">이슈 #25</a>를
+          한 달 추적한 결과 — TRS 계산을 GPU Compute(TransformPass)로 옮기고, 프레임당 200만 번 돌던 HashSet 삽입을
+          Dirty 가드로 정리. 과정은 <a href="#results">결과물</a> 섹션에 그대로 있음.</div></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.06.01</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Multi-proxy Dirty Flag 경합 → Proxy별 세대 카운터</span></div></li>
+      <li class="tl-item minor"><span class="tl-date mono">2026.06.02</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Phong Point · Spot Light, GBuffer UInt 비트 패킹</span></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.06.27</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Directional Shadow — 시머링 · acne · NaN까지 정리</span>
+        <div class="tl-sub">Slope Bias + PCF(06.21) → Light Space 텍셀 스냅으로 시머링 제거(06.25) → RPDB + Normal Offset +
+          NaN-safe 분모로 grazing 각도 깜빡임 해결(06.27).</div></div></li>
+
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">Vulkan 백엔드 · RHI 재설계<small>2026.06 말 — 현재</small></span></li>
+      <li class="tl-item"><span class="tl-date mono">2026.07.15</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Vulkan 프레임 루프 동작</span>
+        <div class="tl-sub">06.30 Instance · Device 선택 → 07.09 Surface · Swapchain → 07.11 Command Buffer → 07.15 Semaphore ·
+          Fence로 acquire → submit → present.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.07.22</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">VulkanMemory — 4MB 블록 + TLSFArena 서브 할당</span>
+        <div class="tl-sub">Container에 하루 전(07.21) 들어간 TLSFArena를 그대로 상속. 08.07에 블록을 묶는 키를 memoryType
+          인덱스 → <code class="mono">VkMemoryPropertyFlags</code>로 바꿈 — 서로 다른 인덱스가 같은 속성을 가질 수 있어서.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.08.08</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">코드 리뷰로 찾은 엔진 버그 8건 수정</span>
+        <div class="tl-sub">08.02에 등록한 #53~#60을 한 번에 수정
+          (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>) —
+          GL 프로그램 leak, 실패한 텍스처가 "준비됨"으로 표시되던 문제 등. 남은 1건은 <a href="#bugs">버그</a> 섹션의 #52.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.09.03</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">Vulkan Buffer · Texture 파이프라인</span>
+        <div class="tl-sub">생성 · 초기화 · 갱신 · 리사이즈로 책임을 나누고 Staging Buffer 풀과 Buffer → Image 복사를 추가.
+          RHI의 Set/Unset은 이름 대신 binding 번호 기반으로 통일하고, Vulkan에 대응 연산이 없는
+          <code class="mono">UnsetConstant</code>는 인터페이스에서 뺌.</div></div></li>
+      <li class="tl-item"><span class="tl-date mono">2026.10.14</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">HLSL 전환을 시도했다가 GLSL 단일 소스로 복귀</span>
+        <div class="tl-sub">DXC는 블록 밖 상수를 <code class="mono">$Globals</code> UBO로 묶고, glslang의 Vulkan 타깃은 블록 밖
+          uniform을 거부함 — 한 소스로 GL · Vulkan을 같이 돌리려면 어차피 이름 있는 UBO 블록이 필요해서 GLSL로 되돌림.
+          공용 정의는 <code class="mono">Common.glsl</code> 하나, GLSLParser가 <code class="mono">#include</code>를 펼침.</div></div></li>
+      <li class="tl-item key"><span class="tl-date mono">2026.10.18</span><div class="tl-body">
+        <span class="tl-repo">Engine</span><span class="tl-head">RHI 공용 계층 재설계</span>
+        <div class="tl-sub">RHISystem을 진입점(namespace)으로, 백엔드를 <code class="mono">RHIContext</code>(GL / Vulkan)로 분리.
+          셰이더 리플렉션을 합치는 RHIStage, 블록 기반 상수 Ring Buffer 도입 —
+          <a href="https://github.com/Winteradio/Game-Engine/tree/update/vulkan-rhi" target="_blank" rel="noopener">update/vulkan-rhi</a>
+          브랜치에서 진행 중. 구조는 <a href="#vulkan">Vulkan 절</a> 그림 참고.</div></div></li>
+    </ol>
   </section>
 
   <section id="threading">
     <div class="section-head">
-      <span class="section-num mono">03 / THREADING</span>
+      <span class="section-num mono">04 / THREADING</span>
       <div>
         <h2 class="section-title display">Threading &amp; 프레임 동기화</h2>
         <span class="section-tag">FrameGate — producer/consumer 조건 변수 쌍</span>
       </div>
+    </div>
+
+    <figure class="fig">
+      <div class="cap mono"><span>프레임 파이프라이닝 — 같은 시점에 Thread마다 다른 프레임</span><span>예시</span></div>
+      <div class="fig-scroll"><svg class="dg" viewBox="0 0 960 218" role="img" aria-labelledby="frm-title frm-desc">
+<title id="frm-title">프레임 파이프라이닝</title>
+<desc id="frm-desc">World Thread가 프레임 F3을 처리하고 나면 다음 시점에 Render Thread가, 그 다음 시점에 RHI Thread가 F3을 처리함. 같은 시점에 World는 F5, Render는 F4, RHI는 F3을 동시에 처리함. 경계마다 FrameGate가 최대 3프레임까지만 앞서도록 제한함.</desc>
+<defs><marker id="ah-frm" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0.5 L7.5,4 L0,7.5 z" fill="#111"/></marker></defs>
+<rect class="lane" x="0" y="28" width="960" height="52"/>
+<rect class="lane" x="0" y="94" width="960" height="52"/>
+<rect class="lane" x="0" y="160" width="960" height="52"/>
+<text class="m" x="112" y="14">시간 →</text>
+<text class="m-ink" x="14" y="51">WORLD</text>
+<text class="m" x="14" y="66">Thread</text>
+<rect class="box" x="112" y="34" width="96" height="40"/>
+<text class="t" x="160" y="59" text-anchor="middle">F1</text>
+<rect class="box" x="216" y="34" width="96" height="40"/>
+<text class="t" x="264" y="59" text-anchor="middle">F2</text>
+<rect class="box-ink" x="320" y="34" width="96" height="40"/>
+<text class="t-inv" x="368" y="59" text-anchor="middle">F3</text>
+<rect class="box" x="424" y="34" width="96" height="40"/>
+<text class="t" x="472" y="59" text-anchor="middle">F4</text>
+<rect class="box" x="528" y="34" width="96" height="40"/>
+<text class="t" x="576" y="59" text-anchor="middle">F5</text>
+<rect class="box" x="632" y="34" width="96" height="40"/>
+<text class="t" x="680" y="59" text-anchor="middle">F6</text>
+<rect class="box" x="736" y="34" width="96" height="40"/>
+<text class="t" x="784" y="59" text-anchor="middle">F7</text>
+<rect class="box" x="840" y="34" width="96" height="40"/>
+<text class="t" x="888" y="59" text-anchor="middle">F8</text>
+<text class="m-ink" x="14" y="117">RENDER</text>
+<text class="m" x="14" y="132">Thread</text>
+<rect class="box-dash" x="112" y="100" width="96" height="40"/>
+<text class="m" x="160" y="124" text-anchor="middle">대기</text>
+<rect class="box" x="216" y="100" width="96" height="40"/>
+<text class="t" x="264" y="125" text-anchor="middle">F1</text>
+<rect class="box" x="320" y="100" width="96" height="40"/>
+<text class="t" x="368" y="125" text-anchor="middle">F2</text>
+<rect class="box-ink" x="424" y="100" width="96" height="40"/>
+<text class="t-inv" x="472" y="125" text-anchor="middle">F3</text>
+<rect class="box" x="528" y="100" width="96" height="40"/>
+<text class="t" x="576" y="125" text-anchor="middle">F4</text>
+<rect class="box" x="632" y="100" width="96" height="40"/>
+<text class="t" x="680" y="125" text-anchor="middle">F5</text>
+<rect class="box" x="736" y="100" width="96" height="40"/>
+<text class="t" x="784" y="125" text-anchor="middle">F6</text>
+<rect class="box" x="840" y="100" width="96" height="40"/>
+<text class="t" x="888" y="125" text-anchor="middle">F7</text>
+<text class="m-ink" x="14" y="183">RHI</text>
+<text class="m" x="14" y="198">Thread</text>
+<rect class="box-dash" x="112" y="166" width="96" height="40"/>
+<text class="m" x="160" y="190" text-anchor="middle">대기</text>
+<rect class="box-dash" x="216" y="166" width="96" height="40"/>
+<text class="m" x="264" y="190" text-anchor="middle">대기</text>
+<rect class="box" x="320" y="166" width="96" height="40"/>
+<text class="t" x="368" y="191" text-anchor="middle">F1</text>
+<rect class="box" x="424" y="166" width="96" height="40"/>
+<text class="t" x="472" y="191" text-anchor="middle">F2</text>
+<rect class="box-ink" x="528" y="166" width="96" height="40"/>
+<text class="t-inv" x="576" y="191" text-anchor="middle">F3</text>
+<rect class="box" x="632" y="166" width="96" height="40"/>
+<text class="t" x="680" y="191" text-anchor="middle">F4</text>
+<rect class="box" x="736" y="166" width="96" height="40"/>
+<text class="t" x="784" y="191" text-anchor="middle">F5</text>
+<rect class="box" x="840" y="166" width="96" height="40"/>
+<text class="t" x="888" y="191" text-anchor="middle">F6</text>
+<path class="edge" d="M404,75 L436,97" marker-end="url(#ah-frm)"/>
+<path class="edge" d="M508,141 L540,163" marker-end="url(#ah-frm)"/>
+<text class="m" x="736" y="93">updateGate · FrameGate(3)</text>
+<text class="m" x="736" y="159">renderGate · FrameGate(3)</text>
+<rect class="edge-soft" x="524" y="24" width="104" height="192"/>
+<text class="m-ink" x="576" y="14" text-anchor="middle">같은 시점: F5 · F4 · F3</text>
+</svg></div>
+    </figure>
+    <div class="achv-list">
+      <div class="achv"><div><div class="head">FrameGate = 조건 변수 두 개 + atomic 프레임 차이.</div>
+        <div class="sub">Producer의 <code class="mono">Submit()</code>은 차이가 한도(3) 이상일 때만, Consumer의
+          <code class="mono">Acquire()</code>는 차이가 0일 때만 대기함 — 평소엔 atomic 값만 읽고 지나가서 락을 잡지 않음.
+          World → Render(updateGate), Render → RHI(renderGate) 두 경계에 하나씩 있음.</div></div></div>
+      <div class="achv"><div><div class="head">RHIFrameExecutor는 RHICommandList 3개를 링으로 재사용함.</div>
+        <div class="sub"><code class="mono">recordIndex</code>는 Render Thread만, <code class="mono">beginIndex</code>는 RHI Thread만
+          씀 — 두 Thread가 같이 보는 건 <code class="mono">atomic endIndex</code> 하나뿐이고, acquire/release 순서로 기록 내용이
+          보이는 시점을 보장함. Mutex 없는 SPSC 구조.</div></div></div>
+      <div class="achv"><div><div class="head">종료는 깨우고 → 멈추고 → 놓는 순서.</div>
+        <div class="sub">Shutdown에서 두 Gate에 <code class="mono">NotifyAll()</code>을 먼저 걸어 대기 중인 Thread를 깨운 뒤
+          World → Asset → Render → RHI 순서로 Worker를 멈추고, RHICommandList를 쓰는 Worker가 전부 멈춘 다음에야 RHI
+          Context를 놓음.</div></div></div>
     </div>
 
     <div class="uml-card">
@@ -218,7 +539,7 @@
 
   <section id="modules">
     <div class="section-head">
-      <span class="section-num mono">04 / MODULES</span>
+      <span class="section-num mono">05 / MODULES</span>
       <div>
         <h2 class="section-title display">네 개의 Layer — 상세 내용 &amp; Diagram</h2>
         <span class="section-tag">World는 렌더 타입을 모르고 · RHI만 그래픽스 API를 부름</span>
@@ -245,6 +566,61 @@
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
       RenderScene과 RenderGraph를 소유함 — 렌더링 쪽 객체는 전부 이 둘 중 하나를 거침.
     </p>
+    <figure class="fig">
+      <div class="cap mono"><span>RenderGraph — Pass 순서와 리소스 흐름</span><span>검은 칸 = Compute Pass</span></div>
+      <div class="fig-scroll"><svg class="dg" viewBox="0 0 960 280" role="img" aria-labelledby="rp-title rp-desc">
+<title id="rp-title">RenderGraph의 Pass 순서와 리소스 흐름</title>
+<desc id="rp-desc">TransformPass(Compute)가 Instance별 행렬을 Transform SSBO에 계산하면 ShadowPass와 GeometryPass가 읽음. ShadowPass는 ShadowMap을, GeometryPass는 GBuffer(Normal RGBA16F, Albedo RGBA8, Phong RGBA16UI, Depth D24S8)를 쓰고, LightingPass가 둘 다 읽어 라이트별로 셰이딩함. DebugPass는 GBuffer를 시각화함.</desc>
+<defs><marker id="ah-rp" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0.5 L7.5,4 L0,7.5 z" fill="#111"/></marker></defs>
+<path class="edge" d="M60,100 V44 H438 V97" marker-end="url(#ah-rp)"/>
+<path class="edge" d="M249,44 V97" marker-end="url(#ah-rp)"/>
+<circle cx="249" cy="44" r="2.5" fill="#111"/>
+<text class="m-ink" x="70" y="36">Transform SSBO</text>
+<text class="m" x="180" y="36">Instance별 mat4 — GPU에서 계산, Shadow · Geometry가 읽음</text>
+<path class="edge" d="M291,160 V196 H639 V163" marker-end="url(#ah-rp)"/>
+<text class="m-ink" x="301" y="189">ShadowMap · Depth</text>
+<rect x="475" y="192" width="10" height="8" fill="var(--bg)"/>
+<path class="edge" d="M480,160 V230 H699 V163" marker-end="url(#ah-rp)"/>
+<path class="edge" d="M699,230 H858 V163" marker-end="url(#ah-rp)"/>
+<circle cx="699" cy="230" r="2.5" fill="#111"/>
+<text class="m-ink" x="490" y="223">GBuffer</text>
+<rect class="box-soft" x="398" y="250" width="128" height="26"/>
+<text class="s" x="462" y="267" text-anchor="middle" style="font-size:11px">Normal · RGBA16F</text>
+<rect class="box-soft" x="534" y="250" width="128" height="26"/>
+<text class="s" x="598" y="267" text-anchor="middle" style="font-size:11px">Albedo · RGBA8</text>
+<rect class="box-soft" x="670" y="250" width="128" height="26"/>
+<text class="s" x="734" y="267" text-anchor="middle" style="font-size:11px">Phong · RGBA16UI</text>
+<rect class="box-soft" x="806" y="250" width="128" height="26"/>
+<text class="s" x="870" y="267" text-anchor="middle" style="font-size:11px">Depth · D24S8</text>
+<line class="rule" x1="480" y1="230" x2="480" y2="250"/>
+<text class="m" x="184" y="93" text-anchor="end">COMPUTE PASS</text>
+<rect class="box-ink" x="20" y="100" width="164" height="60"/>
+<text class="t-inv" x="32" y="125">TransformPass</text>
+<text class="s-inv" x="32" y="143">TRS → mat4 · 64개씩 병렬</text>
+<line class="edge" x1="187" y1="130" x2="206" y2="130" marker-end="url(#ah-rp)"/>
+<text class="m" x="373" y="93" text-anchor="end">GRAPHIC PASS</text>
+<rect class="box" x="209" y="100" width="164" height="60"/>
+<text class="t" x="221" y="125">ShadowPass</text>
+<text class="s" x="221" y="143">Directional · 텍셀 스냅</text>
+<line class="edge" x1="376" y1="130" x2="395" y2="130" marker-end="url(#ah-rp)"/>
+<text class="m" x="562" y="93" text-anchor="end">GRAPHIC PASS</text>
+<rect class="box" x="398" y="100" width="164" height="60"/>
+<text class="t" x="410" y="125">GeometryPass</text>
+<text class="s" x="410" y="143">GBuffer 채움 · Instancing</text>
+<line class="edge" x1="565" y1="130" x2="584" y2="130" marker-end="url(#ah-rp)"/>
+<text class="m" x="751" y="93" text-anchor="end">GRAPHIC PASS</text>
+<rect class="box" x="587" y="100" width="164" height="60"/>
+<text class="t" x="599" y="125">LightingPass</text>
+<text class="s" x="599" y="143">라이트당 풀스크린 Quad</text>
+<line class="edge" x1="754" y1="130" x2="773" y2="130" marker-end="url(#ah-rp)"/>
+<text class="m" x="940" y="93" text-anchor="end">GRAPHIC PASS</text>
+<rect class="box" x="776" y="100" width="164" height="60"/>
+<text class="t" x="788" y="125">DebugPass</text>
+<text class="s" x="788" y="143">GBuffer · Frustum 시각화</text>
+</svg></div>
+      <p class="note"><b>RenderGraph는 <code class="mono">ECS::Graph&lt;RenderPass&gt;</code>를 상속</b> — ECS가 System 실행 순서를
+        정할 때 쓰는 위상정렬을 그대로 재사용함. 지금은 <code class="mono">SetDependency</code>로 한 줄 체인을 걸어둔 상태라 분기는 없음.</p>
+    </figure>
     <div class="uml-card">
       <img src="https://www.plantuml.com/plantuml/svg/VPFRRjf048Rl_HIhv2PDYTGsQQyGId02ZGGLWghtmtgDLza3cjq5tCExTtsG6S2jBumy_pU7dNzvT1xG1wqIzoRD5X0qMmD_sw0D9akjiiZsXVI2wAw0pEwbsR0SbACAL-3Sn1h_3RHWgJNEnaWVi98_1VjuJwHCv12KxxAlvg0smR2fzONaL_raK-OJ4TkvqGXa3-UTdxn7kGvUl79hwjmF17b2jFlcoDTVweU8QPK_jfW9R967-hb0pfPtFVaykNz9awGUW2s5YHNYRByInjw_70IFqznmdSsay-_Opiei-NF2hhWmei4dAhZYl_0KOLiqy7DfG4iU3mNbi54N4HonRNmBrzD-m5pLQy1sKkoxyh1s7e5xHljKbTes2FkRBBvIgpMOp0sOafl2nzzkqBMrwh9IJDZ6xbMfSwa-XkIrr4I-8nYNMzGabWQbuYqaaQcmMdWiIMXM3NDApOKhnk1vkwXLQVW_bbgHpyUpDVnIv0kFm-NNrt78Su4Z5ebkldx2zyi_17fnc45fWn-n7VaYt1oyG0bgWVPGZfXkF-EGtMMwlRkZjwLFg5UQq5jorEhT46E7lwD4xJdNg3-4QyHJgovawXgfqnQc1bwe9rxIVuUDOkTgSlJtjeqJ3vF7c1Uq-Wi0" alt="Renderer Class Diagram" loading="lazy">
     </div>
@@ -293,7 +669,8 @@
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
       그래픽스 API를 직접 호출할 수 있는 유일한 Layer임. Command Class는 41개(초기화 11 · 갱신 3 ·
       리사이즈 2 · 제거 7 · Set 8 · Unset 7 · 프레임/Dispatch 3)이고, 전부 CRTP로 만든 <code class="mono">RHICommand&lt;T&gt;</code>
-      라 실행 시점엔 vtable이 아니라 함수 Pointer 하나로 Dispatch됨.
+      라 실행 시점엔 vtable이 아니라 함수 Pointer 하나로 Dispatch됨. 아래 다이어그램 3개는 master 기준(GLSystem이
+      RHISystem을 구현하던 구조)이고, 2026.10 재설계 후 구조는 <a href="#vulkan">Vulkan 절</a>에 있음.
     </p>
     <div class="uml-card">
       <img src="https://www.plantuml.com/plantuml/svg/RL6xRXD15EttAqP9in4a0X8eeYYAlR63fO2iX1-udhbhZpmFPnvnpAD0SeMWeqIKq51HKV17Zl-1yUvYZtSpnKexvt7FFNDc7HZdfKZicAi9691a07GyDDehbccX3PcEkCC8joDWUihLaEGWR8nG0TPsjNAlGIB9jB8wt3n4kEPlaJmzZ226ENZXrkgTLo26Nf4BxKQSxZpCB6sUHM2LsoWqvAW-kUMSuGFli4UrAhHF8ahB63qjLzvzKPm8p5RwjZOCJKKvAaw3KYjlj_kyUzZ9aWG6rXcWhan2hbxshcVMeIJl4a8UPGR1OTldEPgKeQLxv0hplZChiAUuuo12teh0LQuVaq7niqTkDMShshc1QKynlEiRBeFY5WjYHE1s0ewECYqdeOGO_P2KiIukorJ9EcKWIr3iabjNHkse6uyUKohPnhfpXpHOjeH8ruxDZIklDbYil4fPQekXjIn1q0szOaaANHQIyva2oMbuB9YTRESx9I9y-rgB5R55RpmtcCPD_f_NdFG6x7XxK8ExURAJz_lxcwfg9Uc0RU-QD3OvE3YjTtjCbf_-B7xyMdxzJ1Q_vyilVnS_FzQzArqLuvZSVvlVVvydPwYOb-8V" alt="RHI Class Diagram" loading="lazy">
@@ -317,30 +694,85 @@
       <img src="https://www.plantuml.com/plantuml/svg/XLFlQzD06FwUl-Ab-v88g_WBSHzajhDrKBMi6_rIa5jpIOucT_LoMQUVvkp4sOe3cHR9XifqduGDX-Y_r5p-1wz9tDgru44uSi_plC_pliaj-W9n4NYkvhS8RIEEF5X7pPRDMK3D8dCPXuv311x3VGUPh4Ee3HPo_N74n1OAN55YL3n27eRSG-JQ0OKo4mvfvcOpQ-GvXclNnmtmqm3J9hx7EUka6UPk9ci6gK8izL1SODp4F6FVITOCTbLrIvgaZQWeN6fphdIhTED-yJ-YSPSiazQ-m26tyc2vpdWBynmW7-fJOEsPBx3NeBhtf8sfgSPO22mBSn-YzwT68YeWDTK9NRcIoXAuN9a47wiwvGeiSRAHkPQhQvfMX_cxIIbOW1NiiGsS6kdhoMPe2NR1kPmdlqnzpCKvdJA1WHFR4S2iVoBvVLVsGf3RF-JdCDuVoECjaFjlv46_GQFUaTgXv0Q-KqrB3__qHupevrdqRP0cLCaN9ZYweQcp2IGBRcWkO-sfe21VX_6dlWQGwQfhIcYxIzZ58clQrubfQ4esLNiLRug0Ozs0g-b1JVtU8pFrdi_dqxRLy7YgkJqy2I5-kIKFT-H15uOdB-JXNYgyeXlHbp1Bqw3dFmAiEXmZKtxSazqmEkw3x1t57tPXlZ7wREde81xybh_2w5qNYkfEg4oP2kJN7VdghUoUZkpKyEBjCsrHDJAwity1" alt="FlushPending Sequence 다이어그램" loading="lazy">
     </div>
 
-    <h3 style="font-size:19px;margin:36px 0 8px;">Vulkan 백엔드 <span class="status-chip progress">진행 중</span></h3>
+    <h3 id="vulkan" style="font-size:19px;margin:36px 0 8px;scroll-margin-top:80px;">Vulkan 백엔드 &amp; RHI 재설계 <span class="status-chip progress">진행 중</span></h3>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      기존 <code class="mono">GLSystem</code>과 같은 <code class="mono">RHISystem</code> Interface를 구현하는
-      <code class="mono">VulkanSystem</code>으로 붙음 — 별도 아키텍처가 아니라, 지금 있는
-      <code class="mono">RHICommand&lt;T&gt;</code> Command 시스템과 <code class="mono">RHIWorker</code> Threading
-      모델 위에 그대로 얹힘.
+      Vulkan을 붙이면서 OpenGL에 맞춰져 있던 RHI 공용 계층을 Explicit API 기준으로 다시 짜는 중. 새 아키텍처를 따로 세운 게
+      아니라 <code class="mono">RHICommand&lt;T&gt;</code> 기록 · <code class="mono">RHIWorker</code> 실행 모델은 그대로 두고, 그 아래
+      (상태 · 바인딩 · 상수 · 백엔드 경계)를 바꾸는 작업임. 그림은
+      <a href="https://github.com/Winteradio/Game-Engine/tree/update/vulkan-rhi" target="_blank" rel="noopener">update/vulkan-rhi</a>
+      브랜치 기준(2026.10).
     </p>
+    <figure class="fig">
+      <div class="cap mono"><span>RHI 계층 — 2026.10 재설계 후</span><span>점선 = 진행 중</span></div>
+      <div class="fig-scroll"><svg class="dg" viewBox="0 0 960 464" role="img" aria-labelledby="rhi-title rhi-desc">
+<title id="rhi-title">RHI 계층 구조 (2026.10 재설계 기준)</title>
+<desc id="rhi-desc">Renderer가 RHICommandList에 명령을 기록하면 RHIFrameExecutor의 3개짜리 링을 거쳐 RHI Thread가 실행함. RHISystem은 상태 캐시, 지연 해제, Transition을 맡는 진입점이고, RHIContext 가상 인터페이스 아래에 GLContext와 VulkanContext가 있음. VulkanContext는 4MB 블록을 TLSFArena로 서브 할당하는 VulkanMemory를 가짐.</desc>
+<defs><marker id="ah-rhi" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0.5 L7.5,4 L0,7.5 z" fill="#111"/></marker></defs>
+<line class="edge-soft" x1="0" y1="166" x2="960" y2="166"/>
+<text class="m-ink" x="952" y="158" text-anchor="end">RENDER THREAD ↑</text>
+<text class="m-ink" x="952" y="183" text-anchor="end">RHI THREAD ↓</text>
+<rect class="box" x="20" y="10" width="520" height="48"/>
+<text class="t" x="34" y="30">Renderer · RenderPass</text>
+<text class="s" x="34" y="47">SetBuffer · SetPipeLine · Draw / Dispatch 호출</text>
+<line class="edge" x1="80" y1="59" x2="80" y2="73" marker-end="url(#ah-rhi)"/>
+<rect class="box" x="20" y="76" width="520" height="48"/>
+<text class="t" x="34" y="96">RHICommandList</text>
+<text class="s" x="34" y="113">RHICommand&lt;T&gt; 기록 — CRTP, 함수 Pointer 하나로 Dispatch</text>
+<line class="edge" x1="80" y1="125" x2="80" y2="139" marker-end="url(#ah-rhi)"/>
+<line class="rule" x1="546" y1="100" x2="564" y2="100"/>
+<text class="s" x="572" y="95" style="font-size:11px">설계 — 리소스가 자기 배리어 상태를 들고, 기록 시점에</text>
+<text class="s" x="572" y="111" style="font-size:11px">요구 상태를 모아 RenderPass · Dispatch 직전 일괄 전환 (구현 중)</text>
+<rect class="box" x="20" y="142" width="520" height="48"/>
+<text class="t" x="34" y="162">RHIFrameExecutor</text>
+<text class="s" x="34" y="179">CommandList 링 ×3 — Render가 기록, RHI가 실행</text>
+<line class="edge" x1="80" y1="191" x2="80" y2="205" marker-end="url(#ah-rhi)"/>
+<rect class="box-ink" x="20" y="208" width="520" height="48"/>
+<text class="t-inv" x="34" y="228">RHISystem  (namespace)</text>
+<text class="s-inv" x="34" y="245">중복 Set 생략 캐시 · 지연 해제(PendingPool) · Transition</text>
+<line class="edge" x1="80" y1="257" x2="80" y2="271" marker-end="url(#ah-rhi)"/>
+<line class="rule" x1="546" y1="232" x2="564" y2="232"/>
+<text class="s" x="572" y="227" style="font-size:11px">2026.10 — GLSystem / VulkanSystem 상속 구조를</text>
+<text class="s" x="572" y="243" style="font-size:11px">진입점(RHISystem) + 백엔드(RHIContext)로 분리</text>
+<rect class="box" x="20" y="274" width="520" height="48"/>
+<text class="t" x="34" y="294">RHIContext  (virtual)</text>
+<text class="s" x="34" y="311">Create · Initialize · Update · Set · Transition · Draw</text>
+<line class="rule" x1="546" y1="298" x2="564" y2="298"/>
+<text class="s" x="572" y="293" style="font-size:11px">상수는 낱개 Uniform 대신 이름 있는 UBO 블록 +</text>
+<text class="s" x="572" y="309" style="font-size:11px">프레임 Ring Buffer 슬라이스 (바뀐 경우만 기록)</text>
+<path class="edge" d="M80,323 V345" marker-end="url(#ah-rhi)"/>
+<path class="edge" d="M80,334 H300 V345" marker-end="url(#ah-rhi)"/>
+<rect class="box" x="20" y="348" width="200" height="48"/>
+<text class="t" x="34" y="368">GLContext</text>
+<text class="s" x="34" y="385">OpenGL 4.6 · WGL</text>
+<rect class="box-dash" x="240" y="348" width="300" height="112"/>
+<text class="t" x="254" y="368">VulkanContext</text>
+<text class="s" x="254" y="385">Vulkan 1.1 · Device · Surface · Swapchain</text>
+<rect class="box-soft" x="254" y="400" width="272" height="48"/>
+<text class="t" x="266" y="419" style="font-size:12px">VulkanMemory</text>
+<text class="s" x="266" y="436" style="font-size:11px">4MB VkDeviceMemory 블록 + TLSFArena 서브 할당</text>
+<line class="rule" x1="546" y1="372" x2="564" y2="372"/>
+<text class="s" x="572" y="367" style="font-size:11px">완료 — 메모리 · Buffer · Texture · Sampler · Shader</text>
+<text class="s" x="572" y="383" style="font-size:11px">(GLSL → SPIR-V, SPIRV-Reflect로 바인딩 검증)</text>
+<text class="s" x="572" y="399" style="font-size:11px">진행 중 — Pipeline · RenderPass · Draw / Dispatch</text>
+</svg></div>
+    </figure>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">여기까지 동작함: 초기화 + 프레임 루프.</div>
-        <div class="sub">Instance/Device 선택, Surface/Swapchain 생성, Primary/Secondary Command Buffer 분리
-          (RHI Thread용 vs Worker별), <code class="mono">BeginFrame</code>/<code class="mono">EndFrame</code>의
-          Semaphore 2개 + Fence 1개 조합 acquire→submit→present, <code class="mono">OUT_OF_DATE</code>/
-          <code class="mono">SUBOPTIMAL</code> Swapchain 리사이즈 처리까지 구현되어 있음.</div></div></div>
-      <div class="achv"><div><div class="head">여기부터는 아직임: 실제 Resource 생성 · Draw 경로.</div>
-        <div class="sub"><code class="mono">InitializeVertexLayout/Texture/Sampler/RenderTarget/RenderPass</code>,
-          모든 <code class="mono">Update*</code>/<code class="mono">Set*</code>/<code class="mono">Unset*</code>,
-          <code class="mono">DispatchCompute</code>, <code class="mono">DrawIndexPrimitive</code>, <code class="mono">Clear</code>가
-          전부 빈 함수임. <code class="mono">InitializeBuffer</code>는 편집 중인 상태 그대로 남아 있어
-          지금 시점에는 컴파일도 안 됨.</div></div></div>
+      <div class="achv"><div><div class="head">여기까지 동작함: 초기화 · 프레임 루프 · 리소스 계층.</div>
+        <div class="sub">Instance/Device 선택, Surface/Swapchain, Primary/Secondary Command Buffer 분리(RHI Thread용 vs Worker별),
+          Semaphore 2개 + Fence 1개로 acquire → submit → present, <code class="mono">OUT_OF_DATE</code>/<code class="mono">SUBOPTIMAL</code>
+          리사이즈 처리. 그 위에 Buffer · Texture 생성과 Staging 업로드, Buffer → Image 복사, Barrier, Sampler, VertexLayout,
+          Shader(GLSL → SPIR-V 컴파일 후 SPIRV-Reflect로 입력 location과 바인딩 검증)까지 동작함.</div></div></div>
+      <div class="achv"><div><div class="head">지금 하는 중: Pipeline · RenderPass · Draw / Dispatch.</div>
+        <div class="sub">생성 함수 자리는 있지만 아직 비어 있음. 이걸 잇기 전에 공용 계층부터 바꾸는 중 — "슬롯에 꽂으면 끝"인
+          GL식 바인딩 모델로는 Vulkan의 Barrier와 Descriptor를 표현할 수 없어서.</div></div></div>
       <div class="achv"><div><div class="head">VulkanMemory: 4MB 블록 + 블록 내부는 TLSFArena로 서브 할당.</div>
-        <div class="sub">Vulkan 메모리 타입별로 고정 4MB <code class="mono">VkDeviceMemory</code> 블록을 필요할 때
-          만들고 비면 반환하는 구조 — Resource마다 <code class="mono">VkDeviceMemory</code>를 따로 할당하는
-          흔한 Anti-pattern을 피함. 블록 내부의 실제 서브 할당은 Container Library의 TLSF 구현을
-          그대로 재사용함.</div></div></div>
+        <div class="sub">메모리 속성(<code class="mono">VkMemoryPropertyFlags</code>)별로 고정 4MB <code class="mono">VkDeviceMemory</code>
+          블록을 필요할 때 만들고 비면 반환 — Resource마다 <code class="mono">VkDeviceMemory</code>를 따로 할당하는 흔한
+          Anti-pattern을 피함. 블록 내부 서브 할당은 Container Library의 TLSF 구현을 그대로 상속해서 씀.</div></div></div>
+      <div class="achv"><div><div class="head">상수: 낱개 Uniform → 이름 있는 UBO 블록 + 프레임 Ring Buffer.</div>
+        <div class="sub">CPU 쪽 사본과 비교해 바뀐 경우에만 Ring Buffer 슬라이스를 받아 기록하고, frameDiff보다 오래 안 쓴 블록은
+          회수함. 셰이더는 <code class="mono">Common.glsl</code> 한 파일에 <code class="mono">BINDING_*</code> 번호와 공용 구조체를
+          모아서 GL · Vulkan이 같은 소스를 씀.</div></div></div>
     </div>
 
     <h3 style="font-size:19px;margin:36px 0 8px;">Asset</h3>
@@ -356,41 +788,22 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 ※ eAssetState는 eNone/eError/eLoaded/eExpried(오타)/eDirty뿐 — "완료(eReady)" 상태는 없고,
   준비 여부는 texture/buffer/shader Pointer가 non-null인지로 판단</pre>
 
-    <h3 style="font-size:19px;margin:36px 0 8px;">개발 여정 — 설계가 바뀌어온 과정</h3>
-    <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 4px;">
-      실제 커밋 히스토리 기준(2025.12 시작). 100만 Instance 성능 최적화 여정은 <a href="#results">결과물
-      섹션</a>에 따로 있음 — 여기는 그 바깥의 구조적 결정들.
+    <p class="prose" style="color:var(--text-dim);font-size:13.5px;margin:30px 0 0;">
+      설계가 바뀌어온 과정(RHI/Proxy 경계, FrameGate, RenderPass 전환, Vulkan)은 <a href="#history">개발 히스토리</a>에
+      커밋 날짜와 함께 정리해둠.
     </p>
-    <div class="achv-list">
-      <div class="achv"><div><div class="head">RHI/Proxy 기반 아키텍처 확립 (2026-01-26).</div>
-        <div class="sub">45개 파일이 한 번에 바뀐 <code class="mono">736602c</code> 커밋에서 지금 엔진의 기반이
-          되는 RHI/Proxy 구조를 세움 — World가 렌더 타입을 직접 안 건드리는 지금의 경계가 이 시점부터
-          시작됨.</div></div></div>
-      <div class="achv"><div><div class="head">FrameGate 도입 — 동기화와 데이터 보관 역할을 분리 (2026-04-03).</div>
-        <div class="sub">이전엔 <code class="mono">FrameContext</code> 하나가 Thread 동기화와 프레임 데이터
-          보관을 동시에 맡음 — 커밋 메시지에 남긴 표현 그대로 "the frame context is removed"로 정리하고,
-          동기화는 FrameGate로, 데이터는 RenderCommand/Proxy로 역할을 쪼갬. 지금 위의 producer/consumer
-          구조가 이때 정리됨.</div></div></div>
-      <div class="achv"><div><div class="head">PipeLine 체제 → RenderPass 아키텍처로 전면 교체 (2026-05-19~21, 3개 커밋).</div>
-        <div class="sub"><code class="mono">GlobalResource</code>/<code class="mono">GlobalSampler</code>/
-          <code class="mono">GlobalPipeLine</code> 세 개의 전역 싱글턴을 <code class="mono">GlobalRenderer</code>
-          하나로 합치고, <code class="mono">eTextureSlot</code>을 <code class="mono">eResourceSlot</code>으로
-          확장해 Shader 바인딩 이름 규칙(u/t/o 접두사)을 이때 처음 세움. 그 위에서 임시방편이던 "PipeLine"
-          개념을 걷어내고 CullingPass/GeometryPass/LightingPass로 나뉜 지금의 RenderPass 구조로 교체 — 위에서
-          설명한 Renderer 구조가 이 3개 커밋으로 만들어짐.</div></div></div>
-    </div>
   </section>
 
   <section id="findings">
     <div class="section-head">
-      <span class="section-num mono">05 / FINDINGS</span>
+      <span class="section-num mono">06 / FINDINGS</span>
       <div>
         <h2 class="section-title display">실제 코드에서 발견한 것들</h2>
-        <span class="section-tag">설계 문서가 아니라 소스를 직접 읽고 확인한 내용</span>
+        <span class="section-tag">설계 문서가 아니라 소스를 직접 읽고 확인한 내용 — 이후 고친 항목은 "수정됨" 표시</span>
       </div>
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
-      이 페이지는 <code class="mono">Docs/Design_*.md</code> 요약이 아니라, 이번에 <code class="mono">Engine/Private</code>
+      이 섹션은 <code class="mono">Docs/Design_*.md</code> 요약이 아니라, 2026.08 코드 리뷰 때 <code class="mono">Engine/Private</code>
       과 <code class="mono">Engine/Public</code>의 실제 구현을 다시 읽으면서 확인한 내용임. 문서와 다른 부분,
       그리고 흥미로운 설계 판단 몇 가지를 그대로 남겨둠.
     </p>
@@ -413,26 +826,26 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
       <div class="achv"><div><div class="head">RHICommand 실제 개수는 41개임.</div>
         <div class="sub">기존 설계 문서의 "45개 이상"이라는 서술은 실측과 다름 — 초기화 11 · 갱신 3 · 리사이즈 2 ·
           제거 7 · Set 8 · Unset 7 · 프레임/Dispatch 3.</div></div></div>
-      <div class="achv"><div><div class="head">RenderCommandList::ExecuteAll()에 기술적으로는 UB인 패턴이 하나 있음.</div>
+      <div class="achv"><div><div class="head">RenderCommandList::ExecuteAll()에 기술적으로는 UB인 패턴이 있었음.<span class="status-chip done">수정됨 · #57</span></div>
         <div class="sub">Task를 실행한 뒤 명시적으로 <code class="mono">execute-&gt;~RenderTask()</code>를 호출하고,
-          바로 다음 줄에서 <code class="mono">execute-&gt;next</code>를 읽음. <code class="mono">next</code>가
-          trivial한 raw pointer라 실제로는 문제없이 동작하지만, 소멸자 호출 후 멤버를 읽는 건 엄밀히는 정의되지
-          않은 동작임.</div></div></div>
+          바로 다음 줄에서 <code class="mono">execute-&gt;next</code>를 읽었음. <code class="mono">next</code>가
+          trivial한 raw pointer라 실제로는 문제없이 동작했지만, 소멸자 호출 후 멤버를 읽는 건 엄밀히는 정의되지
+          않은 동작임 → 소멸자 호출 전에 <code class="mono">next</code>를 먼저 읽도록 바꿈.</div></div></div>
       <div class="achv"><div><div class="head">Asset 파싱은 항상 병렬은 아니고, 기회적(opportunistic)임.</div>
         <div class="sub">유휴 <code class="mono">TaskWorker</code>가 있을 때만 별도 Thread로 넘기고, 없으면
           <code class="mono">AssetSystem::AddTask()</code>로 다시 Queue에 넣어 다음 패스로 미룸 — 동기적으로
           직접 파싱하지 않고, "병렬 파싱"이 항상 보장되는 것도 아님.</div></div></div>
-      <div class="achv"><div><div class="head">Application/Engine 초기화 중 AssetWorker가 두 번 만들어짐.</div>
+      <div class="achv"><div><div class="head">Application/Engine 초기화 중 AssetWorker가 두 번 만들어졌음.<span class="status-chip done">수정됨 · #53</span></div>
         <div class="sub"><code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
           <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
-          만들어 <code class="mono">m_assetWorker</code>를 덮어씀 — 첫 번째 Instance는 조용히 버려짐.
-          WorldCommandList와 같은 종류의 흔적성 코드로 보임.</div></div></div>
-      <div class="achv"><div><div class="head">Win32Window의 WM_CLOSE 처리와 실제 종료 경로는 다름.</div>
+          만들어 <code class="mono">m_assetWorker</code>를 덮어씀 — 첫 번째 Instance는 조용히 버려졌음 →
+          <code class="mono">InitAsset()</code>을 없애고 <code class="mono">InitWorker()</code> 한 곳에서만 만들도록 정리.</div></div></div>
+      <div class="achv"><div><div class="head">Win32Window의 WM_CLOSE 처리와 실제 종료 경로가 달랐음.<span class="status-chip done">수정됨 · #54</span></div>
         <div class="sub">WndProc의 switch 문에 case 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서
-          설정한 <code class="mono">m_status = eClosed</code>가 같은 호출 안에서 곧바로 다시 eActive로 덮어써짐.
+          설정한 <code class="mono">m_status = eClosed</code>가 같은 호출 안에서 곧바로 다시 eActive로 덮어써졌음.
           실제 종료는 상태 체크가 아니라 close Callback → <code class="mono">Engine::Shutdown()</code> →
           <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
-          경로로 이루어짐.</div></div></div>
+          경로로 이루어지고 있었음 → WM_CLOSE · WM_SIZE를 각자 case로 분리.</div></div></div>
       <div class="achv"><div><div class="head">InputStorage는 더블 Buffer가 아니라 Lock-free Triple Buffer임.</div>
         <div class="sub"><code class="mono">m_InputData[3]</code> — 메인 Thread가 쓰는 <code class="mono">m_CurrData</code>,
           핸드오프용 <code class="mono">atomic&lt;InputData*&gt; m_PrevData</code>, WorldWorker가 읽는
@@ -455,27 +868,28 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           eExpried(오타) / eDirty</code> 뿐임. GPU 업로드(<code class="mono">AssetCommander::Load</code>) 이후
           별도 상태 전이가 없어서, 준비 여부는 상태값이 아니라 texture/buffer/shader Pointer가 non-null인지로
           다른 코드가 추론함.</div></div></div>
-      <div class="achv"><div><div class="head">RHIDrawIndexDesc / RHIDispatchDesc가 자기 태그 대신 남의 태그를 씀.</div>
+      <div class="achv"><div><div class="head">RHIDrawIndexDesc / RHIDispatchDesc가 자기 태그 대신 남의 태그를 썼음.<span class="status-chip done">수정됨 · #55</span></div>
         <div class="sub"><code class="mono">eResourceType</code>은 9개 값(Buffer/Texture/Sampler/Shader/PipeLine/
           Layout/Target/Const/Pass)이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
           <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
-          <code class="mono">ePipeLine</code>을 그대로 재사용함 — Draw Command와 VertexLayout이
-          <code class="mono">desc.type</code> 값만으로는 구분되지 않음.</div></div></div>
-      <div class="achv"><div><div class="head">PNGParser에는 타입이 어긋나는 버그가 있음.</div>
+          <code class="mono">ePipeLine</code>을 그대로 재사용했음 — Draw Command와 VertexLayout이
+          <code class="mono">desc.type</code> 값만으로는 구분되지 않았음 → <code class="mono">eGraphics</code> /
+          <code class="mono">eCompute</code> 태그를 새로 추가.</div></div></div>
+      <div class="achv"><div><div class="head">PNGParser에 타입이 어긋나는 버그가 있었음.<span class="status-chip done">수정됨 · #56</span></div>
         <div class="sub"><code class="mono">stbi_load_from_memory</code>는 항상 8비트 데이터를 반환하는데,
           <code class="mono">componentType</code>은 소스에 따라 <code class="mono">eFloat</code>/
-          <code class="mono">eUInt</code>로 설정됨 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지
-          않음. sRGB 판별도 IHDR 바로 다음 청크 하나만 검사해서(스펙상 IDAT 전 어디든 올 수 있음) 코드 안
-          TODO로 부정확함이 남아 있음.</div></div></div>
+          <code class="mono">eUInt</code>로 설정됐음. sRGB 판별도 IHDR 바로 다음 청크 하나만 검사했음 → 16비트 PNG는
+          <code class="mono">stbi_load_16</code> 경로로 분기하고 componentType을 실제 비트 수에 맞춤, sRGB 판별은
+          IHDR ~ IDAT 사이 청크를 전부 검사하도록 바꿈.</div></div></div>
     </div>
   </section>
 
   <section id="status">
     <div class="section-head">
-      <span class="section-num mono">06 / STATUS</span>
+      <span class="section-num mono">07 / STATUS</span>
       <div>
         <h2 class="section-title display">기능 현황</h2>
-        <span class="section-tag">저장소 README의 Implementation Status 표 그대로</span>
+        <span class="section-tag">저장소 README의 Implementation Status 기준 + 2026.10 작업 반영</span>
       </div>
     </div>
     <div class="tbl-wrap">
@@ -495,7 +909,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <tr><td class="k">GC 전체 통합</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">Cascade 섀도우 맵</td><td><span class="status-chip progress">예정</span></td></tr>
           <tr><td class="k">Spot / Point 라이트 섀도우</td><td><span class="status-chip progress">예정</span></td></tr>
-          <tr><td class="k">Vulkan 백엔드(초기화 · Swapchain · 프레임 루프)</td><td><span class="status-chip progress">진행 중</span></td></tr>
+          <tr><td class="k">Vulkan 백엔드 — 프레임 루프 · 메모리 · Buffer · Texture · Shader 구현, Pipeline · Draw 남음</td><td><span class="status-chip progress">진행 중</span></td></tr>
+          <tr><td class="k">RHI 공용 계층 재설계 — RHIContext · Transition · 상수 Ring Buffer</td><td><span class="status-chip progress">진행 중</span></td></tr>
           <tr><td class="k">물리 엔진</td><td><span class="status-chip progress">예정</span></td></tr>
         </tbody>
       </table>
@@ -504,7 +919,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="issues">
     <div class="section-head">
-      <span class="section-num mono">07 / ISSUES</span>
+      <span class="section-num mono">08 / ISSUES</span>
       <div>
         <h2 class="section-title display">해결한 이슈</h2>
         <span class="section-tag">저장소 이슈 트래커와 디버그 로그 기준</span>
@@ -558,7 +973,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="notes">
     <div class="section-head">
-      <span class="section-num mono">08 / NOTES</span>
+      <span class="section-num mono">09 / NOTES</span>
       <div>
         <h2 class="section-title display">기술 노트</h2>
         <span class="section-tag">구현하면서 직접 유도/정리한 그래픽스 이론 — 이슈 트래커에 전문을 남겨둠</span>
@@ -627,15 +1042,15 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 
   <section id="bugs">
     <div class="section-head">
-      <span class="section-num mono">09 / BUGS</span>
+      <span class="section-num mono">10 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">이번에 코드를 다시 읽으며 직접 찾아서 새로 이슈로 등록한 것들 — 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 11건 중 9건 수정, 상태는 실시간 동기화</span>
       </div>
     </div>
 
     <details class="collapse">
-      <summary>실제 버그 11건 <span class="count">클릭해서 펼치기</span></summary>
+      <summary>실제 버그 11건 — 9건 수정 완료 <span class="count">클릭해서 펼치기</span></summary>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
@@ -657,20 +1072,21 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/53" target="_blank" rel="noopener">#53</a> · Framework/Application.cpp, Engine.cpp</span>
           <span class="issue-title">AssetWorker가 초기화 중 두 번 생성되고 첫 번째는 버려짐</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#53">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#53">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">Engine::InitAsset()</code>이 AssetWorker를 하나 만든 직후,
           <code class="mono">InitWorker()</code>가 <code class="mono">SetTaskThread(4)</code> 설정으로 또 하나를
           만들어 <code class="mono">m_assetWorker</code>를 덮어씀. 두 번째 Instance가 정상 동작해서 당장 문제는
-          없지만, 첫 번째가 만든 Thread/Resource가 조용히 새는 초기화 순서 버그임.
+          없지만, 첫 번째가 만든 Thread/Resource가 조용히 새는 초기화 순서 버그임.<br>
+          - 수정(2026.08.08): <code class="mono">InitAsset()</code>을 없애고 <code class="mono">InitWorker()</code>만 AssetWorker를 만들도록 정리. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/54" target="_blank" rel="noopener">#54</a> · Platform/Win32/Win32Window.cpp — WndProc</span>
           <span class="issue-title">WM_CLOSE에서 설정한 종료 상태가 같은 호출 안에서 즉시 덮어써짐</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#54">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#54">해결</span>
         </div>
         <div class="issue-body">
           - WndProc의 switch 문에 case 사이 <code class="mono">break</code>가 없어서, WM_CLOSE에서 설정한
@@ -678,67 +1094,72 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           - 실제 종료는 이 상태값이 아니라 close Callback → <code class="mono">Engine::Shutdown()</code> →
           <code class="mono">m_window</code> 리셋 → <code class="mono">Run()</code> 루프의 null 체크로 빠져나가는
           별개 경로로 이루어짐. 종료 자체는 되지만, <code class="mono">GetStatus()</code>를 신뢰하는 코드가
-          있다면 오작동함.
+          있다면 오작동함.<br>
+          - 수정(2026.08.08): WM_CLOSE · WM_SIZE를 각자 case로 분리해서, 상태를 정한 뒤 바로 <code class="mono">HandleMessage()</code>로 넘김. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/55" target="_blank" rel="noopener">#55</a> · RHI/RHIDescriptions.h:397, 410</span>
           <span class="issue-title">RHIDrawIndexDesc / RHIDispatchDesc가 자기 타입 태그 대신 다른 태그를 재사용</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#55">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#55">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">eResourceType</code>은 9개 값이 따로 있는데, <code class="mono">RHIDrawIndexDesc</code>는
           자기 것 대신 <code class="mono">eLayout</code>을, <code class="mono">RHIDispatchDesc</code>는
           <code class="mono">ePipeLine</code>을 그대로 재사용함. 지금은 이 필드로 타입을 분기하는 코드가 없어서
-          조용히 묻혀 있음.
+          조용히 묻혀 있음.<br>
+          - 수정(2026.08.08): <code class="mono">eResourceType</code>에 <code class="mono">eGraphics</code> / <code class="mono">eCompute</code>를 추가하고 두 Desc의 태그를 교체. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/56" target="_blank" rel="noopener">#56</a> · Asset/PNGParser.cpp:66-73</span>
           <span class="issue-title">PNGParser의 componentType이 실제 데이터 타입과 어긋남</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#56">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#56">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">stbi_load_from_memory</code>는 항상 8비트를 반환하는데,
           <code class="mono">componentType</code>은 <code class="mono">eFloat</code>/<code class="mono">eUInt</code>로
           설정됨 — 둘 다 실제 <code class="mono">eUByte</code>와 맞지 않음. sRGB 판별도 IHDR 바로 다음
-          청크 하나만 검사해서 오탐/누락 여지가 있음(코드 안에 TODO로 남아 있음).
+          청크 하나만 검사해서 오탐/누락 여지가 있음(코드 안에 TODO로 남아 있음).<br>
+          - 수정(2026.08.08): <code class="mono">stbi_is_16_bit_from_memory</code>로 분기해 16비트는 <code class="mono">stbi_load_16_from_memory</code>를 쓰고, componentType · 픽셀 포맷을 실제 비트 수에 맞춤. sRGB는 IHDR ~ IDAT 사이 청크를 전부 검사. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/57" target="_blank" rel="noopener">#57</a> · Renderer/RenderCommandList.cpp — ExecuteAll()</span>
           <span class="issue-title">소멸자 호출 후 멤버를 읽는 기술적 UB 패턴</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#57">버그(경미) · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#57">해결</span>
         </div>
         <div class="issue-body">
           - Task를 실행한 뒤 <code class="mono">execute->~RenderTask()</code>를 호출하고 바로 다음 줄에서
           <code class="mono">execute->next</code>를 읽음. <code class="mono">next</code>가 trivial한 raw
           pointer라 지금은 문제없이 동작하지만, 엄밀히는 정의되지 않은 동작이라 공격적인 최적화나 sanitizer
-          환경에서 깨질 수 있음.
+          환경에서 깨질 수 있음.<br>
+          - 수정(2026.08.08): 소멸자를 부르기 전에 <code class="mono">next</code>를 먼저 읽도록 순서를 바꿈. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">RHI/Vulkan/VulkanSystem.cpp:602-666</span>
-          <span class="issue-title">Vulkan InitializeBuffer가 편집 중인 상태로 남아 지금은 컴파일이 안 됨</span>
-          <span class="issue-state open mono">버그 · 작업 중</span>
+          <span class="issue-title">Vulkan InitializeBuffer가 편집 중인 상태로 남아 컴파일이 안 되던 문제</span>
+          <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">vkCreateBuffer()</code>를 인자 없이 호출하고, 끝에 매달린
           <code class="mono">VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;</code> 구문이 그대로 남아 있음.<br>
           - <code class="mono">VulkanMemory::CreateBlock</code>도 <code class="mono">memoryType</code>과
-          <code class="mono">blockSize</code> 인자가 호출부에서 뒤바뀐 것으로 보임 — Vulkan 백엔드가
-          한창 작업 중이라 당연히 있을 수 있는 상태임.
+          <code class="mono">blockSize</code> 인자가 호출부에서 뒤바뀐 것으로 보였음 — Vulkan 백엔드가
+          한창 작업 중이라 있을 수 있는 상태였음.<br>
+          - 수정(2026.09.03): Buffer 경로를 생성 · 초기화 · 갱신 · 리사이즈로 나눠 완성 — <a href="#vulkan">Vulkan 절</a> 참고.
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/58" target="_blank" rel="noopener">#58</a> · RHI/OpenGL/GLSystem.cpp:3519-3526</span>
           <span class="issue-title">FlushPipeLine의 조건이 뒤집혀 있어 GL 프로그램이 영구 leak</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#58">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#58">해결</span>
         </div>
         <div class="issue-body">
           - <code class="mono">if (!glPipeLine || glPipeLine-&gt;GetID() == GL_NONE)</code> 분기 안에서
@@ -747,20 +1168,22 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           - 조건 자체도 다른 모든 <code class="mono">Flush*</code> 함수와 반대임: ID가 이미
           <code class="mono">GL_NONE</code>인(할 게 없는) 경우에만 <code class="mono">glDeleteProgram</code>을
           부르고, 실제로 지워야 할 유효한 프로그램은 절대 안 지워짐 — 파이프라인을 만들 때마다 GL 프로그램
-          객체가 영구적으로 leak됨.
+          객체가 영구적으로 leak됨.<br>
+          - 수정(2026.08.08): 참조 수가 1보다 크면 pending에 그대로 두고, pending 목록이 마지막 참조일 때만 <code class="mono">glDeleteProgram</code>을 부르도록 조건을 바로잡음. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/59" target="_blank" rel="noopener">#59</a> · RHI/OpenGL/GLSystem.cpp:639-650</span>
           <span class="issue-title">InitializeTexture 실패 후 return이 없어서 삭제된 Texture가 "준비됨"으로 표시됨</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#59">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#59">해결</span>
         </div>
         <div class="issue-body">
           - 실패 시 Texture를 삭제하고 <code class="mono">eError</code> 상태를 설정한 뒤에도
           <code class="mono">return</code>이 없어서, 바로 다음 줄의
           <code class="mono">glTexture-&gt;SetID(textureID)</code>/<code class="mono">SetState(eReady)</code>가
-          그대로 실행됨 — 방금 삭제한(더 이상 유효하지 않은) GL Texture 이름을 "준비됨" 상태로 표시해버림.
+          그대로 실행됨 — 방금 삭제한(더 이상 유효하지 않은) GL Texture 이름을 "준비됨" 상태로 표시해버림.<br>
+          - 수정(2026.08.08): 실패 경로에서 <code class="mono">SetID(GL_NONE)</code> · <code class="mono">SetState(eError)</code>를 명시하고 성공/실패 분기를 분리 — 실패한 Texture가 eReady가 되는 경로를 없앰. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
       <div class="issue-card">
@@ -781,7 +1204,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Game-Engine/issues/60" target="_blank" rel="noopener">#60</a> · World/Component.cpp:192-201</span>
           <span class="issue-title">InstancedTransformComponent::UpdateRotation이 실제로는 회전을 반영하지 않음</span>
-          <span class="issue-state open mono" data-gh-issue="Winteradio/Game-Engine#60">버그 · 미수정</span>
+          <span class="issue-state closed mono" data-gh-issue="Winteradio/Game-Engine#60">해결</span>
         </div>
         <div class="issue-body">
           - 새로 들어온 <code class="mono">rotation</code> 인자와 현재 값을 비교하려고
@@ -790,7 +1213,8 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
           <b>기존 값</b>으로 다시 씀. 복붙하다 인자를 놓친 것으로 보이는 명백한 버그로, 같은 파일의
           <code class="mono">TransformComponent::UpdateRotation</code>과
           <code class="mono">SceneProxy::UpdateRotation</code>은 둘 다 맞게 새 값을 대입함. 이 오버로드는
-          지금 Camera 경로에서는 안 쓰이지만, Instancing 메시의 개별 회전 갱신 경로에서 조용히 no-op이 됨.
+          지금 Camera 경로에서는 안 쓰이지만, Instancing 메시의 개별 회전 갱신 경로에서 조용히 no-op이 됨.<br>
+          - 수정(2026.08.08): <code class="mono">transform.rotation = glm::quat(rotation)</code>으로 새 값을 대입. (<a href="https://github.com/Winteradio/Game-Engine/pull/61" target="_blank" rel="noopener">PR #61</a>)
         </div>
       </div>
     </div>
@@ -869,6 +1293,7 @@ Load  = GPU 업로드(AssetCommander), RHIWorker 전용
 </footer>
 
 <script src="app.js"></script>
+<script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </body>
