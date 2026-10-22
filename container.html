@@ -89,42 +89,42 @@
     </p>
 
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Robin Hood Hashing은 "가난한 쪽이 이긴다"는 규칙 하나로 동작함.</div>
+      <div class="achv"><div><div class="head">Robin Hood Hashing의 규칙 하나<span class="head-2">"가난한 쪽이 이긴다"</span></div>
         <div class="sub">삽입할 때 자기보다 PSL(제자리에서 얼마나 멀어졌는지)이 낮은, 즉 "부자"인 원소만
           밀어냄. 밀려난 원소는 계속 앞으로 탐색하며 자기 PSL을 올림.</div></div></div>
-      <div class="achv"><div><div class="head">삭제는 tombstone 없이 backward-shift로 처리함.</div>
+      <div class="achv"><div><div class="head">tombstone 없는 삭제<span class="head-2">backward-shift</span></div>
         <div class="sub">빈 슬롯이 생기면 뒤따르는 원소들을 자기 PSL만큼 앞으로 당겨서 구멍을 물리적으로
           없애버림 — <code class="mono">Find()</code>의 조기 종료 조건이 영원히 유효하게 유지되는 이유.</div></div></div>
-      <div class="achv"><div><div class="head">TLSFArena의 탐색은 분기 없이 Bit 연산만으로 끝남.</div>
+      <div class="achv"><div><div class="head">분기 없는 TLSFArena 탐색<span class="head-2">Bit 연산만으로 완료</span></div>
         <div class="sub">필요한 크기보다 작은 Class를 Bitmask로 지워버리고, 남은 것 중 최하위 Bit를
           찾으면 그게 가장 가까운 free Block임. Block 리스트를 훑을 필요 없음.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">특징</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">실측 벤치마크로 뒷받침됨.</div>
+      <div class="achv"><div><div class="head">실측 벤치마크 근거</div>
         <div class="sub">std::unordered_map 대비 삽입 1.72배, 조회 1.26배 — Open Addressing의 Cache 지역성
           이득이 "느낌"이 아니라 숫자로 남아 있음.</div></div></div>
-      <div class="achv"><div><div class="head">TLSF로 임의 크기를 O(1)에 할당/해제/병합함.</div>
+      <div class="achv"><div><div class="head">TLSF 기반 O(1) 할당 · 해제 · 병합</div>
         <div class="sub">FL/SL Bitmap 덕분에 Block 리스트를 훑지 않고, 물리적 offset 비교로 병합 방향을 정해서
           인덱스 순서에 의존하지 않음.</div></div></div>
-      <div class="achv"><div><div class="head">Allocator를 Template 인자로 분리해서 전략을 바꿀 수 있게 설계함.</div>
+      <div class="achv"><div><div class="head">Template 인자로 분리한 Allocator<span class="head-2">자료구조와 메모리 전략의 독립 교체</span></div>
         <div class="sub">Container 자료구조와 메모리 전략을 독립적으로 교체할 수 있다는 의도 자체가 STL-free
           라이브러리를 직접 만드는 핵심 이유.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">RTree는 2026.08 데모를 짜기 전까지 죽은 코드나 다름없었음.</div>
+      <div class="achv"><div><div class="head">2026.08 데모 전까지 죽은 코드나 다름없던 RTree</div>
         <div class="sub"><code class="mono">Boundary</code>가 private라 외부에서 <code class="mono">Insert()</code>를
           호출할 방법조차 없었고, <code class="mono">SplitNode()</code>엔 컴파일이 깨지는 오타가 있었음 —
           한 번도 실행 안 해본 코드가 라이브러리에 포함돼 있었다는 뜻 → 접근 범위를 고치고 데모로 돌려서 버그 2건까지
           수정함.</div></div></div>
-      <div class="achv"><div><div class="head">"Allocator 교체 가능"이라는 설계 의도가 절반만 실현됨.</div>
+      <div class="achv"><div><div class="head">절반만 실현된 "Allocator 교체 가능" 설계</div>
         <div class="sub"><code class="mono">LinearArena</code>가 실제로는 다른 Container들이 기대하는
           Allocator Interface(1인자 <code class="mono">Allocate</code>, <code class="mono">Deallocate</code>
           존재)와 안 맞아서, <code class="mono">DynamicArray&lt;T, LinearArena&gt;</code>로는 실제로 못 씀.</div></div></div>
-      <div class="achv"><div><div class="head">테스트되지 않은 경로에 실제 버그가 몰려 있었음.<span class="status-chip done">수정됨 · #34 #36</span></div>
+      <div class="achv"><div><div class="head">테스트 안 된 경로에 몰려 있던 실제 버그<span class="status-chip done">수정됨 · #34 #36</span></div>
         <div class="sub"><code class="mono">List::Splice</code> 특정 오버로드는 Instance화하면 아예 컴파일이
           안 되고, <code class="mono">HashMap</code>의 <code class="mono">rBegin()/rEnd()</code>는 실제로는
           정방향으로 순회했음 — 둘 다 2026.08 코드 리뷰에서 처음 찾았고 바로 수정함.</div></div></div>
@@ -183,7 +183,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       <div class="achv"><div><div class="head">증설</div>
         <div class="sub">load factor 70%에서 Rehash하며 용량을 두 배로 늘리고, 같은 삽입+swap 로직을 새 배열에
           다시 돌림.</div></div></div>
-      <div class="achv"><div><div class="head">삭제 = backward-shift, tombstone 없음</div>
+      <div class="achv"><div><div class="head">삭제 = backward-shift, tombstone 미사용</div>
         <div class="sub">비운 Slot은 <code class="mono">psl = -1</code>로 표시하고, 같은 탐사 Chain의 뒤따르는
           원소들을 자기 PSL만큼 뒤에서 앞으로 당겨오며 PSL을 줄임 — 제자리이거나 빈 Slot을 만날 때까지
           반복. 구멍을 표시만 하는 게 아니라 물리적으로 없애버려서, <code class="mono">Find()</code>의 조기
@@ -195,13 +195,13 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       <img src="https://www.plantuml.com/plantuml/svg/XLHTRn9157tVNt53Om81JAaQemcD5birKME4Dzk7AJl0fiiCxWuIVQ8jacfff4QKLb2gjHy99bHfR9F-6X-PuJyuionsQPkuoIQxS-yzvzvpp-ujco6BvREcPYyO98Sib8Lvb5n8MpHFz1WrgGM5ZC6m9svda4uB1ab32fcsDwBZ5CgRR8OIzWXbCVWU8ZET9t2NieoHz5sS6JTUOeXCU0dmipmcINpRicXXqCFOLUUw8Ec1aP8tmLFKqh7bPjzmhWko7yjfZQIHGuHDdHbpRERQp9Nfs7-Al2nkJrhkD0w-639DRFa0sH0RZTn3TYQ1vati11EZmRX9sLDZpWd5DIqQXVl4nXQ3Q5IBGNWI4d3JFV8lu1SXU8xCF0veYM6Cu8B2k9opJOZ2U0ZworMnr0QnsX2VrpMJqXpmunLGIS3hLVxcFVGEg-9d5tYbA9ONWUzM-58BUAtIEww8tQ86uA379RhR7lGtQg9v92F8PCF30MKKmX7m3na2CiLJxZOdcYNe_JwIV7oh0RpJ4STrcOYbYqRwdno1zlluckorK-HBZNvjptS6sowWdD-j3WqB0n26tb57R7L1VAgASeL_Fv64HV6XovTB3W2X38Dbf3CCQCgHKCPvQrkok3MIyhHpALErBijdYIjixrT9bDVygiF18uYTfYm9k1ETTgcmZM0mv9qn65HfHDVK_I_Bf4YNNrMIINjDmlNnIto_2qzmHZh7BpRt-PVNC25b2pW6kODDB4Vm6cJQGZPM_d2DeVIPCOZk74b9XgqVTFXEMuttJt9Ugel6YQ8JMnsf78Ylh_YtYdRM0Qw_rAv5go61eB_Ua1uBk0vRtHRD2WmagyDWcUFICi3VReZQodbF1IDpoXOklFA5-lyKaAM7xOoHOjuAkGK9qwyD5pIa24SXuWXvVgUCPkTjHWa6yR6ijjWxRFFzDKN9soTI1T5QL8DBti4yi-HF-Tr0j8327v73UJleAfn-xOVwQ4IZrT_Sq_u2" alt="Robin Hood Hashing Insert/Delete 시퀀스 다이어그램" loading="lazy">
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena — FL/SL Bitmap 탐색</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">TLSFArena<span class="head-2">FL/SL Bitmap 탐색</span></h3>
     <div class="achv-list">
       <div class="achv"><div><div class="head">2단계 분류</div>
         <div class="sub">FL 인덱스 = 크기의 최상위 Bit 위치(64행). SL 인덱스 = 그 2의 거듭제곱 범위 안에서의
           4Bit 선형 세분(16열). <code class="mono">bucketIndex = fl*16 + sl</code>이 평평한 free-list 헤드
           배열을 가리킴.</div></div></div>
-      <div class="achv"><div><div class="head">탐색 자체는 분기 없음</div>
+      <div class="achv"><div><div class="head">분기 없는 탐색</div>
         <div class="sub">FL 행마다 <code class="mono">uint64_t</code> Bitmap 하나, SL 열마다 Bit 하나.
           <code class="mono">Allocate()</code>는 필요한 크기보다 작은 Class를 전부 마스킹해서 지우고
           (<code class="mono">bitmap[fl] &amp; (~0 &lt;&lt; sl)</code>), 남은 것 중 최하위 Bit를 취함 —
@@ -236,7 +236,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       <span class="section-num mono">03 / HISTORY</span>
       <div>
         <h2 class="section-title display">개발 히스토리</h2>
-        <span class="section-tag">실제 커밋 히스토리 기준 — Variant 하나에서 시작해 Vulkan 메모리 할당기까지</span>
+        <span class="section-tag">실제 커밋 히스토리 기준<br>Variant 하나에서 Vulkan 메모리 할당기까지</span>
       </div>
     </div>
 
@@ -247,9 +247,9 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       <li class="tl-item minor"><span class="tl-date mono">2025.03.31</span><div class="tl-body">
         <span class="tl-repo">Container</span><span class="tl-head">Variant 하나로 첫 커밋</span></div></li>
       <li class="tl-item"><span class="tl-date mono">2025.04.07</span><div class="tl-body">
-        <span class="tl-repo">Container</span><span class="tl-head">해시값이 항상 0으로 나오는 버그를 이틀 동안 붙잡음</span>
+        <span class="tl-repo">Container</span><span class="tl-head">항상 0이 나오는 해시값 버그<span class="head-2">이틀 동안 커밋 네 번</span></span>
         <div class="tl-sub">04.06~07 이틀 동안 "Fix the hash code" 커밋만 네 번 — 마지막 커밋 메시지에 원인이 그대로 남아 있음: "hash value가 값이 이미 사라진 뒤에 계산돼서 항상 0으로 나옴". Copy/Move 때 소멸자 스킵을 막으려던 <code class="mono">valid</code> 플래그도 이때 처음 들어왔는데, 이게 1년 뒤 리뷰에서 찾은 #32(valid가 영원히 false) · #33(Move가 copy로 동작)의 뿌리였음 — 2026.08.05에 수정.</div></div></li>
-      <li class="tl-era"><span class="n mono">2기</span><span class="h">실사용 Container로 확장<small>2025.12 — 2026.07 · 8개월 공백 뒤 재개</small></span></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">실사용 Container로 확장<small>2025.12 — 2026.07<br>8개월 공백 뒤 재개</small></span></li>
       <li class="tl-item key"><span class="tl-date mono">2025.12.09</span><div class="tl-body">
         <span class="tl-repo">Container</span><span class="tl-head">DynamicArray · HashMap 등 실사용 Container 추가</span>
         <div class="tl-sub">12.11~12.16에 HashMap 타입 정리와 Hash Table erase 길이 계산 버그(길이가 max size의 배수면 0으로 나오던 것) 수정이 몰림.</div></div></li>
@@ -260,11 +260,11 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
         <span class="tl-repo">Container</span><span class="tl-head">Arena 위에 LinearArena 추가</span>
         <div class="tl-sub">"마지막 Page를 재사용 안 하는" 버그는 실제로 쓰다가 2026.05.21에 다시 고침 — 계층을 한 번에 완성한 게 아니라 하나 쌓을 때마다 실사용하며 버그를 잡아나간 흔적.</div></div></li>
       <li class="tl-item key"><span class="tl-date mono">2026.07.21</span><div class="tl-body">
-        <span class="tl-repo">Container</span><span class="tl-head">TLSFArena 추가 → 다음 날 Vulkan 메모리에 바로 쓰임</span>
+        <span class="tl-repo">Container</span><span class="tl-head">TLSFArena 추가<span class="head-2">→ 다음 날 Vulkan 메모리에 바로 사용</span></span>
         <div class="tl-sub">엔진의 <code class="mono">VulkanArena</code>가 07.22부터 이 TLSF를 그대로 상속해서 4MB <code class="mono">VkDeviceMemory</code> 블록을 서브 할당함.</div></div></li>
       <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026.08</small></span></li>
       <li class="tl-item"><span class="tl-date mono">2026.08.05</span><div class="tl-body">
-        <span class="tl-repo">Container</span><span class="tl-head">RTree를 처음으로 실제로 돌려봄 — 버그 2건 수정</span>
+        <span class="tl-repo">Container</span><span class="tl-head">RTree 첫 실행<span class="head-2">버그 2건 수정</span></span>
         <div class="tl-sub"><code class="mono">Boundary</code>가 private라 아무도 <code class="mono">Insert()</code>를 부를 수 없던 RTree에 순회 API를 붙이고 데모를 짜서, <code class="mono">SplitNode()</code>의 이중 해제 · 서브트리 유실 버그를 찾아 고침 (<a href="#rtree">RTree 절</a>).</div></div></li>
       <li class="tl-item key"><span class="tl-date mono">2026.08.07</span><div class="tl-body">
         <span class="tl-repo">Container</span><span class="tl-head">리뷰로 찾은 버그 6건 수정 + 테스트 재작성</span>
@@ -277,7 +277,7 @@ wtr::DynamicArray&lt;int, wtr::Arena&gt; explicitArena;</pre>
       <span class="section-num mono">04 / DESIGN</span>
       <div>
         <h2 class="section-title display">RTree — 공간 인덱스</h2>
-        <span class="section-tag">Boundary 하나로 재귀 분할되는 Tree — 2026.08에 처음으로 실제로 돌려봄</span>
+        <span class="section-tag">Boundary 하나로 재귀 분할되는 Tree<br>2026.08 첫 실행</span>
       </div>
     </div>
     <p class="prose" style="color:var(--text-dim);font-size:14.5px;margin:0 0 14px;">
@@ -311,24 +311,24 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 });</pre>
 
     <div class="achv-list">
-      <div class="achv"><div><div class="head">2026.08 전까지는 사실상 한 번도 실행된 적이 없었음.</div>
+      <div class="achv"><div><div class="head">2026.08 전까지 사실상 실행된 적 없는 코드</div>
         <div class="sub"><code class="mono">Boundary</code>가 <code class="mono">private</code>라 외부 코드는
           그 타입 자체를 이름 붙일 수도 없었음 — <code class="mono">Insert()</code>가 public이어도 인자를
           만들 방법이 없어 호출이 불가능했고, 실제로 기존 데모의 <code class="mono">RTreeTest rtree(4,2);</code>도
           <code class="mono">Insert()</code>를 한 번도 부르지 않았음. Tree를 들여다볼 public API도 전혀
           없었음.</div></div></div>
-      <div class="achv"><div><div class="head">추가한 건 접근 범위 조정 + 순회 API뿐, Algorithm은 그대로.</div>
+      <div class="achv"><div><div class="head">추가한 것은 접근 범위 조정 + 순회 API<span class="head-2">Algorithm은 그대로</span></div>
         <div class="sub"><code class="mono">Boundary</code>를 public으로 옮기고, 방문자 Pattern의
           <code class="mono">Traverse(Visitor&amp;&amp;)</code>를 새로 추가함. <code class="mono">RTree.h</code>는
           여전히 로깅 라이브러리를 전혀 모르고, 어떻게 출력할지는 호출자(데모 코드)가 정함.</div></div></div>
     </div>
 
-    <h3 style="font-size:16px;margin:26px 0 8px;">데모로 실제로 잡은 버그 두 개(둘 다 수정됨)</h3>
+    <h3 style="font-size:16px;margin:26px 0 8px;">데모로 잡은 버그 두 개 (둘 다 수정)</h3>
     <div class="issues">
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">SplitNode() — allEntries 초기화</span>
-          <span class="issue-title">복사해놓고 그 복사본과 스왑 — node-&gt;entries가 안 비워짐</span>
+          <span class="issue-title">복사본과의 스왑<span class="head-2">비워지지 않는 node-&gt;entries</span></span>
           <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
@@ -346,7 +346,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">SplitNode() — 재분배 Loop</span>
-          <span class="issue-title">Entry를 옮기면서 parent Pointer를 안 갱신 — 깊은 Tree에서 서브트리 통째로 유실</span>
+          <span class="issue-title">Entry 이동 시 parent Pointer 미갱신<span class="head-2">깊은 Tree에서 서브트리 통째로 유실</span></span>
           <span class="issue-state closed mono">해결</span>
         </div>
         <div class="issue-body">
@@ -436,7 +436,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 8건 중 6건 수정, 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 등록한 이슈<br>8건 중 6건 수정 · 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -445,7 +445,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/34" target="_blank" rel="noopener">#34</a> · include/List.h:336</span>
-          <span class="issue-title">List::Splice(4-인자 오버로드)에 잘못된 다운캐스트 — 인스턴스화하면 컴파일 안 됨</span>
+          <span class="issue-title">List::Splice(4-인자 오버로드)의 잘못된 다운캐스트<span class="head-2">인스턴스화 시 컴파일 실패</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#34">해결</span>
         </div>
         <div class="issue-body">
@@ -462,7 +462,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/35" target="_blank" rel="noopener">#35</a> · include/TLSFArena.h:1-2</span>
-          <span class="issue-title">TLSFArena.h의 include guard 매크로 이름이 서로 다름</span>
+          <span class="issue-title">TLSFArena.h include guard 매크로 이름 불일치</span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#35">해결</span>
         </div>
         <div class="issue-body">
@@ -504,7 +504,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/32" target="_blank" rel="noopener">#32</a> · include/Variant.h — Copy() / Move() / AlignedStorage::valid</span>
-          <span class="issue-title">valid 플래그가 영원히 false라서, 대입할 때마다 기존 값의 소멸자를 건너뜀</span>
+          <span class="issue-title">영원히 false인 valid 플래그<span class="head-2">대입마다 기존 값의 소멸자 생략</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#32">해결</span>
         </div>
         <div class="issue-body">
@@ -526,7 +526,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Container/issues/31" target="_blank" rel="noopener">#31</a> · include/TLSFArena.h — Free() / Merge() / Remove()</span>
-          <span class="issue-title">병합된 Free()마다 m_remainedSize가 실제보다 더 깎임 — 진짜 누수는 아님</span>
+          <span class="issue-title">병합된 Free()마다 더 깎이는 m_remainedSize<span class="head-2">진짜 누수는 아닌 통계 오류</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Container#31">해결</span>
         </div>
         <div class="issue-body">
@@ -549,7 +549,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/LinearArena.h:107, 37, 7-8</span>
-          <span class="issue-title">LinearArena는 DynamicArray/HashTable의 Allocator 인터페이스와 안 맞음</span>
+          <span class="issue-title">LinearArena와 Allocator 인터페이스의 불일치</span>
           <span class="issue-state closed mono">설계 노트</span>
         </div>
         <div class="issue-body">
@@ -563,7 +563,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/DynamicArray.h:250-257</span>
-          <span class="issue-title">복사 대입 후 실제 용량과 기록된 m_capacity가 어긋날 수 있음</span>
+          <span class="issue-title">복사 대입 후 실제 용량과 m_capacity의 불일치 가능성</span>
           <span class="issue-state closed mono">설계 노트</span>
         </div>
         <div class="issue-body">
@@ -595,6 +595,7 @@ tree.Traverse([](size_t depth, bool isLeaf, const Tree2D::Boundary& box, const s
 </footer>
 
 <script src="app.js"></script>
+<script src="activity-data.js"></script>
 <script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
