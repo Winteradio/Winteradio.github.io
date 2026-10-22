@@ -69,15 +69,15 @@
       객체 단위 편차가 가장 큰 Purge 단계만 시간 예산을 둬서 여러 프레임에 나눠 실행하도록 설계.
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">상태 하나가 전체 Cycle을 이끎.</div>
+      <div class="achv"><div><div class="head">상태 하나로 도는 전체 Cycle</div>
         <div class="sub"><code class="mono">eIdle → eMarking → eSweeping → ePurging → eIdle</code>, <code class="mono">eStatus</code>
           하나가 전부 결정. 각 단계가 빨리 끝나면 <code class="mono">Collect()</code>
           한 번 호출로 여러 단계를 연속으로 통과할 수 있음.</div></div></div>
-      <div class="achv"><div><div class="head">시간 예산은 정확히 Purge 단계에만 적용됨.</div>
+      <div class="achv"><div><div class="head">Purge 단계에만 걸린 시간 예산</div>
         <div class="sub">Mark와 Sweep은 항상 한 번에 끝까지 돎. 죽은 객체를 파괴하고 슬롯을 반환하는
           <code class="mono">Purge()</code>만 객체 단위로 시간을 체크 — 부족하면 중간에 멈췄다가 다음
           <code class="mono">Collect()</code>에서 그 지점부터 이어감.</div></div></div>
-      <div class="achv"><div><div class="head">Compaction은 실수로 빠진 게 아니라 의도적으로 뺌.</div>
+      <div class="achv"><div><div class="head">의도적으로 뺀 Compaction</div>
         <div class="sub">Accessor(객체 메타데이터)가 별도 Handle Table이 아니라 각 Instance 자신의 헤더 바로
           앞에 있음 — 객체를 옮기면 그 객체를 가리키는 모든 Pointer를 찾아 다시 써야 함. 대신 버킷 점유율
           기반 할당 정책으로 단편화를 관리.</div></div></div>
@@ -85,14 +85,14 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">특징</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">시간 예산 안에서 멈췄다 재개할 수 있음.</div>
+      <div class="achv"><div><div class="head">시간 예산 안에서 멈췄다 재개하는 Cycle</div>
         <div class="sub">Purge가 객체 단위로 시간을 체크 — 큰 GC Cycle이 한 프레임에 몰려 Spike를
           만드는 걸 구조적으로 막음.</div></div></div>
-      <div class="achv"><div><div class="head">Compaction 없이도 단편화를 관리하는 근거가 있음.</div>
+      <div class="achv"><div><div class="head">Compaction 없는 단편화 관리<span class="head-2">문서화된 설계 근거</span></div>
         <div class="sub">Accessor가 인라인이라 Pointer 하나로 메타데이터에 접근하는 대신 이동이 불가능 —
           그 트레이드오프를 버킷 점유율 기반 할당 정책(eSparse~eFull)으로 보완한다는 설계 근거가 문서화되어
           있음.</div></div></div>
-      <div class="achv"><div><div class="head">Root set은 Thread 안전함.</div>
+      <div class="achv"><div><div class="head">Thread 안전한 Root set</div>
         <div class="sub"><code class="mono">AddRoot</code>/<code class="mono">RemoveRoot</code>는 Mutex로
           보호되어 있음 — 최소한 "이 객체가 GC 대상에서 제외됐는지"는 여러 Thread에서 안전하게 확인
           가능.</div></div></div>
@@ -100,14 +100,14 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Thread 안전성이 root set에서 멈춰 있음.</div>
+      <div class="achv"><div><div class="head">root set까지만인 Thread 안전성</div>
         <div class="sub">Accessor의 마킹 상태와 각 Pool의 List는 Mutex 보호 밖(이슈 #16) — Collector
           Thread와 mutator Thread가 경합하면 Crash로 이어질 수 있음.</div></div></div>
-      <div class="achv"><div><div class="head">종료 시점 정리가 조건부로 스킵됐었음.<span class="status-chip done">수정됨 · #17</span></div>
+      <div class="achv"><div><div class="head">조건부로 스킵되던 종료 시점 정리<span class="status-chip done">수정됨 · #17</span></div>
         <div class="sub"><code class="mono">PoolBudget::~PoolBudget()</code>이 버킷 하나만 비어 있어도
           <code class="mono">Release()</code> 전체를 건너뛰어서, 대부분의 종료 상황에서 살아있는
           Pool과 arena가 그냥 새어나갔음 → empty 플래그 초기값이 반대로 되어 있던 것을 바로잡음.</div></div></div>
-      <div class="achv"><div><div class="head">write barrier가 없음.</div>
+      <div class="achv"><div><div class="head">write barrier 부재</div>
         <div class="sub">새 객체가 "흰색"으로 태어나는데 이미 마킹을 마친 부모 Graph에 연결됐을 때 강제로
           살아있다고 표시할 장치가 없음 — 이론상 생성된 바로 그 Cycle에 수거될 수 있는 경로가 존재함.</div></div></div>
     </div>
@@ -134,11 +134,11 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">ObjectPtr vs. RootPtr</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Root set은 "Pointer를 가리키는 Pointer"를 담음.</div>
+      <div class="achv"><div><div class="head">Root set의 내용물<span class="head-2">"Pointer를 가리키는 Pointer"</span></div>
         <div class="sub"><code class="mono">RootPtr</code>의 생성자는 <code class="mono">AddRoot(this)</code>를
           호출 — 관리 대상 객체의 주소가 아니라 <code class="mono">RootPtr</code> Wrapper 자신의 주소를 root
           set에 넣음. <code class="mono">Mark()</code>는 이 Wrapper를 거쳐 실제 Instance에 도달함.</div></div></div>
-      <div class="achv"><div><div class="head">ObjectPtr은 비활성임.</div>
+      <div class="achv"><div><div class="head">비활성 Handle인 ObjectPtr</div>
         <div class="sub">레이아웃은 같지만 생성자/소멸자 어디서도 Collector와 대화하지 않는 평범한 Handle임.
           <code class="mono">RootPtr</code>로 감싸야만 GC root가 됨.</div></div></div>
     </div>
@@ -173,14 +173,14 @@ int main()
       <span class="section-num mono">03 / HISTORY</span>
       <div>
         <h2 class="section-title display">개발 히스토리</h2>
-        <span class="section-tag">GitHub 커밋 기준 — 2023년 5~10월의 1기, 2025년 11월부터 GC로 다시 짠 2기</span>
+        <span class="section-tag">GitHub 커밋 기준<br>2023년 5~10월의 1기 · 2025년 11월부터 GC로 다시 짠 2기</span>
       </div>
     </div>
 
     <div data-activity="memory"><p class="foot-line" style="font-size:13px;">커밋 기록을 불러오는 중…</p></div>
 
     <ol class="tl">
-      <li class="tl-era"><span class="n mono">1기</span><span class="h">ECS용 Memory Pool → MemoryManager<small>2023.05 — 2023.10 · 태그 v1.0 → v4.x</small></span></li>
+      <li class="tl-era"><span class="n mono">1기</span><span class="h">ECS용 Memory Pool → MemoryManager<small>2023.05 — 2023.10<br>태그 v1.0 → v4.x</small></span></li>
       <li class="tl-item key"><span class="tl-date mono">2023.05.20</span><div class="tl-body">
         <span class="tl-repo">Memory</span><span class="tl-head">ECS용 MemoryPool 첫 버전</span>
         <div class="tl-sub">엔진에서 겪은 Component Pointer 무효화 문제를 풀려고 만든 고정 크기 풀 — 같은 날 Scene · Node 기반 ECS용으로 맞춤(v1.0.0).</div></div></li>
@@ -191,18 +191,18 @@ int main()
         <div class="tl-sub">"생성 · 소멸 권한은 MemoryManager가 쥐어야 한다"는 이유로 weak_ptr 비슷한 Pointer를 만듦 — 커밋 메시지에 남긴 이유 그대로.</div></div></li>
       <li class="tl-item minor"><span class="tl-date mono">2023.10.02</span><div class="tl-body">
         <span class="tl-repo">Memory</span><span class="tl-head">Pool 전체 크기를 객체 크기의 배수로 맞춰 남는 공간 제거</span></div></li>
-      <li class="tl-era"><span class="n mono">2기</span><span class="h">Accessor · Collector 구조의 GC로 재작성<small>2025.11 — 현재 · 2년 넘는 공백 뒤 재시작</small></span></li>
+      <li class="tl-era"><span class="n mono">2기</span><span class="h">Accessor · Collector 구조의 GC로 재작성<small>2025.11 — 현재<br>2년 넘는 공백 뒤 재시작</small></span></li>
       <li class="tl-item key"><span class="tl-date mono">2025.11.30</span><div class="tl-body">
-        <span class="tl-repo">Memory</span><span class="tl-head">구조를 갈아엎으며 재시작</span>
+        <span class="tl-repo">Memory</span><span class="tl-head">구조를 갈아엎은 재시작</span>
         <div class="tl-sub">옛 <code class="mono">MemoryManager/</code>, <code class="mono">OnlyMemoryPool/</code>, <code class="mono">MemoryPtr/</code>, <code class="mono">ExternalProject_Add</code> 기반 빌드를 전부 걷어내고 지금의 <code class="mono">Accessor/Collector/Pointer/Storage</code> 구조와 git submodule 기반 빌드로 다시 짬 — 그 사이 Reflection · Container를 만들며 익힌 설계를 그대로 가져옴.</div></div></li>
       <li class="tl-item"><span class="tl-date mono">2025.12.12</span><div class="tl-body">
-        <span class="tl-repo">Memory</span><span class="tl-head">Container 라이브러리로 일원화하고, GC가 진짜 도는지부터 확인</span>
+        <span class="tl-repo">Memory</span><span class="tl-head">Container 라이브러리로 일원화<span class="head-2">GC 실동작 확인부터</span></span>
         <div class="tl-sub">Memory 안에 따로 있던 List · Arena를 지우고 Container를 submodule로 연결. 데모에 <code class="mono">GCExample()</code>을 넣어 <code class="mono">DynamicArray</code>/<code class="mono">HashMap</code>에 담긴 <code class="mono">ObjectPtr</code>까지 <code class="mono">Collect()</code>가 실제로 훑고 회수하는지 확인.</div></div></li>
       <li class="tl-item"><span class="tl-date mono">2025.12.15</span><div class="tl-body">
-        <span class="tl-repo">Memory</span><span class="tl-head">순환 참조가 마킹을 무한 루프에 빠뜨리는 문제를 직접 겪음</span>
+        <span class="tl-repo">Memory</span><span class="tl-head">순환 참조 마킹 무한 루프<span class="head-2">직접 겪고 고친 문제</span></span>
         <div class="tl-sub">커밋 메시지 그대로 — 서로 연결된 값들을 GC에 등록하면 순환이 생겨 마킹 로직이 끝나지 않음. 스택으로 그래프를 도는 <code class="mono">GarbageCollector.cpp</code> 루프에 <code class="mono">IsMarked()</code> 가드를 넣어 이미 마킹된 노드를 다시 쌓지 않게 고침.</div></div></li>
       <li class="tl-item"><span class="tl-date mono">2026.02.22</span><div class="tl-body">
-        <span class="tl-repo">Memory</span><span class="tl-head">RefPtr을 침투적 → 비침투적 설계로</span>
+        <span class="tl-repo">Memory</span><span class="tl-head">RefPtr 설계 전환<span class="head-2">침투적 → 비침투적</span></span>
         <div class="tl-sub">관리 대상이 <code class="mono">RefCounted</code>를 상속해야만 쓸 수 있던 구조가 너무 불편해서, 대상 타입을 감싸는 <code class="mono">RefData&lt;T&gt;</code>를 두는 std::shared_ptr 비슷한 방식으로 바꿈. 같은 커밋에서 <code class="mono">ObjectPtr</code> 기본 생성자가 Pointer를 nullptr로 초기화하지 않아 나던 런타임 에러도 잡음.</div></div></li>
       <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026.08</small></span></li>
       <li class="tl-item key"><span class="tl-date mono">2026.08.06</span><div class="tl-body">
@@ -275,7 +275,7 @@ int main()
       <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 8건 중 4건 수정, 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 등록한 이슈<br>8건 중 4건 수정 · 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -284,7 +284,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/17" target="_blank" rel="noopener">#17</a> · src/Storage/PoolBudget.cpp:52-72</span>
-          <span class="issue-title">소멸자가 버킷 하나만 비어 있어도 Release()를 건너뛰어 대부분 그냥 샘</span>
+          <span class="issue-title">PoolBudget 소멸자의 Release() 생략<span class="head-2">버킷 하나만 비어도 건너뛰어 대부분 누수</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/MemoryPool#17">해결</span>
         </div>
         <div class="issue-body">
@@ -298,7 +298,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/Storage/Pool.h:161-166, 203-205</span>
-          <span class="issue-title">Sweep이 free-list가 아니라 DynamicArray라서 대량 소멸 시 O(n²)</span>
+          <span class="issue-title">대량 소멸 시 O(n²)인 Sweep<span class="head-2">free-list가 아닌 DynamicArray</span></span>
           <span class="issue-state open mono">성능</span>
         </div>
         <div class="issue-body">
@@ -311,7 +311,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/19" target="_blank" rel="noopener">#19</a> · include/Storage/Array.h — Clear() / Sweep()</span>
-          <span class="issue-title">m_used 체크 없이 초기화 안 된 메모리를 IAccessor로 취급</span>
+          <span class="issue-title">초기화 안 된 메모리의 IAccessor 취급<span class="head-2">m_used 체크 누락</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/MemoryPool#19">해결</span>
         </div>
         <div class="issue-body">
@@ -330,7 +330,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/Accessor/Accessor.h:19, src/Collector/GarbageCollector.cpp:82-126</span>
-          <span class="issue-title">새 객체가 "흰색"으로 태어나고 write barrier가 없음</span>
+          <span class="issue-title">"흰색"으로 태어나는 새 객체<span class="head-2">write barrier 부재</span></span>
           <span class="issue-state open mono">설계 노트</span>
         </div>
         <div class="issue-body">
@@ -343,7 +343,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">src/Storage/ArrayBudget.cpp:45-52,130-138</span>
-          <span class="issue-title">ArrayBudget은 배열을 절대 재사용하지 않고 매번 새로 만듦</span>
+          <span class="issue-title">배열을 재사용하지 않는 ArrayBudget<span class="head-2">매번 새로 생성</span></span>
           <span class="issue-state open mono">성능</span>
         </div>
         <div class="issue-body">
@@ -356,7 +356,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/20" target="_blank" rel="noopener">#20</a> · include/Pointer/RefPtr.h:22-33</span>
-          <span class="issue-title">RefPtr 참조 카운트에 acquire Fence가 없음</span>
+          <span class="issue-title">RefPtr 참조 카운트의 acquire Fence 부재</span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/MemoryPool#20">해결</span>
         </div>
         <div class="issue-body">
@@ -370,7 +370,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">src/TimeLimit.cpp:32-55, GarbageCollector.cpp:141</span>
-          <span class="issue-title">Purge 시간 예산이 10번에 한 번만 체크됨</span>
+          <span class="issue-title">10번에 한 번만 체크하는 Purge 시간 예산</span>
           <span class="issue-state closed mono">설계 노트</span>
         </div>
         <div class="issue-body">
@@ -382,7 +382,7 @@ int main()
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/MemoryPool/issues/18" target="_blank" rel="noopener">#18</a> · src/Storage/StorageManager.cpp:65-96</span>
-          <span class="issue-title">Purge()가 Pool 버킷 하나만 시간 초과해도 배열 버킷 전체와 Clear()를 건너뜀</span>
+          <span class="issue-title">Purge()의 조기 반환<span class="head-2">Pool 버킷 하나의 시간 초과로 배열 버킷 · Clear() 전부 생략</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/MemoryPool#18">해결</span>
         </div>
         <div class="issue-body">
@@ -417,6 +417,7 @@ int main()
 </footer>
 
 <script src="app.js"></script>
+<script src="activity-data.js"></script>
 <script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>

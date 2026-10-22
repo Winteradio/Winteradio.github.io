@@ -72,15 +72,15 @@
       타입 정보를 등록하는 STL 비의존 RTTI 대체 시스템을 택함.
     </div>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">단일 상속 체인만 지원 — 그래서 Cast&lt;T&gt; 안전함.</div>
+      <div class="achv"><div><div class="head">단일 상속 체인만 지원<span class="head-2">그래서 안전한 Cast&lt;T&gt;</span></div>
         <div class="sub"><code class="mono">TypeInfo</code>는 Class당 <code class="mono">SuperType</code>
           하나만 모델링함. 위로 올라가는 경로가 하나뿐이라 <code class="mono">Cast&lt;T&gt;</code>는
           DAG 탐색이 아니라 체인을 걷는 것으로 끝남 — <code class="mono">dynamic_cast</code>가 전혀
           필요 없음.</div></div></div>
-      <div class="achv"><div><div class="head">Container 순회는 힙 할당 0임.</div>
+      <div class="achv"><div><div class="head">힙 할당 0의 Container 순회</div>
         <div class="sub">Iterator가 64바이트 고정 버퍼에 실제 STL/wtr 반복자를 placement-new로 생성 —
           vtable 대신 함수 Pointer 6개로 디스패치함.</div></div></div>
-      <div class="achv"><div><div class="head">같은 시그니처의 함수 두 개도 서로 다른 static 객체를 가짐.</div>
+      <div class="achv"><div><div class="head">같은 시그니처 함수마다 별도 static 객체</div>
         <div class="sub"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가 함수 Pointer "값"을 비타입
           Template 파라미터로 받음 — 시그니처가 같아도 함수마다 별도 Template Instance → 별도 static이
           생김.</div></div></div>
@@ -88,30 +88,30 @@
 
     <h3 style="font-size:16px;margin:26px 0 8px;">특징</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">Macro 하나로 보일러플레이트를 거의 다 없앰.</div>
+      <div class="achv"><div><div class="head">Macro 하나로 없앤 보일러플레이트</div>
         <div class="sub"><code class="mono">GENERATE</code>/<code class="mono">PROPERTY</code>/<code class="mono">METHOD</code>만
           붙이면 등록 코드를 손으로 안 써도 됨 — 컴파일 타임 빠른 경로와 런타임 SuperType 워크를 나눠서
           평소엔 <code class="mono">dynamic_cast</code>보다 빠름.</div></div></div>
-      <div class="achv"><div><div class="head">런타임 오버헤드를 설계 단계에서부터 줄이려 한 흔적이 뚜렷함.</div>
+      <div class="achv"><div><div class="head">설계 단계부터 줄인 런타임 오버헤드</div>
         <div class="sub">64바이트 SBO Iterator(힙 할당 0), 비타입 Template 파라미터로 <code class="mono">new</code>
           없는 정적 MethodCall 등 — "Reflection은 느리다"는 통념을 구조적으로 반박하려는 선택들임.</div></div></div>
-      <div class="achv"><div><div class="head">Get/Set의 타입 안전성 기준이 명확함.</div>
+      <div class="achv"><div><div class="head">명확한 Get/Set 타입 안전성 기준</div>
         <div class="sub">Get은 상속 관계를 허용하고 Set은 완전히 같은 타입만 허용 — object slicing이나
           의도치 않은 다형성 허용 같은 위험을 원천 차단하는 규칙이 문서에 남아 있음.</div></div></div>
     </div>
 
     <h3 style="font-size:16px;margin:26px 0 8px;">주요 내용</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">크로스플랫폼 검증이 안 되어 있었음.<span class="status-chip done">수정됨 · #31</span></div>
+      <div class="achv"><div><div class="head">크로스플랫폼 검증 부재<span class="status-chip done">수정됨 · #31</span></div>
         <div class="sub"><code class="mono">Utils.cpp</code>가 Windows 아닐 때 <code class="mono">GetName</code>
           대신 이름이 다른 <code class="mono">GetClassName</code>을 정의해서, GCC/Clang 빌드는
           <code class="mono">TypeInfo::Get&lt;T&gt;()</code>를 쓰는 순간 링크가 실패했음 → 2026.08 비Windows 분기 이름을
           <code class="mono">GetName</code>으로 맞춤.</div></div></div>
-      <div class="achv"><div><div class="head">Method 쪽은 Property만큼 타입 검증이 엄격하지 않았음.<span class="status-chip done">수정됨 · #32</span></div>
+      <div class="achv"><div><div class="head">Property보다 느슨하던 Method 타입 검증<span class="status-chip done">수정됨 · #32</span></div>
         <div class="sub"><code class="mono">MethodInfo::Invoke</code>가 소유 Class를 검증하지 않아서, 시그니처만
           같으면 서로 무관한 Class끼리도 조용히 타입 펀될 수 있었음 → Invoke 전에 Instance의 런타임 타입을 소유 Class와
           대조하도록 바꿈.</div></div></div>
-      <div class="achv"><div><div class="head">Template Class 조합에서 Macro가 깨질 수 있음.</div>
+      <div class="achv"><div><div class="head">Template Class 조합에서 깨질 수 있는 Macro</div>
         <div class="sub">Template Class 내부의 <code class="mono">PROPERTY()</code>가 GCC/Clang의 공격적인
           dead-code elimination에 스트리핑되는 문제가 아직 완전히 해결되지 않음(이슈 #25).</div></div></div>
     </div>
@@ -122,7 +122,7 @@
       <span class="section-num mono">02 / MODULES</span>
       <div>
         <h2 class="section-title display">상세 내용 &amp; 다이어그램</h2>
-        <span class="section-tag">단일 상속만 지원 — 그래서 Cast&lt;T&gt; 안전함</span>
+        <span class="section-tag">단일 상속만 지원<br>그래서 안전한 Cast&lt;T&gt;</span>
       </div>
     </div>
 
@@ -165,7 +165,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <span class="section-num mono">03 / HISTORY</span>
       <div>
         <h2 class="section-title display">개발 히스토리</h2>
-        <span class="section-tag">2024.01 첫 커밋부터 실제 커밋 로그 기준 — 회고가 아니라 커밋 메시지 · diff에서 그대로 확인한 순서</span>
+        <span class="section-tag">2024.01 첫 커밋부터 실제 커밋 로그 기준<br>커밋 메시지 · diff에서 그대로 확인한 순서</span>
       </div>
     </div>
 
@@ -192,7 +192,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
         <span class="tl-repo">Reflection</span><span class="tl-head">Container 프로젝트를 submodule로 결합</span>
         <div class="tl-sub"><code class="mono">external/Container</code>를 붙이고 <code class="mono">ContainerPropertyInfo</code>를 새로 만듦 — 64바이트 SBO Iterator도 이 뒤에 자리 잡음.</div></div></li>
       <li class="tl-item minor"><span class="tl-date mono">2025.12.12</span><div class="tl-body">
-        <span class="tl-repo">Reflection</span><span class="tl-head">GCC 경고 수정 — 하지만 범위가 좁았음</span>
+        <span class="tl-repo">Reflection</span><span class="tl-head">GCC 경고 수정<span class="head-2">좁았던 수정 범위</span></span>
         <div class="tl-sub"><code class="mono">ContainerPropertyInfo.h</code> 한 곳만 건드려서 <code class="mono">Utils.cpp</code>의 플랫폼 분기 문제는 그대로 남음 → 2026.08 #31로 마저 고침.</div></div></li>
       <li class="tl-era"><span class="n mono">2기</span><span class="h">코드 리뷰 → 수정<small>2026</small></span></li>
       <li class="tl-item minor"><span class="tl-date mono">2026.04.12</span><div class="tl-body">
@@ -250,13 +250,12 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 
     <h3 style="font-size:16px;margin:26px 0 8px;">METHOD(name)</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">호출 대상은 Type Erasure로 지워짐.</div>
+      <div class="achv"><div><div class="head">Type Erasure로 지운 호출 대상</div>
         <div class="sub"><code class="mono">MethodBase</code>(빈 껍데기) → <code class="mono">MethodCall&lt;Return,
           Args...&gt;</code>(순수 가상 <code class="mono">Invoke</code>) → <code class="mono">MemberMethodCall</code>/
           <code class="mono">StaticMethodCall</code>(실제 함수 Pointer 보관) 3단 상속으로, 호출부는
           Return/Args만 알면 됨.</div></div></div>
-      <div class="achv"><div><div class="head"><code class="mono">MethodCreator&lt;Func, func&gt;</code>가
-        함수 Pointer "값"을 Template 파라미터로 받음.</div>
+      <div class="achv"><div><div class="head"><code class="mono">MethodCreator&lt;Func, func&gt;</code><span class="head-2">함수 Pointer "값"을 받는 Template 파라미터</span></div>
         <div class="sub">같은 시그니처의 함수라도 <code class="mono">func</code>이 다른 값이면 서로 다른
           Template Instance — 함수마다 자기 <code class="mono">static MemberMethodCall</code>을 따로
           가짐(부분 특수화 3개: 멤버/const 멤버/정적 함수).</div></div></div>
@@ -268,17 +267,17 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 
     <h3 style="font-size:16px;margin:26px 0 8px;">Zero-allocation Container Iterator</h3>
     <div class="achv-list">
-      <div class="achv"><div><div class="head">vtable도 베이스 Class도 없음</div>
+      <div class="achv"><div><div class="head">vtable · 베이스 Class 없는 구조</div>
         <div class="sub"><code class="mono">alignas(void*) uint8_t m_storage[64]</code>에 함수 Pointer 6개
           (Next/Prev/Destroy/Element/Copy/Compare) — Container 타입별로 고정된 이 함수 Pointer 묶음 자체가
           수동으로 만든 vtable임.</div></div></div>
       <div class="achv"><div><div class="head">생성</div>
         <div class="sub"><code class="mono">begin()</code>이 실제 STL/wtr const_iterator를 64바이트 버퍼에
           placement-new로 직접 생성함.</div></div></div>
-      <div class="achv"><div><div class="head">복사는 진짜 깊은 복사임</div>
+      <div class="achv"><div><div class="head">진짜 깊은 복사</div>
         <div class="sub">버퍼를 그냥 <code class="mono">memcpy</code>하면 내부 Pointer(해시 버킷, 리스트 Node)를
           들고 있는 반복자가 깨짐. <code class="mono">CopyFunc</code>가 원본에서 새로 placement-new함.</div></div></div>
-      <div class="achv"><div><div class="head">소멸은 명시적</div>
+      <div class="achv"><div><div class="head">명시적 소멸</div>
         <div class="sub"><code class="mono">uint8_t[]</code>는 소멸자를 자동으로 안 불러줌 —
           <code class="mono">~Iterator()</code>가 <code class="mono">DestroyFunc</code>를 호출해 그 자리에서
           실제 반복자의 소멸자를 실행함.</div></div></div>
@@ -327,7 +326,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <span class="section-num mono">06 / BUGS</span>
       <div>
         <h2 class="section-title display">버그</h2>
-        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 이슈로 등록한 것들 — 3건 중 2건 수정, 상태는 실시간 동기화</span>
+        <span class="section-tag">2026.08 코드 리뷰에서 직접 찾아 등록한 이슈<br>3건 중 2건 수정 · 상태는 실시간 동기화</span>
       </div>
     </div>
     <details class="collapse">
@@ -336,7 +335,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/31" target="_blank" rel="noopener">#31</a> · src/Utils.cpp:9,53, include/Type/TypeInfo.h:93</span>
-          <span class="issue-title">Windows 밖에서는 링크가 안 됨 — GetName 정의가 아예 없음</span>
+          <span class="issue-title">Windows 밖에서의 링크 실패<span class="head-2">GetName 정의 누락</span></span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Reflection#31">해결</span>
         </div>
         <div class="issue-body">
@@ -352,7 +351,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono"><a href="https://github.com/Winteradio/Reflection/issues/32" target="_blank" rel="noopener">#32</a> · include/Method/MethodInfo.h:77, MethodCall.h:117</span>
-          <span class="issue-title">MethodInfo::Invoke가 소유 Class를 검증하지 않음</span>
+          <span class="issue-title">MethodInfo::Invoke의 소유 Class 검증 누락</span>
           <span class="issue-state closed mono" data-gh-issue="Winteradio/Reflection#32">해결</span>
         </div>
         <div class="issue-body">
@@ -367,7 +366,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
       <div class="issue-card">
         <div class="issue-head">
           <span class="issue-num mono">include/Type/TypeInfo.h:110, src/Type/TypeManager.cpp:34-37</span>
-          <span class="issue-title">TypeManager의 map 키가 사실상 Pointer 자기 자신 + 락 없는 조회</span>
+          <span class="issue-title">TypeManager map 키<span class="head-2">사실상 Pointer 자기 자신 + 락 없는 조회</span></span>
           <span class="issue-state closed mono">설계 노트</span>
         </div>
         <div class="issue-body">
@@ -399,6 +398,7 @@ int result = method-&gt;Invoke&lt;int&gt;(obj, 3, 4);  // MethodCreator가 함�
 </footer>
 
 <script src="app.js"></script>
+<script src="activity-data.js"></script>
 <script src="activity.js"></script>
 <script data-goatcounter="https://winteradio.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>

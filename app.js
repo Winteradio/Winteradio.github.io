@@ -9,6 +9,69 @@
   ruler.innerHTML = html;
 }());
 
+// Stack map (home) — engine modules and libraries expand in place instead of navigating.
+// Opening a library also tags the libraries it depends on ("의존") and the ones built on it
+// ("사용"); the engine block counts as a user of every library. index.html#lib-<key> opens one.
+(function () {
+  var map = document.querySelector('[data-stackmap]');
+  if (!map) { return; }
+  var engine = map.querySelector('.sm-engine');
+  var items = Array.prototype.slice.call(map.querySelectorAll('.sm-libs li[data-lib]'));
+  var deps = {};
+  items.forEach(function (li) {
+    deps[li.getAttribute('data-lib')] = (li.getAttribute('data-deps') || '').split(/\s+/).filter(Boolean);
+  });
+
+  function setOpen(li, open) {
+    li.classList.toggle('open', open);
+    li.querySelector('.sm-lib').setAttribute('aria-expanded', open ? 'true' : 'false');
+    li.querySelector('.sm-panel').classList.toggle('open', open);
+  }
+
+  function markRelations(key) {
+    items.forEach(function (li) {
+      var k = li.getAttribute('data-lib');
+      var rel = '';
+      if (key && k !== key) {
+        if (deps[key].indexOf(k) >= 0) { rel = 'dep'; }
+        else if (deps[k].indexOf(key) >= 0) { rel = 'user'; }
+      }
+      if (rel) { li.setAttribute('data-rel', rel); } else { li.removeAttribute('data-rel'); }
+    });
+    if (key) { engine.setAttribute('data-rel', 'user'); } else { engine.removeAttribute('data-rel'); }
+  }
+
+  function toggle(li) {
+    var wasOpen = li.classList.contains('open');
+    items.forEach(function (o) { setOpen(o, false); });
+    if (!wasOpen) { setOpen(li, true); }
+    markRelations(wasOpen ? null : li.getAttribute('data-lib'));
+  }
+
+  items.forEach(function (li) {
+    li.querySelector('.sm-lib').addEventListener('click', function () { toggle(li); });
+  });
+
+  var mods = Array.prototype.slice.call(map.querySelectorAll('.sm-mod'));
+  mods.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var open = btn.getAttribute('aria-expanded') !== 'true';
+      mods.forEach(function (o) {
+        o.setAttribute('aria-expanded', 'false');
+        document.getElementById(o.getAttribute('aria-controls')).hidden = true;
+      });
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.getElementById(btn.getAttribute('aria-controls')).hidden = !open;
+    });
+  });
+
+  var hash = /^#lib-([a-z]+)$/.exec(window.location.hash);
+  if (hash) {
+    var target = map.querySelector('li[data-lib="' + hash[1] + '"]');
+    if (target) { toggle(target); }
+  }
+}());
+
 // Live GitHub issue state — the 원인/해결 writeups on each issue-card are
 // hand-curated and stay as-is; only the open/closed badge is kept in sync
 // with the real issue so a later fix on GitHub doesn't leave the site saying
